@@ -41,13 +41,14 @@ public class GlobalExceptionHandler {
 
     /**
      * Bean Validation 애너테이션 이름 → 명세 {@code details[].reason}.
-     * 명세에 확정된 값은 {@code REQUIRED} 하나뿐이고, 나머지는 애너테이션 이름을
-     * 대문자로 올린 관례값이다.
+     * 명세가 확정한 값은 {@code REQUIRED}(0장 3))와 {@code FUTURE_DATE}(TX-01) 둘이고,
+     * 표에 없는 애너테이션은 이름을 대문자로 올린 관례값이 된다.
      */
-    private static final Map<String, String> REQUIRED_ANNOTATIONS = Map.of(
+    private static final Map<String, String> REASON_BY_ANNOTATION = Map.of(
             "NotNull", "REQUIRED",
             "NotBlank", "REQUIRED",
-            "NotEmpty", "REQUIRED"
+            "NotEmpty", "REQUIRED",
+            "NotFutureDate", "FUTURE_DATE"
     );
 
     @ExceptionHandler(BusinessException.class)
@@ -123,7 +124,7 @@ public class GlobalExceptionHandler {
         if (annotationName == null) {
             return "INVALID";
         }
-        String mapped = REQUIRED_ANNOTATIONS.get(annotationName);
+        String mapped = REASON_BY_ANNOTATION.get(annotationName);
         return mapped != null ? mapped : annotationName.toUpperCase();
     }
 

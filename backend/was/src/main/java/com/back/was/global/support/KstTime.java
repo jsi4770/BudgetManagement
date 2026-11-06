@@ -1,5 +1,6 @@
 package com.back.was.global.support;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -22,5 +23,14 @@ public final class KstTime {
     /** 저장된 KST 벽시계 값에 {@code +09:00} 오프셋을 붙인다. */
     public static OffsetDateTime toOffset(LocalDateTime kstWallClock) {
         return kstWallClock == null ? null : kstWallClock.atZone(ZONE).toOffsetDateTime();
+    }
+
+    /**
+     * "오늘"의 단일 정의. 서버 JVM 의 기본 시간대가 KST 가 아닐 수 있으므로
+     * {@code LocalDate.now()} 를 직접 쓰지 않는다 — 미래 날짜 검증(TX-01)과 주·월 경계
+     * 계산이 모두 이 값을 기준으로 해야 한다.
+     */
+    public static LocalDate today() {
+        return LocalDate.now(ZONE);
     }
 }
