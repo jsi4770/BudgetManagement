@@ -3,13 +3,20 @@ package com.back.was.domain.transaction;
 import com.back.was.domain.category.Category;
 import com.back.was.domain.category.CategoryRepository;
 import com.back.was.domain.transaction.dto.CreateTransactionRequest;
+import com.back.was.domain.transaction.dto.TransactionListItem;
 import com.back.was.domain.transaction.dto.TransactionResponse;
+import com.back.was.domain.transaction.dto.TransactionSearchRequest;
 import com.back.was.domain.user.User;
 import com.back.was.domain.user.UserRepository;
 import com.back.was.global.exception.BusinessException;
+import com.back.was.global.response.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 /** TX-01 거래 등록. */
 @Service
@@ -41,5 +48,33 @@ public class TransactionService {
                 user, category, request.amount(), request.transactionDate(), request.memo()));
 
         return TransactionResponse.from(transaction);
+    }
+
+    /**
+     * TX-02. 쿼리에 항상 {@code userId} 가 들어가므로 남의 거래는 결과에 섞이지 않는다
+     * (서버_내부_처리 공통 전제).
+     *
+     * <p>{@code from} 이 {@code to} 보다 뒤면 검증으로 막지 않고 빈 목록을 준다 — 명세
+     * TX-02 에 그 조합에 대한 규칙이 없고, 날짜 범위가 비는 건 "해당 기간에 거래 없음"과
+     * 같은 상태다.
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<TransactionListItem> search(Long userId, TransactionSearchRequest request) {
+        int page = request.pageOrDefault();
+        int size = request.sizeOrDefault();
+
+        Page<Transaction> found = transactionRepository.search(
+                userId,
+                request.fromOrDefault(),
+                request.toOrDefault(),
+                request.type(),
+                request.categoryId(),
+                PageRequest.of(page, size));
+
+        List<TransactionListItem> items = found.getContent().stream()
+                .map(TransactionListItem::from)
+                .toList();
+
+        return PageResponse.of(items, page, size, found.getTotalElements());
     }
 }
