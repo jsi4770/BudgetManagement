@@ -20,23 +20,22 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 
 /**
  * ERD 3장 BUDGET.
  *
- * <p><b>현재는 AUTH-02 의 {@code hasBudget} 판정에만 쓰인다.</b> BUDGET-01·02
- * 엔드포인트와 ERD 3장의 "조회 시 최근 월 예산을 복사해 이번 달 행 생성" 규칙은
- * 아직 구현되지 않았다. 컬럼은 ERD 를 그대로 따랐으므로 그 기능이 올라올 때
- * 테이블을 바꿀 필요는 없다.
- *
  * <p>{@code YEAR_MONTH} 는 일부 DB에서 예약어이자 Java 의 {@code java.time.YearMonth}
- * 와 이름이 겹친다. 컬럼명을 명시하고 타입은 ERD 대로 {@code CHAR(7)} 문자열로 둔다.
+ * 와 이름이 겹친다. 컬럼명을 명시하고 저장 타입은 ERD 대로 {@code CHAR(7)} 문자열로 둔다.
+ * 문자열이어도 {@code YYYY-MM} 은 사전순 = 시간순이라 "가장 최근 월" 조회
+ * ({@link BudgetRepository#findTopByUserIdAndYearMonthLessThanOrderByYearMonthDesc})가
+ * 그대로 성립한다.
  */
 @Entity
 @Table(
-        name = "budget",
+        name = "budgets",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_budget_user_year_month",
+                name = "uk_budgets_user_year_month",
                 columnNames = {"user_id", "year_month"}
         )
 )
@@ -73,4 +72,36 @@ public class Budget {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+
+    private Budget(User user, YearMonth yearMonth, int monthlyBudget, int savingsGoal, SpendingFocus spendingFocus) {
+        this.user = user;
+        this.yearMonth = yearMonth.toString();
+        this.monthlyBudget = monthlyBudget;
+        this.savingsGoal = savingsGoal;
+        this.spendingFocus = spendingFocus;
+    }
+
+    /** BUDGET-02 저장(신규). */
+    public static Budget of(User user, YearMonth yearMonth, int monthlyBudget, int savingsGoal,
+                            SpendingFocus spendingFocus) {
+        return new Budget(user, yearMonth, monthlyBudget, savingsGoal, spendingFocus);
+    }
+
+    /**
+     * ERD 3장 "이번 달 행이 없으면 가장 최근 월 예산을 복사" — 금액·목표만 옮기고
+     * 연월은 새 달로, {@code CREATED_AT}/{@code UPDATED_AT} 은 새로 찍힌다.
+     */
+    public Budget copyTo(YearMonth target) {
+        return new Budget(user, target, monthlyBudget, savingsGoal, spendingFocus);
+    }
+
+    /**
+     * BUDGET-02 저장(덮어쓰기). PUT 이라 보낸 값으로 전체를 바꾼다 — {@code spendingFocus}
+     * 를 보내지 않으면 "유지"가 아니라 {@code null} 로 지워지는 게 PUT 의 의미다.
+     */
+    public void overwrite(int monthlyBudget, int savingsGoal, SpendingFocus spendingFocus) {
+        this.monthlyBudget = monthlyBudget;
+        this.savingsGoal = savingsGoal;
+        this.spendingFocus = spendingFocus;
+    }
 }
