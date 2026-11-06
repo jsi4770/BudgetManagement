@@ -14,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -88,5 +89,17 @@ public class TransactionController {
                                                    @PathVariable Long id,
                                                    @RequestBody @Valid UpdateTransactionRequest request) {
         return ApiResponse.ok(transactionService.update(authUser.id(), id, request));
+    }
+
+    /**
+     * TX-06 거래 삭제.
+     *
+     * <p>{@code 204} 는 바디가 없으므로 {@code ApiResponse} 를 쓰지 않는다 — AUTH-04 와
+     * 같은 이유다(명세 0장 3)).
+     */
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@AuthenticationPrincipal AuthUser authUser, @PathVariable Long id) {
+        transactionService.delete(authUser.id(), id);
     }
 }

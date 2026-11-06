@@ -93,6 +93,28 @@ public class TransactionService {
     }
 
     /**
+     * TX-06 거래 삭제. 본문 없이 204 다(명세 TX-06).
+     *
+     * <p><b>멱등하지 않다.</b> 이미 지운 거래를 다시 지우면 404 다 — AUTH-04 로그아웃과
+     * 다른 선택인데, 로그아웃은 명세가 에러를 정의하지 않고 쿠키를 어차피 치워야 했지만
+     * 여기서 성공을 흉내내면 "그 ID 가 있었다"를 알려주는 것과 같다. 프론트는 명세 0장 5)
+     * 대로 404 를 "찾을 수 없음" 하나로 처리하면 된다.
+     *
+     * <p>삭제 전에 엔티티를 조회하는 건 소유권 확인 때문만이 아니다 — 서버_내부_처리
+     * 1장의 후처리(진행 중 챌린지 실적 재계산, 해당 카테고리 넛지 재판정)가 들어오면
+     * <b>지워진 거래의 카테고리·날짜</b>가 필요하고, 그 값은 삭제 후에는 얻을 수 없다.
+     *
+     * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 거래
+     */
+    @Transactional
+    public void delete(Long userId, Long id) {
+        Transaction transaction = transactionRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(BusinessException::notFound);
+
+        transactionRepository.delete(transaction);
+    }
+
+    /**
      * TX-04 거래 상세. 응답은 TX-01 과 같은 모양이다(명세 TX-04 "TX-01과 동일").
      *
      * <p>없는 거래와 남의 거래를 모두 404 로 내린다 — 명세 0장 5). 두 경우를 구분하면
