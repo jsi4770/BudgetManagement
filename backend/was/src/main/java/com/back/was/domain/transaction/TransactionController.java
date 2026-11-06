@@ -2,6 +2,8 @@ package com.back.was.domain.transaction;
 
 import com.back.was.domain.transaction.dto.CalendarResponse;
 import com.back.was.domain.transaction.dto.CreateTransactionRequest;
+import com.back.was.domain.transaction.dto.ParseTransactionRequest;
+import com.back.was.domain.transaction.dto.ParsedTransactionResponse;
 import com.back.was.domain.transaction.dto.TransactionListItem;
 import com.back.was.domain.transaction.dto.TransactionResponse;
 import com.back.was.domain.transaction.dto.TransactionSearchRequest;
@@ -40,6 +42,18 @@ public class TransactionController {
     public ApiResponse<TransactionResponse> create(@AuthenticationPrincipal AuthUser authUser,
                                                    @RequestBody @Valid CreateTransactionRequest request) {
         return ApiResponse.ok(transactionService.create(authUser.id(), request));
+    }
+
+    /**
+     * TX-07 자연어 분석. 저장하지 않고 추출 결과만 준다 — 프론트가 확인·수정 화면을
+     * 띄우고 최종 저장은 TX-01 로 한다.
+     *
+     * <p>{@code /parse} 는 리터럴이라 TX-04 의 {@code /{id}} 와 겹치지 않는다. 메서드도
+     * {@code POST} 라 더더욱 충돌하지 않는다.
+     */
+    @PostMapping("/parse")
+    public ApiResponse<ParsedTransactionResponse> parse(@RequestBody @Valid ParseTransactionRequest request) {
+        return ApiResponse.ok(transactionService.parse(request));
     }
 
     /**
