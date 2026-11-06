@@ -2,6 +2,8 @@ package com.back.was.domain.transaction;
 
 import com.back.was.domain.category.Category;
 import com.back.was.domain.category.CategoryRepository;
+import com.back.was.domain.category.CategoryType;
+import com.back.was.domain.transaction.dto.CalendarResponse;
 import com.back.was.domain.transaction.dto.CreateTransactionRequest;
 import com.back.was.domain.transaction.dto.TransactionListItem;
 import com.back.was.domain.transaction.dto.TransactionResponse;
@@ -16,6 +18,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.YearMonth;
 import java.util.List;
 
 /** TX-01 거래 등록. */
@@ -76,5 +79,22 @@ public class TransactionService {
                 .toList();
 
         return PageResponse.of(items, page, size, found.getTotalElements());
+    }
+
+    /**
+     * TX-03 달력용 일별 합계. 범위는 해당 월의 1일부터 말일까지고, 집계는 DB 가 한다 —
+     * 한 달치 거래를 다 읽어 와 애플리케이션에서 더하면 달력 한 번 넘길 때마다 수백 건을
+     * 옮기게 된다.
+     */
+    @Transactional(readOnly = true)
+    public CalendarResponse getCalendar(Long userId, YearMonth yearMonth) {
+        List<DailyAmountSum> sums = transactionRepository.sumDailyAmounts(
+                userId,
+                yearMonth.atDay(1),
+                yearMonth.atEndOfMonth(),
+                CategoryType.INCOME,
+                CategoryType.EXPENSE);
+
+        return CalendarResponse.of(yearMonth.toString(), sums);
     }
 }

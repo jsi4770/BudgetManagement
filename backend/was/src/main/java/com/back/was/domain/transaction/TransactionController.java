@@ -1,5 +1,6 @@
 package com.back.was.domain.transaction;
 
+import com.back.was.domain.transaction.dto.CalendarResponse;
 import com.back.was.domain.transaction.dto.CreateTransactionRequest;
 import com.back.was.domain.transaction.dto.TransactionListItem;
 import com.back.was.domain.transaction.dto.TransactionResponse;
@@ -7,6 +8,7 @@ import com.back.was.domain.transaction.dto.TransactionSearchRequest;
 import com.back.was.global.response.ApiResponse;
 import com.back.was.global.response.PageResponse;
 import com.back.was.global.security.AuthUser;
+import com.back.was.global.support.YearMonths;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -44,5 +47,22 @@ public class TransactionController {
             @AuthenticationPrincipal AuthUser authUser,
             @Valid @ModelAttribute TransactionSearchRequest request) {
         return ApiResponse.ok(transactionService.search(authUser.id(), request));
+    }
+
+    /**
+     * TX-03 달력용 일별 합계.
+     *
+     * <p>{@code yearMonth} 는 필수다. 빠지면 {@code MissingServletRequestParameterException}
+     * 이 나고 전역 핸들러가 400 {@code VALIDATION_ERROR} +
+     * {@code details[{field: yearMonth, reason: REQUIRED}]} 로 바꿔 준다.
+     *
+     * <p>이 경로는 TX-04 {@code GET /transactions/{id}} 보다 구체적인 리터럴이라 Spring 이
+     * 먼저 매칭한다 — TX-04 가 생겨도 {@code calendar} 가 ID 로 해석되지 않는다.
+     */
+    @GetMapping("/calendar")
+    public ApiResponse<CalendarResponse> getCalendar(@AuthenticationPrincipal AuthUser authUser,
+                                                     @RequestParam String yearMonth) {
+        return ApiResponse.ok(
+                transactionService.getCalendar(authUser.id(), YearMonths.parse(yearMonth)));
     }
 }

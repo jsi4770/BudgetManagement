@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
 
@@ -46,4 +47,32 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                              @Param("type") CategoryType type,
                              @Param("categoryId") Long categoryId,
                              Pageable pageable);
+
+    /**
+     * TX-03 달력용 일별 합계. 하루에 수입·지출이 섞여 있어도 한 줄로 나온다.
+     *
+     * <p>{@code group by} 덕분에 <b>거래가 있는 날짜만</b> 결과에 들어간다(명세 TX-03) —
+     * 빈 날짜를 0 으로 채우지 않는다.
+     *
+     * <p>수입/지출 구분은 거래가 아니라 카테고리 TYPE 이므로(ERD 5장) 두 값을
+     * 파라미터로 받아 {@code case} 로 가른다. JPQL 에 enum 리터럴을 FQCN 으로 적는
+     * 방법도 있지만, 그 문자열은 컴파일 타임에 검증되지 않아 패키지를 옮기면 조용히
+     * 깨진다.
+     */
+    @Query("""
+            select new com.back.was.domain.transaction.DailyAmountSum(
+                t.transactionDate,
+                sum(case when t.category.type = :income then t.amount else 0 end),
+                sum(case when t.category.type = :expense then t.amount else 0 end))
+            from Transaction t
+            where t.user.id = :userId
+              and t.transactionDate between :from and :to
+            group by t.transactionDate
+            order by t.transactionDate
+            """)
+    List<DailyAmountSum> sumDailyAmounts(@Param("userId") Long userId,
+                                         @Param("from") LocalDate from,
+                                         @Param("to") LocalDate to,
+                                         @Param("income") CategoryType income,
+                                         @Param("expense") CategoryType expense);
 }
