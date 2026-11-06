@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -64,5 +65,18 @@ public class TransactionController {
                                                      @RequestParam String yearMonth) {
         return ApiResponse.ok(
                 transactionService.getCalendar(authUser.id(), YearMonths.parse(yearMonth)));
+    }
+
+    /**
+     * TX-04 거래 상세. 응답 모양은 TX-01 과 같다.
+     *
+     * <p>이 매핑은 위의 {@code /calendar} 보다 덜 구체적이므로 Spring 이 리터럴 경로를
+     * 먼저 고른다 — 순서를 바꿔도 결과는 같지만, {@code calendar} 가 ID 로 들어오는 일은
+     * 없다.
+     */
+    @GetMapping("/{id}")
+    public ApiResponse<TransactionResponse> getTransaction(@AuthenticationPrincipal AuthUser authUser,
+                                                           @PathVariable Long id) {
+        return ApiResponse.ok(transactionService.getTransaction(authUser.id(), id));
     }
 }

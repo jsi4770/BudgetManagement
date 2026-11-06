@@ -54,6 +54,22 @@ public class TransactionService {
     }
 
     /**
+     * TX-04 거래 상세. 응답은 TX-01 과 같은 모양이다(명세 TX-04 "TX-01과 동일").
+     *
+     * <p>없는 거래와 남의 거래를 모두 404 로 내린다 — 명세 0장 5). 두 경우를 구분하면
+     * ID 를 순서대로 바꿔 넣는 것만으로 다른 사용자의 거래 존재 여부를 알 수 있다.
+     *
+     * @throws BusinessException 404 {@code NOT_FOUND} (명세 TX-04 Errors)
+     */
+    @Transactional(readOnly = true)
+    public TransactionResponse getTransaction(Long userId, Long id) {
+        Transaction transaction = transactionRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(BusinessException::notFound);
+
+        return TransactionResponse.from(transaction);
+    }
+
+    /**
      * TX-02. 쿼리에 항상 {@code userId} 가 들어가므로 남의 거래는 결과에 섞이지 않는다
      * (서버_내부_처리 공통 전제).
      *

@@ -9,8 +9,17 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
+
+    /**
+     * TX-04 상세. <b>{@code id} 만으로 찾지 않는다</b> — 조건에 {@code userId} 가 함께
+     * 들어가야 남의 거래가 "없음"과 구분되지 않고 404 가 된다(명세 0장 5) ·
+     * 서버_내부_처리 공통 전제). 소유권을 서비스에서 뒤늦게 비교하는 방식이면 비교를
+     * 깜빡한 곳이 그대로 정보 노출이 되므로, 쿼리 자체에 범위를 박는다.
+     */
+    Optional<Transaction> findByIdAndUserId(Long id, Long userId);
 
     /**
      * TX-02 목록. {@code type} · {@code categoryId} 는 {@code null} 이면 조건에서 빠진다
