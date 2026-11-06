@@ -5,6 +5,7 @@ import com.back.was.domain.transaction.dto.CreateTransactionRequest;
 import com.back.was.domain.transaction.dto.TransactionListItem;
 import com.back.was.domain.transaction.dto.TransactionResponse;
 import com.back.was.domain.transaction.dto.TransactionSearchRequest;
+import com.back.was.domain.transaction.dto.UpdateTransactionRequest;
 import com.back.was.global.response.ApiResponse;
 import com.back.was.global.response.PageResponse;
 import com.back.was.global.security.AuthUser;
@@ -15,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -78,5 +80,13 @@ public class TransactionController {
     public ApiResponse<TransactionResponse> getTransaction(@AuthenticationPrincipal AuthUser authUser,
                                                            @PathVariable Long id) {
         return ApiResponse.ok(transactionService.getTransaction(authUser.id(), id));
+    }
+
+    /** TX-05 거래 수정 — 보낸 필드만 바꾼다. */
+    @PatchMapping("/{id}")
+    public ApiResponse<TransactionResponse> update(@AuthenticationPrincipal AuthUser authUser,
+                                                   @PathVariable Long id,
+                                                   @RequestBody @Valid UpdateTransactionRequest request) {
+        return ApiResponse.ok(transactionService.update(authUser.id(), id, request));
     }
 }

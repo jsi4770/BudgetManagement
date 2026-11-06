@@ -8,6 +8,7 @@ import com.back.was.domain.transaction.dto.CreateTransactionRequest;
 import com.back.was.domain.transaction.dto.TransactionListItem;
 import com.back.was.domain.transaction.dto.TransactionResponse;
 import com.back.was.domain.transaction.dto.TransactionSearchRequest;
+import com.back.was.domain.transaction.dto.UpdateTransactionRequest;
 import com.back.was.domain.user.User;
 import com.back.was.domain.user.UserRepository;
 import com.back.was.global.exception.BusinessException;
@@ -49,6 +50,44 @@ public class TransactionService {
 
         Transaction transaction = transactionRepository.save(Transaction.of(
                 user, category, request.amount(), request.transactionDate(), request.memo()));
+
+        return TransactionResponse.from(transaction);
+    }
+
+    /**
+     * TX-05 거래 수정. 보낸 필드만 바꾸고, 응답은 TX-01 과 같은 모양이다.
+     *
+     * <p>조회를 {@code findByIdAndUserId} 로 하므로 남의 거래를 수정할 경로가 없다 —
+     * 소유권 검사를 따로 하지 않는 이유다.
+     *
+     * <p><b>서버_내부_처리 1장의 후처리가 빠져 있다</b>(TX-01 과 같은 이유로 CHALLENGE ·
+     * NUDGE 가 없다). TX-01 보다 까다로운 점은 <i>수정 전</i> 카테고리와 날짜가
+     * 필요하다는 것이다 — 재계산 대상이 이전 조합과 새 조합 둘이고, 조건 미달이 된
+     * {@code UNREAD} 넛지는 삭제해야 한다. 그러니 구현할 때는 아래 변경을 적용하기
+     * <i>전에</i> 이전 값을 복사해 두고, 커밋 전 같은 트랜잭션에서 양쪽을 돌려야 한다.
+     *
+     * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 거래, 또는 없는 카테고리
+     */
+    @Transactional
+    public TransactionResponse update(Long userId, Long id, UpdateTransactionRequest request) {
+        Transaction transaction = transactionRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(BusinessException::notFound);
+
+        // 유일하게 실패할 수 있는 변경(없는 카테고리 → 404)을 먼저 처리한다. 롤백이
+        // 어차피 되살려 주지만, 그래야 영속성 컨텍스트에 절반만 바뀐 엔티티가 남지 않는다.
+        if (request.hasCategoryId()) {
+            transaction.changeCategory(categoryRepository.findById(request.categoryId())
+                    .orElseThrow(BusinessException::notFound));
+        }
+        if (request.hasAmount()) {
+            transaction.changeAmount(request.amount());
+        }
+        if (request.hasTransactionDate()) {
+            transaction.changeTransactionDate(request.transactionDate());
+        }
+        if (request.hasMemo()) {
+            transaction.changeMemo(request.memo());
+        }
 
         return TransactionResponse.from(transaction);
     }

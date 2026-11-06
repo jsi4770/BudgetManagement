@@ -94,6 +94,28 @@ public class Transaction {
         return new Transaction(user, category, amount, transactionDate, blankToNull(memo));
     }
 
+    /**
+     * TX-05 카테고리 변경. 수입 카테고리로 바꾸면 거래의 방향도 뒤집힌다 — 명세가
+     * 금지하지 않으므로 허용하고, 그래서 후처리는 이전·새 카테고리 양쪽을 봐야 한다
+     * (서버_내부_처리 1장).
+     */
+    public void changeCategory(Category category) {
+        this.category = category;
+    }
+
+    public void changeAmount(int amount) {
+        this.amount = amount;
+    }
+
+    public void changeTransactionDate(LocalDate transactionDate) {
+        this.transactionDate = transactionDate;
+    }
+
+    /** 빈 문자열·공백을 넘기면 메모가 지워진다 — TX-05 의 메모 삭제 경로. */
+    public void changeMemo(String memo) {
+        this.memo = blankToNull(memo);
+    }
+
     /** 빈 문자열·공백만인 메모는 "없음"과 같게 다룬다. */
     private static String blankToNull(String memo) {
         return memo == null || memo.isBlank() ? null : memo;
