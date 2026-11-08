@@ -22,6 +22,15 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     Optional<Transaction> findByIdAndUserId(Long id, Long userId);
 
     /**
+     * 넛지 문구 템플릿의 {@code {count}}("{days}일 동안 {count}번 결제했어요").
+     *
+     * <p>NUDGE 에는 금액만 저장되고 횟수가 없어서(ERD 6장) 문구를 만들 때 한 번 센다.
+     * 양끝을 포함하는 {@code between} 이라 분석 기간의 정의와 같다.
+     */
+    long countByUserIdAndCategoryIdAndTransactionDateBetween(
+            Long userId, Long categoryId, LocalDate from, LocalDate to);
+
+    /**
      * TX-02 목록. {@code type} · {@code categoryId} 는 {@code null} 이면 조건에서 빠진다
      * (명세 TX-02 "없으면 전체").
      *

@@ -11,6 +11,7 @@ import com.back.was.domain.user.User;
 import com.back.was.global.support.DateRange;
 import com.back.was.global.support.KstTime;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -24,6 +25,9 @@ import java.util.Optional;
  * <p>거래가 등록·수정·삭제될 때 {@code TransactionService} 가 <b>같은 트랜잭션 안에서
  * 동기로</b> 부른다(서버_내부_처리 1장 순서 3번). 이벤트 리스너가 아닌 이유도 거기 있다 —
  * 거래 저장과 넛지가 한 커밋에 묶여야 "저장은 됐는데 카드만 안 생긴" 상태가 없다.
+ *
+ * <p>카드를 만들거나 갱신하면 {@link NudgeJudgedEvent} 를 쏜다 — 후처리 5번(AI 문구)이
+ * 커밋 후 비동기로 받는다.
  *
  * <p>평균·Z 는 {@link SpendingComparison} 이, 표본 수집은 {@link SpendingSampler} 가 한다.
  * ANL-03 {@code WEEK} 과 <b>같은 두 컴포넌트</b>를 쓰는 것이 핵심이다(서버_내부_처리 3장
@@ -43,6 +47,7 @@ public class NudgeJudgement {
 
     private final NudgeRepository nudgeRepository;
     private final SpendingSampler spendingSampler;
+    private final ApplicationEventPublisher events;
 
     /**
      * 주어진 카테고리들의 이번 주 넛지를 다시 판정한다.
@@ -112,10 +117,17 @@ public class NudgeJudgement {
         }
 
         if (comparison.isAnomaly()) {
-            existing.ifPresentOrElse(
-                    nudge -> nudge.refresh(analysisPeriod.end(), comparison),
-                    () -> nudgeRepository.save(
+            Nudge nudge = existing
+                    .map(found -> {
+                        found.refresh(analysisPeriod.end(), comparison);
+                        return found;
+                    })
+                    .orElseGet(() -> nudgeRepository.save(
                             Nudge.of(user, category, analysisPeriod, comparison)));
+
+            // 후처리 5번: 커밋 후 비동기로 AI 문구를 채운다 (서버_내부_처리 1장·8장).
+            // 갱신일 때도 쏜다 — 금액이 바뀌었으면 문구도 다시 생성해야 한다(ERD 6장).
+            events.publishEvent(new NudgeJudgedEvent(nudge.getId()));
             return;
         }
 
