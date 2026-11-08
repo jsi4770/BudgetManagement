@@ -112,12 +112,8 @@ public class Nudge {
         this.user = user;
         this.category = category;
         this.analysisStartDate = analysisPeriod.start();
-        this.analysisEndDate = analysisPeriod.end();
-        this.spendingAmount = comparison.amount();
-        this.avgAmount = comparison.average();
-        this.zScore = comparison.zScore();
-        this.growthRate = comparison.growthRate();
         this.status = NudgeStatus.UNREAD;
+        apply(analysisPeriod.end(), comparison);
     }
 
     /**
@@ -128,20 +124,46 @@ public class Nudge {
      * <b>서로 어긋날 수 없게</b> 하기 위함이다 — 명세는 이 값들이 ANL-03 화면의 숫자와
      * 같아야 한다고 요구한다(서버_내부_처리 3장 "같은 계산 함수").
      *
-     * <p>{@code zScore} 가 {@code null}(= 표본의 표준편차 0)이면 ERD 6장의 "판정 생략 ②"
-     * 상황이라 애초에 카드를 만들 일이 없다. 컬럼이 NOT NULL 이기도 해서 여기서 막는다.
-     * 표준편차가 0보다 크면 평균도 0보다 크므로 {@code growthRate} 는 함께 채워진다.
-     *
      * @param analysisPeriod 그 주 월요일 ~ 판정일
      * @throws IllegalArgumentException {@code comparison.zScore()} 가 {@code null} 일 때
+     *                                  (ERD 6장 "판정 생략 ②" — 그 상황엔 카드가 없어야 한다)
      */
     public static Nudge of(User user, Category category, DateRange analysisPeriod,
                            SpendingComparison comparison) {
+        return new Nudge(user, category, analysisPeriod, comparison);
+    }
+
+    /**
+     * ERD 6장 upsert 의 <b>갱신</b> 쪽 — 같은 주에 같은 카테고리 거래가 바뀌어 다시 판정될
+     * 때 호출된다. 갱신하는 것은 ERD 가 나열한 다섯 개뿐이다
+     * ({@code ANALYSIS_END_DATE} · {@code SPENDING_AMOUNT} · {@code AVG_AMOUNT} ·
+     * {@code Z_SCORE} · {@code GROWTH_RATE}, 그리고 {@code UPDATED_AT} 은 자동).
+     *
+     * <p><b>{@code status} 와 AI 문구는 건드리지 않는다.</b> 닫은 카드는 닫힌 채로 남아야
+     * 하고(ERD 6장 "갱신 시 STATUS 유지"), AI 문구는 재생성이 끝날 때까지 이전 것을
+     * 보여 준다.
+     */
+    public void refresh(LocalDate analysisEndDate, SpendingComparison comparison) {
+        apply(analysisEndDate, comparison);
+    }
+
+    /**
+     * 판정 결과의 숫자 네 개와 분석 종료일을 옮긴다.
+     *
+     * <p>{@code zScore} 가 {@code null}(= 표본의 표준편차 0)이면 ERD 6장의 "판정 생략 ②"
+     * 상황이라 카드를 만들거나 갱신할 일이 없다. 컬럼이 NOT NULL 이기도 해서 여기서 막는다.
+     * 표준편차가 0보다 크면 평균도 0보다 크므로 {@code growthRate} 는 함께 채워진다.
+     */
+    private void apply(LocalDate analysisEndDate, SpendingComparison comparison) {
         if (comparison.zScore() == null) {
             throw new IllegalArgumentException(
-                    "표준편차가 0이면 넛지를 만들지 않아요 (ERD 6장 판정 생략).");
+                    "표준편차가 0이면 넛지를 만들거나 갱신하지 않아요 (ERD 6장 판정 생략).");
         }
-        return new Nudge(user, category, analysisPeriod, comparison);
+        this.analysisEndDate = analysisEndDate;
+        this.spendingAmount = comparison.amount();
+        this.avgAmount = comparison.average();
+        this.zScore = comparison.zScore();
+        this.growthRate = comparison.growthRate();
     }
 
     /**

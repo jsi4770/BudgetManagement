@@ -35,4 +35,16 @@ public interface NudgeRepository extends JpaRepository<Nudge, Long> {
      * 카드도 상세는 열려야 한다. 홈 노출 조건은 NDG-01 만의 규칙이다.
      */
     Optional<Nudge> findByIdAndUserId(Long id, Long userId);
+
+    /**
+     * 판정의 upsert 대상 — 복합 UNIQUE {@code (USER_ID, CATEGORY_ID, ANALYSIS_START_DATE)}
+     * 그대로라 최대 한 건이다.
+     *
+     * <p>두 문서는 MySQL {@code INSERT ... ON DUPLICATE KEY UPDATE} 로 적어 두었지만 이
+     * 프로젝트는 Postgres(운영)·H2(테스트)다. 조회 후 있으면 수정·없으면 삽입으로 대신하고,
+     * 같은 사용자의 동시 요청이 유니크 인덱스에서 부딪히는 경우는 받아들인다(거래 쓰기는
+     * 사용자당 직렬에 가깝다).
+     */
+    Optional<Nudge> findByUserIdAndCategoryIdAndAnalysisStartDate(
+            Long userId, Long categoryId, LocalDate analysisStartDate);
 }

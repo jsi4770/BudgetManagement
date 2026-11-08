@@ -7,6 +7,7 @@ import com.back.was.domain.category.Category;
 import com.back.was.domain.category.CategoryRepository;
 import com.back.was.domain.category.CategoryType;
 import com.back.was.domain.category.dto.CategoryResponse;
+import com.back.was.domain.nudge.NudgeJudgement;
 import com.back.was.domain.transaction.dto.CalendarResponse;
 import com.back.was.domain.transaction.dto.CreateTransactionRequest;
 import com.back.was.domain.transaction.dto.ParseTransactionRequest;
@@ -31,7 +32,7 @@ import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 
-/** TX-01 거래 등록. */
+/** TX-01~07 거래. 등록·수정·삭제는 서버_내부_처리 1장의 후처리(넛지 재판정)를 함께 돈다. */
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
@@ -40,6 +41,7 @@ public class TransactionService {
     private static final int REQUIRED_PARSED_FIELD_COUNT = 3;
 
     private final TransactionRepository transactionRepository;
+    private final NudgeJudgement nudgeJudgement;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final TransactionTextParser transactionTextParser;
@@ -47,10 +49,12 @@ public class TransactionService {
     /**
      * TX-01. 거래는 항상 토큰 주인의 것으로 저장된다 — 요청에 사용자 ID 가 없다.
      *
-     * <p><b>서버_내부_처리 1장의 후처리 2·3번(진행 중 챌린지 실적 재계산, 이번 주 넛지
-     * 판정)은 아직 없다.</b> CHALLENGE·NUDGE 테이블과 판정 로직이 구현되면 <i>이
-     * 메서드 안, 커밋 전</i>에 들어가야 한다(같은 트랜잭션·동기). AI 문구 생성만 커밋 후
-     * 비동기다. 지금 거래를 넣어도 넛지·챌린지가 반응하지 않는 건 그래서다.
+     * <p>저장 뒤 <b>같은 트랜잭션에서 동기로</b> 넛지를 재판정한다(서버_내부_처리 1장
+     * 순서 3번). 커밋 전이어야 "거래는 저장됐는데 카드만 안 생긴" 상태가 생기지 않는다.
+     *
+     * <p>아직 빠진 것: 후처리 <b>2번(진행 중 챌린지 실적 재계산)</b>은 CHALLENGE·COACHING
+     * 테이블이 없어 구현할 수 없고, <b>5번(넛지 AI 문구)</b>은 커밋 후 비동기라 여기가
+     * 아니다. 둘 다 들어오면 챌린지는 이 줄 바로 위·아래에 놓인다.
      *
      * @throws BusinessException 404 {@code NOT_FOUND} — 없는 카테고리 (명세 TX-01 Errors)
      */
@@ -64,6 +68,8 @@ public class TransactionService {
         Transaction transaction = transactionRepository.save(Transaction.of(
                 user, category, request.amount(), request.transactionDate(), request.memo()));
 
+        nudgeJudgement.judge(user, category);
+
         return TransactionResponse.from(transaction);
     }
 
@@ -73,11 +79,18 @@ public class TransactionService {
      * <p>조회를 {@code findByIdAndUserId} 로 하므로 남의 거래를 수정할 경로가 없다 —
      * 소유권 검사를 따로 하지 않는 이유다.
      *
-     * <p><b>서버_내부_처리 1장의 후처리가 빠져 있다</b>(TX-01 과 같은 이유로 CHALLENGE ·
-     * NUDGE 가 없다). TX-01 보다 까다로운 점은 <i>수정 전</i> 카테고리와 날짜가
-     * 필요하다는 것이다 — 재계산 대상이 이전 조합과 새 조합 둘이고, 조건 미달이 된
-     * {@code UNREAD} 넛지는 삭제해야 한다. 그러니 구현할 때는 아래 변경을 적용하기
-     * <i>전에</i> 이전 값을 복사해 두고, 커밋 전 같은 트랜잭션에서 양쪽을 돌려야 한다.
+     * <p>후처리에서 TX-01 보다 까다로운 점은 <i>수정 전</i> 카테고리가 필요하다는 것이다 —
+     * 재판정 대상이 이전 카테고리와 새 카테고리 <b>둘 다</b>이고(서버_내부_처리 1장),
+     * 조건 미달이 된 {@code UNREAD} 넛지는 지워야 한다. 그래서 변경을 적용하기 <i>전에</i>
+     * 이전 카테고리를 붙잡아 둔다. 수입 카테고리로 바꾸는 것도 허용되므로 둘 중 한쪽만
+     * 판정 대상일 수 있는데, 그 판단은 {@link NudgeJudgement} 안에 있다.
+     *
+     * <p>거래 <b>날짜</b>를 바꾼 경우에도 판정은 그대로 돌아간다 — 판정 기간은 언제나
+     * 이번 주이고, 지난 주 날짜로 옮긴 거래는 표본에 들어가 평균을 바꾼다. 그래서 날짜로
+     * 거르지 않는다.
+     *
+     * <p>아직 빠진 것은 TX-01 과 같다(챌린지 실적 재계산, AI 문구). 챌린지는 <b>수정 전
+     * 날짜</b>까지 필요하므로 그때 한 줄 더 붙잡아야 한다.
      *
      * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 거래, 또는 없는 카테고리
      */
@@ -85,6 +98,9 @@ public class TransactionService {
     public TransactionResponse update(Long userId, Long id, UpdateTransactionRequest request) {
         Transaction transaction = transactionRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(BusinessException::notFound);
+
+        // 변경을 적용하기 전에 붙잡아 둔다 — 아래에서 바뀌면 되찾을 방법이 없다.
+        Category previousCategory = transaction.getCategory();
 
         // 유일하게 실패할 수 있는 변경(없는 카테고리 → 404)을 먼저 처리한다. 롤백이
         // 어차피 되살려 주지만, 그래야 영속성 컨텍스트에 절반만 바뀐 엔티티가 남지 않는다.
@@ -101,6 +117,9 @@ public class TransactionService {
         if (request.hasMemo()) {
             transaction.changeMemo(request.memo());
         }
+
+        // 카테고리가 그대로면 같은 값이 두 번 들어가는데, 판정이 ID 로 중복을 없앤다.
+        nudgeJudgement.judge(transaction.getUser(), previousCategory, transaction.getCategory());
 
         return TransactionResponse.from(transaction);
     }
@@ -176,9 +195,13 @@ public class TransactionService {
      * 여기서 성공을 흉내내면 "그 ID 가 있었다"를 알려주는 것과 같다. 프론트는 명세 0장 5)
      * 대로 404 를 "찾을 수 없음" 하나로 처리하면 된다.
      *
-     * <p>삭제 전에 엔티티를 조회하는 건 소유권 확인 때문만이 아니다 — 서버_내부_처리
-     * 1장의 후처리(진행 중 챌린지 실적 재계산, 해당 카테고리 넛지 재판정)가 들어오면
-     * <b>지워진 거래의 카테고리·날짜</b>가 필요하고, 그 값은 삭제 후에는 얻을 수 없다.
+     * <p>삭제 전에 엔티티를 조회하는 건 소유권 확인 때문만이 아니다 — 후처리에
+     * <b>지워진 거래의 카테고리</b>가 필요하고, 그 값은 삭제 후에는 얻을 수 없다(챌린지
+     * 실적 재계산이 들어오면 날짜도 같은 이유로 필요하다).
+     *
+     * <p>재판정은 삭제 <i>후</i>에 부른다. 집계 쿼리가 돌기 전에 Hibernate 가 DELETE 를
+     * flush 하므로(같은 테이블을 읽는 JPQL 이라 auto-flush 대상이다) 지워진 거래가 합계에
+     * 남지 않는다.
      *
      * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 거래
      */
@@ -186,8 +209,12 @@ public class TransactionService {
     public void delete(Long userId, Long id) {
         Transaction transaction = transactionRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(BusinessException::notFound);
+        User owner = transaction.getUser();
+        Category category = transaction.getCategory();
 
         transactionRepository.delete(transaction);
+
+        nudgeJudgement.judge(owner, category);
     }
 
     /**
