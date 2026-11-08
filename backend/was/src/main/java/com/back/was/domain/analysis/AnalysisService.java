@@ -1,18 +1,27 @@
 package com.back.was.domain.analysis;
 
 import com.back.was.domain.analysis.dto.MonthlySummaryResponse;
+import com.back.was.domain.analysis.dto.WeeklyTrendRequest;
+import com.back.was.domain.analysis.dto.WeeklyTrendResponse;
 import com.back.was.domain.budget.Budget;
 import com.back.was.domain.budget.BudgetService;
 import com.back.was.domain.category.CategoryType;
+import com.back.was.domain.category.RentCategory;
 import com.back.was.domain.transaction.AmountSummary;
+import com.back.was.domain.transaction.DailyAmount;
 import com.back.was.domain.transaction.TransactionRepository;
 import com.back.was.global.support.DateRange;
+import com.back.was.global.support.KstTime;
 import com.back.was.global.support.Months;
+import com.back.was.global.support.Weeks;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.YearMonth;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 명세 8장 소비 분석(ANALYSIS). <b>분석 결과를 저장하지 않는다</b> — 명세 8장 머리말대로
@@ -55,5 +64,50 @@ public class AnalysisService {
                 .orElse(null);
 
         return MonthlySummaryResponse.of(yearMonth, summary, monthlyBudget);
+    }
+
+    /**
+     * ANL-02 주간 지출 추이. <b>월세는 항상 제외</b>한다 (ERD 4장 · 화면 "이번 주
+     * 지출(월세 제외)").
+     *
+     * <p>조회 범위가 가장 오래된 주의 월요일부터 <b>오늘</b>까지인 것이 이 메서드의 핵심이다.
+     * 그 덕분에 주별로 담을 때 라벨 기간({@code 월~일}) 그대로 걸러도 이번 주 합계는 자동으로
+     * "월요일 ~ 오늘"이 된다 (명세 ANL-02 본문). 범위를 이번 주 일요일까지로 늘리면 그 규칙이
+     * 깨진다 — TX-01 이 미래 날짜를 막으므로 실제로 값이 달라질 일은 없지만, 규칙을 다른
+     * 검증에 의존시키지 않는다.
+     *
+     * <p>집계는 일별로 받아 애플리케이션에서 주별로 담는다. 주 단위 {@code group by} 를 쓰면
+     * 월요일 시작·KST 라는 주 경계 정의가 DB 함수로 흘러가 Postgres(운영)와 H2(테스트)에서
+     * 같은 결과를 보장하기 어렵다 — 경계의 정의는 {@link Weeks} 한 곳에만 둔다.
+     *
+     * <p>{@code readOnly} 인 이유: ANL-01 과 달리 예산을 보지 않으므로 쓰기가 없다.
+     */
+    @Transactional(readOnly = true)
+    public WeeklyTrendResponse getWeeklyTrend(Long userId, WeeklyTrendRequest request) {
+        int weeks = request.weeksOrDefault();
+        LocalDate today = KstTime.today();
+
+        List<DailyAmount> dailyExpenses = transactionRepository.sumDailyExpenses(
+                userId,
+                Weeks.mondayOf(today).minusWeeks(weeks - 1L),
+                today,
+                CategoryType.EXPENSE,
+                RentCategory.ID);
+
+        // 오래된 주 → 이번 주 순 (명세 ANL-02 예시 순서). 거래가 없는 주도 0원으로 들어간다.
+        List<WeeklyTrendResponse.Week> bars = new ArrayList<>(weeks);
+        for (int weeksAgo = weeks - 1; weeksAgo >= 0; weeksAgo--) {
+            DateRange week = Weeks.weekOf(today.minusWeeks(weeksAgo));
+            bars.add(WeeklyTrendResponse.Week.of(week, sumWithin(dailyExpenses, week)));
+        }
+
+        return new WeeklyTrendResponse(List.copyOf(bars));
+    }
+
+    private static long sumWithin(List<DailyAmount> dailyExpenses, DateRange week) {
+        return dailyExpenses.stream()
+                .filter(daily -> week.contains(daily.date()))
+                .mapToLong(DailyAmount::amount)
+                .sum();
     }
 }

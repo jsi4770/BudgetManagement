@@ -162,6 +162,17 @@ class TransactionAnalysisQueryTest {
     }
 
     @Test
+    @DisplayName("to 이후 날짜는 더하지 않는다 — ANL-02 가 '이번 주 합계 = 월요일 ~ 오늘'을 범위로 표현하는 근거")
+    void stopsAtTheEndOfRange() {
+        List<DailyAmount> daily = sumDailyExpenses(
+                new DateRange(LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 3)), RentCategory.ID);
+
+        assertThat(daily).extracting(DailyAmount::date).containsExactly(
+                LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 3));
+        assertThat(daily.stream().mapToLong(DailyAmount::amount).sum()).isEqualTo(71_150);
+    }
+
+    @Test
     @DisplayName("거래가 없는 주는 빈 목록이다 — 0원 채우기는 호출자 몫 (ERD 6장)")
     void emptyWeekReturnsNoRows() {
         assertThat(sumDailyExpenses(Weeks.elapsedWeeksAgo(D, 4), RentCategory.ID)).isEmpty();

@@ -1,12 +1,16 @@
 package com.back.was.domain.analysis;
 
 import com.back.was.domain.analysis.dto.MonthlySummaryResponse;
+import com.back.was.domain.analysis.dto.WeeklyTrendRequest;
+import com.back.was.domain.analysis.dto.WeeklyTrendResponse;
 import com.back.was.global.response.ApiResponse;
 import com.back.was.global.security.AuthUser;
 import com.back.was.global.support.YearMonths;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,5 +39,19 @@ public class AnalysisController {
             @RequestParam(required = false) String yearMonth) {
         return ApiResponse.ok(analysisService.getMonthlySummary(
                 authUser.id(), YearMonths.parseOrCurrent(yearMonth)));
+    }
+
+    /**
+     * ANL-02 주간 지출 추이.
+     *
+     * <p>{@code weeks} 에는 범위 제약이 있어 {@code yearMonth} 와 달리 {@code @Valid
+     * @ModelAttribute} 레코드로 받는다 — 제약을 파라미터에 직접 걸면 500 이 된다
+     * ({@link WeeklyTrendRequest} 설명).
+     */
+    @GetMapping("/weekly")
+    public ApiResponse<WeeklyTrendResponse> getWeeklyTrend(
+            @AuthenticationPrincipal AuthUser authUser,
+            @Valid @ModelAttribute WeeklyTrendRequest request) {
+        return ApiResponse.ok(analysisService.getWeeklyTrend(authUser.id(), request));
     }
 }
