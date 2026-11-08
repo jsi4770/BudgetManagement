@@ -63,6 +63,17 @@ class CategoryApiTest {
     }
 
     @Test
+    @DisplayName("ERD 4장 월세 상수가 실제 시드의 월세를 가리킨다 — 넛지·분석의 제외 대상")
+    void rentConstantPointsAtTheSeededRow() {
+        assertThat(categoryRepository.findById(RentCategory.ID))
+                .get()
+                .extracting(Category::getName, Category::getType)
+                .containsExactly("월세", CategoryType.EXPENSE);
+        assertThat(RentCategory.isRent(RentCategory.ID)).isTrue();
+        assertThat(RentCategory.isRent(null)).isFalse();
+    }
+
+    @Test
     @DisplayName("CAT-01: type 없으면 수입·지출 전체를 ID 순으로 준다")
     void listAll() throws Exception {
         mockMvc.perform(authed(get("/categories")))

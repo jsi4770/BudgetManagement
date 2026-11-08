@@ -133,6 +133,27 @@ class BudgetServiceTest {
     }
 
     @Test
+    @DisplayName("findOrCopy: ANL-01 용 — 없음을 예외가 아니라 빈 Optional 로 준다 (remainingBudget null)")
+    void findOrCopyReturnsEmptyInsteadOfThrowing() {
+        assertThat(budgetService.findOrCopy(userId, THIS_MONTH)).isEmpty();
+        assertThat(budgetService.findOrCopy(userId, THIS_MONTH.minusMonths(1))).isEmpty();
+    }
+
+    @Test
+    @DisplayName("findOrCopy: 이번 달은 복사까지 해 주고, 과거 월은 행을 만들지 않는다")
+    void findOrCopyAppliesTheSameCopyRule() {
+        givenBudget(THIS_MONTH.minusMonths(1), 1_200_000, 200_000, SpendingFocus.DELIVERY);
+
+        assertThat(budgetService.findOrCopy(userId, THIS_MONTH))
+                .get()
+                .extracting(Budget::getMonthlyBudget)
+                .isEqualTo(1_200_000);
+        assertThat(budgetService.findOrCopy(userId, THIS_MONTH.minusMonths(2))).isEmpty();
+        assertThat(budgetRepository.findByUserIdAndYearMonth(userId, THIS_MONTH.minusMonths(2).toString()))
+                .isEmpty();
+    }
+
+    @Test
     @DisplayName("다른 사용자의 예산은 복사 원본이 되지 않는다")
     void doesNotCopyAcrossUsers() {
         givenBudget(THIS_MONTH.minusMonths(1), 1_200_000, 200_000, SpendingFocus.DELIVERY);
