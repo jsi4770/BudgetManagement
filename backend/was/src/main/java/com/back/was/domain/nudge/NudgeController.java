@@ -1,11 +1,14 @@
 package com.back.was.domain.nudge;
 
+import com.back.was.domain.nudge.dto.NudgeDetailResponse;
 import com.back.was.domain.nudge.dto.NudgeResponse;
+import com.back.was.global.response.ApiResponse;
 import com.back.was.global.response.NullableApiResponse;
 import com.back.was.global.security.AuthUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -32,5 +35,19 @@ public class NudgeController {
     @GetMapping("/current")
     public NullableApiResponse<NudgeResponse> getCurrentNudge(@AuthenticationPrincipal AuthUser authUser) {
         return NullableApiResponse.ok(nudgeService.getCurrentNudge(authUser.id()).orElse(null));
+    }
+
+    /**
+     * NDG-02 넛지 상세. NDG-01 과 달리 <b>없으면 404</b> 다 — 홈 카드가 없는 건 정상이지만,
+     * ID 로 지목한 넛지가 없는 건 "찾을 수 없음"이다. 그래서 공통
+     * {@link ApiResponse} 를 쓴다.
+     *
+     * <p>이 매핑은 위의 {@code /current} 보다 덜 구체적이므로 Spring 이 리터럴 경로를 먼저
+     * 고른다 — {@code current} 가 ID 로 들어오는 일은 없다.
+     */
+    @GetMapping("/{id}")
+    public ApiResponse<NudgeDetailResponse> getNudge(@AuthenticationPrincipal AuthUser authUser,
+                                                     @PathVariable Long id) {
+        return ApiResponse.ok(nudgeService.getNudge(authUser.id(), id));
     }
 }

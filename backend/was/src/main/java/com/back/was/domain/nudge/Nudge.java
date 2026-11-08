@@ -151,4 +151,19 @@ public class Nudge {
     public void changeStatus(NudgeStatus status) {
         this.status = status;
     }
+
+    /**
+     * AI 문구를 채운다 — 저장이 <b>커밋된 뒤 비동기로</b> 호출되는 자리다
+     * (서버_내부_처리 8장 · ERD 6장). Gemini 가 실패하면 {@code docs/AI_대체_문구.md}
+     * 1·2장의 템플릿 문구가 들어온다.
+     *
+     * <p>금액이 갱신되면 다시 생성되는데, 그때까지는 <b>이전 문구를 유지</b>한다(ERD 6장
+     * 갱신 규칙) — 그래서 이 메서드는 "비우기"가 아니라 "덮어쓰기"만 한다. 아직 한 번도
+     * 생성되지 않았으면 두 필드는 {@code null} 이고, NDG-02 는 그 상태를 그대로 내려
+     * 프론트가 "AI가 분석 중이에요"를 띄운다.
+     */
+    public void fillAiText(String aiAnalysis, String aiRecommendation) {
+        this.aiAnalysis = aiAnalysis;
+        this.aiRecommendation = aiRecommendation;
+    }
 }

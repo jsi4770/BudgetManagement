@@ -1,6 +1,8 @@
 package com.back.was.domain.nudge;
 
+import com.back.was.domain.nudge.dto.NudgeDetailResponse;
 import com.back.was.domain.nudge.dto.NudgeResponse;
+import com.back.was.global.exception.BusinessException;
 import com.back.was.global.support.KstTime;
 import com.back.was.global.support.Weeks;
 import lombok.RequiredArgsConstructor;
@@ -40,5 +42,24 @@ public class NudgeService {
                 .findTopByUserIdAndAnalysisStartDateAndStatusOrderByUpdatedAtDesc(
                         userId, Weeks.mondayOf(KstTime.today()), NudgeStatus.UNREAD)
                 .map(NudgeResponse::from);
+    }
+
+    /**
+     * NDG-02 넛지 상세. NDG-01 과 달리 <b>이번 주·{@code UNREAD} 로 제한하지 않는다</b> —
+     * 홈에 뜨지 않는 카드도 링크로 열 수 있어야 하고, 명세 NDG-02 에 그런 조건이 없다.
+     *
+     * <p>없는 넛지와 남의 넛지가 모두 404 다(명세 0장 5)). 두 경우를 구분하면 ID 를
+     * 순서대로 넣어 보는 것만으로 다른 사용자의 넛지 존재 여부를 알 수 있다.
+     *
+     * <p>AI 문구가 아직 비었으면 {@code null} 그대로 내려간다 — 그게 프론트의 "AI가
+     * 분석 중이에요" 신호다(명세 NDG-02).
+     *
+     * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 넛지
+     */
+    @Transactional(readOnly = true)
+    public NudgeDetailResponse getNudge(Long userId, Long id) {
+        return nudgeRepository.findByIdAndUserId(id, userId)
+                .map(NudgeDetailResponse::from)
+                .orElseThrow(BusinessException::notFound);
     }
 }

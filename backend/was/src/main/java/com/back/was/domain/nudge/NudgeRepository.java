@@ -24,4 +24,15 @@ public interface NudgeRepository extends JpaRepository<Nudge, Long> {
      */
     Optional<Nudge> findTopByUserIdAndAnalysisStartDateAndStatusOrderByUpdatedAtDesc(
             Long userId, LocalDate analysisStartDate, NudgeStatus status);
+
+    /**
+     * NDG-02 상세. <b>{@code id} 만으로 찾지 않는다</b> — 조건에 {@code userId} 가 함께
+     * 들어가야 남의 넛지가 "없음"과 구분되지 않고 404 가 된다(명세 0장 5)). 소유권을
+     * 서비스에서 뒤늦게 비교하면 깜빡한 곳이 그대로 정보 노출이 된다
+     * ({@code TransactionRepository.findByIdAndUserId} 와 같은 이유).
+     *
+     * <p>NDG-01 과 달리 <b>주·상태로 걸러내지 않는다</b> — 지난 주 카드도, 이미 닫은
+     * 카드도 상세는 열려야 한다. 홈 노출 조건은 NDG-01 만의 규칙이다.
+     */
+    Optional<Nudge> findByIdAndUserId(Long id, Long userId);
 }
