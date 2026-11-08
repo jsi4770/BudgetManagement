@@ -35,4 +35,15 @@ public final class YearMonths {
     public static YearMonth current() {
         return YearMonth.now(KstTime.ZONE);
     }
+
+    /**
+     * 기본값이 "이번 달"인 선택 쿼리 파라미터용 (명세 ANL-01 {@code yearMonth}).
+     *
+     * <p>{@code null}(미전송)만 기본값으로 바꾼다. {@code ?yearMonth=} 처럼 빈 문자열이
+     * 오면 형식 오류로 400 이다 — "보내지 않음"과 "잘못 보냄"은 다른 상황이고, 후자를
+     * 조용히 이번 달로 바꾸면 프론트의 버그가 숨는다.
+     */
+    public static YearMonth parseOrCurrent(String raw) {
+        return raw == null ? current() : parse(raw);
+    }
 }

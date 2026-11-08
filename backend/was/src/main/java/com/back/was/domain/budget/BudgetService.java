@@ -46,21 +46,38 @@ public class BudgetService {
      */
     @Transactional
     public BudgetResponse getBudget(Long userId, YearMonth yearMonth) {
+        return findOrCopy(userId, yearMonth)
+                .map(BudgetResponse::from)
+                .orElseThrow(BusinessException::notFound);
+    }
+
+    /**
+     * BUDGET-01 과 ANL-01 이 공유하는 조회 + 자동 복사. 규칙은 {@link #getBudget} 의 설명과
+     * 같고, <b>없음을 예외가 아니라 빈 {@code Optional} 로</b> 돌려준다는 점만 다르다.
+     *
+     * <p>두 엔드포인트가 "예산 없음"을 다르게 표현하기 때문이다 — BUDGET-01 은 404(프론트가
+     * 초기 설정 화면으로 보내는 신호)지만, ANL-01 은 같은 상태를 200 + {@code remainingBudget:
+     * null} 로 내려야 한다(명세 ANL-01). 그래서 ANL-01 이 404 를 잡아서 삼키는 모양이 되지
+     * 않도록 복사 규칙만 떼어 공유한다 — 규칙을 복제하면 "가장 최근 월"·"이번 달만 생성"이
+     * 한쪽에서만 바뀐다.
+     *
+     * <p>엔티티를 그대로 내보내는 건 같은 도메인·같은 트랜잭션 안에서 읽기 전용으로 쓰기
+     * 때문이다. 호출자는 금액만 꺼내 쓰고 변경하지 않는다.
+     */
+    @Transactional
+    public Optional<Budget> findOrCopy(Long userId, YearMonth yearMonth) {
         Optional<Budget> saved = budgetRepository.findByUserIdAndYearMonth(userId, yearMonth.toString());
         if (saved.isPresent()) {
-            return BudgetResponse.from(saved.get());
+            return saved;
         }
 
         if (!yearMonth.equals(YearMonths.current())) {
-            throw BusinessException.notFound();
+            return Optional.empty();
         }
 
-        Budget copied = budgetRepository
+        return budgetRepository
                 .findTopByUserIdAndYearMonthLessThanOrderByYearMonthDesc(userId, yearMonth.toString())
-                .map(latest -> latest.copyTo(yearMonth))
-                .orElseThrow(BusinessException::notFound);
-
-        return BudgetResponse.from(budgetRepository.save(copied));
+                .map(latest -> budgetRepository.save(latest.copyTo(yearMonth)));
     }
 
     /**
