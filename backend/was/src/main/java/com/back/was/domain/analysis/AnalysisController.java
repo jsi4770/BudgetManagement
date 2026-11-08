@@ -1,5 +1,7 @@
 package com.back.was.domain.analysis;
 
+import com.back.was.domain.analysis.dto.CategoryComparisonRequest;
+import com.back.was.domain.analysis.dto.CategoryComparisonResponse;
 import com.back.was.domain.analysis.dto.MonthlySummaryResponse;
 import com.back.was.domain.analysis.dto.WeeklyTrendRequest;
 import com.back.was.domain.analysis.dto.WeeklyTrendResponse;
@@ -53,5 +55,19 @@ public class AnalysisController {
             @AuthenticationPrincipal AuthUser authUser,
             @Valid @ModelAttribute WeeklyTrendRequest request) {
         return ApiResponse.ok(analysisService.getWeeklyTrend(authUser.id(), request));
+    }
+
+    /**
+     * ANL-03 카테고리별 평소 대비 비교.
+     *
+     * <p>{@code period}·{@code baseDate} 에 제약 애노테이션은 없지만 레코드로 받는다 —
+     * 잘못된 열거형 값이나 날짜 형식이 {@code BindException} 이 되어 어느 필드가 틀렸는지
+     * {@code details} 에 담기기 때문이다 ({@link CategoryComparisonRequest} 설명).
+     */
+    @GetMapping("/categories")
+    public ApiResponse<CategoryComparisonResponse> getCategoryComparison(
+            @AuthenticationPrincipal AuthUser authUser,
+            @Valid @ModelAttribute CategoryComparisonRequest request) {
+        return ApiResponse.ok(analysisService.getCategoryComparison(authUser.id(), request));
     }
 }

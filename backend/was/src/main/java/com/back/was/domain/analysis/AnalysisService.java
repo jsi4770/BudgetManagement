@@ -1,15 +1,22 @@
 package com.back.was.domain.analysis;
 
+import com.back.was.domain.analysis.dto.CategoryComparisonRequest;
+import com.back.was.domain.analysis.dto.CategoryComparisonResponse;
 import com.back.was.domain.analysis.dto.MonthlySummaryResponse;
 import com.back.was.domain.analysis.dto.WeeklyTrendRequest;
 import com.back.was.domain.analysis.dto.WeeklyTrendResponse;
 import com.back.was.domain.budget.Budget;
 import com.back.was.domain.budget.BudgetService;
+import com.back.was.domain.category.Category;
+import com.back.was.domain.category.CategoryRepository;
 import com.back.was.domain.category.CategoryType;
 import com.back.was.domain.category.RentCategory;
 import com.back.was.domain.transaction.AmountSummary;
+import com.back.was.domain.transaction.CategoryAmountSum;
 import com.back.was.domain.transaction.DailyAmount;
 import com.back.was.domain.transaction.TransactionRepository;
+import com.back.was.domain.user.UserRepository;
+import com.back.was.global.exception.BusinessException;
 import com.back.was.global.support.DateRange;
 import com.back.was.global.support.KstTime;
 import com.back.was.global.support.Months;
@@ -22,6 +29,8 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 명세 8장 소비 분석(ANALYSIS). <b>분석 결과를 저장하지 않는다</b> — 명세 8장 머리말대로
@@ -36,6 +45,8 @@ import java.util.List;
 public class AnalysisService {
 
     private final TransactionRepository transactionRepository;
+    private final CategoryRepository categoryRepository;
+    private final UserRepository userRepository;
     private final BudgetService budgetService;
 
     /**
@@ -109,5 +120,117 @@ public class AnalysisService {
                 .filter(daily -> week.contains(daily.date()))
                 .mapToLong(DailyAmount::amount)
                 .sum();
+    }
+
+    /**
+     * ANL-03 카테고리별 평소 대비 비교. {@code WEEK}/{@code MONTH} 의 차이는 전부
+     * {@link AnalysisPeriod} 에 있고, 여기서는 그 구간들을 집계해 비교에 넘긴다.
+     *
+     * <p>평균·증가율은 {@link SpendingComparison} 이 낸다 — 넛지 판정과 <b>같은 계산
+     * 함수</b>여야 한다는 서버_내부_처리 3장의 요구가 이 호출이다. 따로 계산하면 카드의
+     * "평소 평균"과 이 화면의 평균이 어긋난다.
+     *
+     * <p><b>표본 구간은 구간마다 한 번씩 조회한다</b> ({@code WEEK} 4번, {@code MONTH} 3번).
+     * 한 번에 긁어 와 쪼갤 수도 있지만 {@code MONTH} 의 표본은 "직전 3개월의 1~N일"로
+     * 서로 떨어져 있어서, 코드에서 날짜를 구간에 되배치하는 일이 생긴다. 구간당 한 번이면
+     * 집계 범위와 구간 정의가 1:1 로 맞고, 한 사용자의 작은 집계 쿼리 3~4개다.
+     *
+     * <p>데이터가 부족하면 표본을 <b>아예 조회하지 않는다</b> — 평균을 내지 않을 것이므로
+     * (명세 ANL-03 {@code dataSufficient}) 쿼리도 낭비다.
+     *
+     * @throws BusinessException 404 {@code NOT_FOUND} — 토큰은 유효하나 사용자 행이 없을 때
+     */
+    @Transactional(readOnly = true)
+    public CategoryComparisonResponse getCategoryComparison(Long userId, CategoryComparisonRequest request) {
+        AnalysisPeriod period = request.periodOrDefault();
+        LocalDate baseDate = request.baseDateOrDefault();
+        DateRange analysisRange = period.analysisRange(baseDate);
+        Long excludedCategoryId = period.isRentExcluded() ? RentCategory.ID : null;
+
+        boolean dataSufficient = isDataSufficient(userId, period, baseDate);
+
+        Map<Long, Long> amounts = sumByCategory(userId, analysisRange, excludedCategoryId);
+        List<Map<Long, Long>> samples = dataSufficient
+                ? sampleSumsByCategory(userId, period, baseDate, excludedCategoryId)
+                : List.of();
+
+        List<CategoryComparisonResponse.Item> items =
+                categoryRepository.findAllByTypeOrderByIdAsc(CategoryType.EXPENSE).stream()
+                        .filter(category -> !period.isRentExcluded() || !RentCategory.isRent(category.getId()))
+                        .map(category -> toItem(period, category, dataSufficient, amounts, samples))
+                        .toList();
+
+        return CategoryComparisonResponse.of(period, analysisRange, dataSufficient, items);
+    }
+
+    /**
+     * 명세 ANL-03 {@code dataSufficient} — 가입일이 가장 오래된 표본 구간의 시작보다 뒤면
+     * 비교할 기록이 없다. 경계는 포함이다(가입일 = 그 날짜면 충분).
+     */
+    private boolean isDataSufficient(Long userId, AnalysisPeriod period, LocalDate baseDate) {
+        LocalDate signUpDate = userRepository.findById(userId)
+                .orElseThrow(BusinessException::notFound)
+                .getCreatedAt()
+                .toLocalDate();
+
+        return !signUpDate.isAfter(period.oldestSampleStart(baseDate));
+    }
+
+    /** 오래된 구간 → 직전 구간 순. 순서가 평균·표준편차를 바꾸지는 않지만 디버깅에 읽기 쉽다. */
+    private List<Map<Long, Long>> sampleSumsByCategory(Long userId, AnalysisPeriod period,
+                                                       LocalDate baseDate, Long excludedCategoryId) {
+        List<Map<Long, Long>> samples = new ArrayList<>(period.sampleCount());
+        for (int periodsAgo = period.sampleCount(); periodsAgo >= 1; periodsAgo--) {
+            samples.add(sumByCategory(userId, period.sampleRange(baseDate, periodsAgo), excludedCategoryId));
+        }
+        return samples;
+    }
+
+    private Map<Long, Long> sumByCategory(Long userId, DateRange range, Long excludedCategoryId) {
+        return transactionRepository
+                .sumExpensesByCategory(userId, range.start(), range.end(),
+                        CategoryType.EXPENSE, excludedCategoryId)
+                .stream()
+                .collect(Collectors.toMap(CategoryAmountSum::categoryId, CategoryAmountSum::amount));
+    }
+
+    /**
+     * 카테고리 한 줄. 지출이 없는 카테고리도 0원으로 들어간다(명세 ANL-03 의 비교 화면은
+     * 평소 쓰던 항목이 0원이 된 것도 보여 준다 — docs/시연_데이터.md 6-1·6-3 표).
+     *
+     * <p>비교하지 <b>않는</b> 두 경우가 여기서 갈린다: 데이터 부족과 월세({@code MONTH} 의
+     * 월세는 항목·합계에는 있고 평균·증가율만 {@code null} 이다 — 납부일이 달마다 다르면
+     * 같은 기간 비교가 왜곡된다, ERD 4장).
+     */
+    private static CategoryComparisonResponse.Item toItem(AnalysisPeriod period, Category category,
+                                                          boolean dataSufficient,
+                                                          Map<Long, Long> amounts,
+                                                          List<Map<Long, Long>> samples) {
+        Long categoryId = category.getId();
+        CategoryComparisonResponse.CategoryRef ref =
+                new CategoryComparisonResponse.CategoryRef(categoryId, category.getName());
+        int amount = toAmount(amounts.getOrDefault(categoryId, 0L));
+
+        if (!dataSufficient || RentCategory.isRent(categoryId)) {
+            return new CategoryComparisonResponse.Item(ref, amount, null, null, false);
+        }
+
+        // 기록이 없는 구간은 0원으로 채운다 (ERD 6장). 빼먹으면 표본이 줄어 평균이 커진다.
+        List<Integer> sampleAmounts = samples.stream()
+                .map(sample -> toAmount(sample.getOrDefault(categoryId, 0L)))
+                .toList();
+        SpendingComparison comparison = SpendingComparison.of(amount, sampleAmounts);
+
+        return new CategoryComparisonResponse.Item(
+                ref,
+                amount,
+                comparison.average(),
+                comparison.growthRate(),
+                period.isAnomalyDetected() && comparison.isAnomaly());
+    }
+
+    /** JPQL {@code sum()} 의 {@code Long} 을 명세의 int(원)로 좁힌다. */
+    private static int toAmount(long sum) {
+        return Math.toIntExact(sum);
     }
 }
