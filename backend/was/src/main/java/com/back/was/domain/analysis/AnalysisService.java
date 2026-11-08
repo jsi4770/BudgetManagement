@@ -10,6 +10,7 @@ import com.back.was.domain.budget.BudgetService;
 import com.back.was.domain.category.Category;
 import com.back.was.domain.category.CategoryRepository;
 import com.back.was.domain.category.CategoryType;
+import com.back.was.domain.category.dto.CategoryRefResponse;
 import com.back.was.domain.category.RentCategory;
 import com.back.was.domain.transaction.AmountSummary;
 import com.back.was.domain.transaction.CategoryAmountSum;
@@ -207,8 +208,7 @@ public class AnalysisService {
                                                           Map<Long, Long> amounts,
                                                           List<Map<Long, Long>> samples) {
         Long categoryId = category.getId();
-        CategoryComparisonResponse.CategoryRef ref =
-                new CategoryComparisonResponse.CategoryRef(categoryId, category.getName());
+        CategoryRefResponse ref = CategoryRefResponse.from(category);
         int amount = toAmount(amounts.getOrDefault(categoryId, 0L));
 
         if (!dataSufficient || RentCategory.isRent(categoryId)) {
