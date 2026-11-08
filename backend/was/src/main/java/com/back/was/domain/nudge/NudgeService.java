@@ -1,6 +1,8 @@
 package com.back.was.domain.nudge;
 
+import com.back.was.domain.nudge.dto.ChangeNudgeStatusRequest;
 import com.back.was.domain.nudge.dto.NudgeDetailResponse;
+import com.back.was.domain.nudge.dto.NudgeReaction;
 import com.back.was.domain.nudge.dto.NudgeResponse;
 import com.back.was.global.exception.BusinessException;
 import com.back.was.global.support.KstTime;
@@ -61,5 +63,31 @@ public class NudgeService {
         return nudgeRepository.findByIdAndUserId(id, userId)
                 .map(NudgeDetailResponse::from)
                 .orElseThrow(BusinessException::notFound);
+    }
+
+    /**
+     * NDG-03 상태 변경. 응답은 NDG-02 와 같은 모양이다(명세 NDG-03).
+     *
+     * <p>조회가 {@code findByIdAndUserId} 라 남의 넛지를 바꿀 경로가 없다 — 소유권 검사를
+     * 따로 하지 않는 이유다.
+     *
+     * <p><b>되돌리는 전이는 없다.</b> 요청으로 올 수 있는 값이 {@link NudgeReaction} 세 개로
+     * 제한되므로 {@code UNREAD} 로 돌아갈 수 없고, 그래서 "닫은 넛지는 재노출되지 않음"
+     * (명세 NDG-03)이 상태 기계 차원에서 보장된다. 같은 상태를 다시 보내는 건 허용한다 —
+     * 명세에 에러가 없고, 실패로 만들면 프론트가 재시도조차 못 한다.
+     *
+     * <p>판정이 같은 주에 다시 돌아 금액이 갱신돼도 이 값은 유지된다(ERD 6장) — 판정 쪽이
+     * 상태를 건드리지 않기 때문이다.
+     *
+     * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 넛지
+     */
+    @Transactional
+    public NudgeDetailResponse changeStatus(Long userId, Long id, ChangeNudgeStatusRequest request) {
+        Nudge nudge = nudgeRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(BusinessException::notFound);
+
+        nudge.changeStatus(request.status().toStatus());
+
+        return NudgeDetailResponse.from(nudge);
     }
 }

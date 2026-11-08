@@ -1,14 +1,18 @@
 package com.back.was.domain.nudge;
 
+import com.back.was.domain.nudge.dto.ChangeNudgeStatusRequest;
 import com.back.was.domain.nudge.dto.NudgeDetailResponse;
 import com.back.was.domain.nudge.dto.NudgeResponse;
 import com.back.was.global.response.ApiResponse;
 import com.back.was.global.response.NullableApiResponse;
 import com.back.was.global.security.AuthUser;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -49,5 +53,13 @@ public class NudgeController {
     public ApiResponse<NudgeDetailResponse> getNudge(@AuthenticationPrincipal AuthUser authUser,
                                                      @PathVariable Long id) {
         return ApiResponse.ok(nudgeService.getNudge(authUser.id(), id));
+    }
+
+    /** NDG-03 넛지 상태 변경. 응답은 NDG-02 와 같은 모양이다. */
+    @PatchMapping("/{id}")
+    public ApiResponse<NudgeDetailResponse> changeStatus(@AuthenticationPrincipal AuthUser authUser,
+                                                         @PathVariable Long id,
+                                                         @RequestBody @Valid ChangeNudgeStatusRequest request) {
+        return ApiResponse.ok(nudgeService.changeStatus(authUser.id(), id, request));
     }
 }

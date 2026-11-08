@@ -36,10 +36,10 @@ public record NudgeDetailResponse(
         int avgAmount,
         BigDecimal growthRate,
         String status,
-        OffsetDateTime createdAt,
-        OffsetDateTime updatedAt,
         String aiAnalysis,
-        String aiRecommendation
+        String aiRecommendation,
+        OffsetDateTime createdAt,
+        OffsetDateTime updatedAt
 ) {
     public static NudgeDetailResponse from(Nudge nudge) {
         return new NudgeDetailResponse(
@@ -52,9 +52,10 @@ public record NudgeDetailResponse(
                 nudge.getAvgAmount(),
                 nudge.getGrowthRate(),
                 nudge.getStatus().name(),
-                KstTime.toOffset(nudge.getCreatedAt()),
-                KstTime.toOffset(nudge.getUpdatedAt()),
                 nudge.getAiAnalysis(),
-                nudge.getAiRecommendation());
+                nudge.getAiRecommendation(),
+                // ERD 의 _AT 는 시간대 없는 DATETIME 이고 명세 0장 2)는 오프셋을 요구한다.
+                KstTime.toOffset(nudge.getCreatedAt()),
+                KstTime.toOffset(nudge.getUpdatedAt()));
     }
 }
