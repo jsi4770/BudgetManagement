@@ -1,6 +1,8 @@
 package com.back.was.domain.coaching;
 
 import com.back.was.domain.coaching.dto.CoachingResponse;
+import com.back.was.domain.coaching.dto.ConfirmGoalRequest;
+import com.back.was.domain.coaching.dto.ConfirmGoalResponse;
 import com.back.was.domain.coaching.dto.SendMessageRequest;
 import com.back.was.domain.coaching.dto.SendMessageResponse;
 import com.back.was.domain.coaching.dto.StartCoachingRequest;
@@ -73,5 +75,22 @@ public class CoachingController {
                                                         @PathVariable Long id,
                                                         @RequestBody @Valid SendMessageRequest request) {
         return ApiResponse.ok(coachingService.sendMessage(authUser.id(), id, request));
+    }
+
+    /**
+     * COACH-04 목표 확정 → 챌린지 생성.
+     *
+     * <p><b>201</b> 이다(명세 COACH-04) — COACH-03 과 달리 새 리소스({@code CHALLENGE})가
+     * 실제로 만들어지고 응답이 그 ID 를 가리킨다.
+     *
+     * <p>{@code /confirm} 과 {@code /messages} 는 둘 다 리터럴이라 서로, 그리고 COACH-02 의
+     * {@code /{id}} 와도 겹치지 않는다 (메서드도 GET/POST 로 다르다).
+     */
+    @PostMapping("/{id}/confirm")
+    @ResponseStatus(HttpStatus.CREATED)
+    public ApiResponse<ConfirmGoalResponse> confirmGoal(@AuthenticationPrincipal AuthUser authUser,
+                                                        @PathVariable Long id,
+                                                        @RequestBody @Valid ConfirmGoalRequest request) {
+        return ApiResponse.ok(coachingService.confirmGoal(authUser.id(), id, request));
     }
 }

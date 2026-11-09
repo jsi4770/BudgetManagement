@@ -60,6 +60,45 @@ class CoachingTest {
     }
 
     @Nested
+    @DisplayName("확정으로 종료 (COACH-04)")
+    class Complete {
+
+        @Test
+        @DisplayName("COMPLETED 가 되고 종료로 취급된다")
+        void completesInProgress() {
+            Coaching coaching = coaching();
+
+            coaching.complete();
+
+            assertThat(coaching.getStatus()).isEqualTo(CoachingStatus.COMPLETED);
+            assertThat(coaching.isEnded()).isTrue();
+        }
+
+        @Test
+        @DisplayName("이미 종료된 세션은 확정할 수 없다 — 챌린지가 두 개 생기면 ERD 9장을 깬다")
+        void refusesToCompleteTwice() {
+            Coaching completed = coaching();
+            completed.complete();
+            Coaching canceled = coaching();
+            canceled.cancel();
+
+            assertThatThrownBy(completed::complete).isInstanceOf(IllegalStateException.class);
+            assertThatThrownBy(canceled::complete).isInstanceOf(IllegalStateException.class);
+        }
+
+        @Test
+        @DisplayName("확정해도 제안 값은 남는다 — 'AI 제안을 그대로 확정한 비율' 기록용이다")
+        void keepsTheProposalAfterCompleting() {
+            Coaching coaching = coaching();
+            coaching.propose(null, "배달 40,000원 이내", GoalType.AMOUNT, 40_000, null, 7);
+
+            coaching.complete();
+
+            assertThat(coaching.getProposalGoalAmount()).isEqualTo(40_000);
+        }
+    }
+
+    @Nested
     @DisplayName("목표 제안 (ERD 7장 '최신 제안 1개만 보관')")
     class Propose {
 

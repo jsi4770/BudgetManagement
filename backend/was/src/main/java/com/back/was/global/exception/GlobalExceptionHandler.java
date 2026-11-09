@@ -48,7 +48,9 @@ public class GlobalExceptionHandler {
             "NotNull", "REQUIRED",
             "NotBlank", "REQUIRED",
             "NotEmpty", "REQUIRED",
-            "NotFutureDate", "FUTURE_DATE"
+            "NotFutureDate", "FUTURE_DATE",
+            // 명세가 정한 값이 아니라 FUTURE_DATE 와 짝을 맞춘 관례값 (COACH-04 startDate)
+            "NotPastDate", "PAST_DATE"
     );
 
     @ExceptionHandler(BusinessException.class)

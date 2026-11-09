@@ -7,11 +7,16 @@ import com.back.was.domain.ai.CoachingReplyCommand;
 import com.back.was.domain.ai.CoachingReplyGenerator;
 import com.back.was.domain.ai.CoachingTurn;
 import com.back.was.domain.ai.ProposedGoal;
+import com.back.was.domain.challenge.Challenge;
+import com.back.was.domain.challenge.ChallengeRepository;
+import com.back.was.domain.challenge.ChallengeStatus;
 import com.back.was.domain.category.Category;
 import com.back.was.domain.category.CategoryRepository;
 import com.back.was.domain.category.CategoryType;
 import com.back.was.domain.category.dto.CategoryResponse;
 import com.back.was.domain.coaching.dto.CoachingResponse;
+import com.back.was.domain.coaching.dto.ConfirmGoalRequest;
+import com.back.was.domain.coaching.dto.ConfirmGoalResponse;
 import com.back.was.domain.coaching.dto.SendMessageRequest;
 import com.back.was.domain.coaching.dto.SendMessageResponse;
 import com.back.was.domain.coaching.dto.StartCoachingRequest;
@@ -29,7 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/** 명세 10장 AI 코칭(COACHING). 지금은 COACH-01~03 이 있고 COACH-04 가 남았다. */
+/** 명세 10장 AI 코칭(COACHING) — COACH-01~04. */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -38,6 +43,7 @@ public class CoachingService {
     private final CoachingRepository coachingRepository;
     private final CoachingMessageRepository coachingMessageRepository;
     private final NudgeRepository nudgeRepository;
+    private final ChallengeRepository challengeRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final CoachingOpeningGenerator coachingOpeningGenerator;
@@ -184,6 +190,106 @@ public class CoachingService {
         boolean proposed = applyProposal(coaching, reply.proposal());
 
         return SendMessageResponse.of(userMessage, aiMessage, fallback, coaching, proposed);
+    }
+
+    /**
+     * COACH-04 목표 확정 — 요청의 최종 값으로 {@code CHALLENGE} 를 만들고 코칭을
+     * {@code COMPLETED} 로 끝낸다 (명세 COACH-04 · 서버_내부_처리 6장).
+     *
+     * <p><b>저장된 제안과 비교하지 않는다.</b> 사용자가 ± 와 기간 버튼으로 바꾼 값은
+     * 저장되지 않고 이 요청에 한 번에 실려 오고(명세 COACH-03), 확정 이후의 실적·판정
+     * 기준은 <b>챌린지 값</b>이다(ERD 7장). 제안 컬럼은 "AI 제안을 그대로 확정한 비율" 같은
+     * 기록으로 남는다. 반대로 <b>확정하지 않은 제안은 챌린지가 되지 않는다</b>(SRS 7.3-3) —
+     * 챌린지를 만드는 경로가 이 메서드뿐이라 그게 저절로 성립한다.
+     *
+     * <p>두 개의 409 를 <b>이 순서로</b> 본다:
+     *
+     * <ol>
+     *   <li>종료된 코칭이면 {@code COACHING_ALREADY_ENDED}. 경로가 지목한 리소스에 대한
+     *       판단이라 먼저 본다 — 같은 코칭을 두 번 확정했을 때(더블 클릭) 사용자에게 더
+     *       정확한 설명이기도 하다. 두 조건이 동시에 참인 유일한 경우가 그것이다.</li>
+     *   <li>진행 중 챌린지가 있으면 {@code CHALLENGE_ALREADY_IN_PROGRESS} (ERD 9장
+     *       "사용자당 진행 중인 챌린지는 1개"). COACH-01 이 막지 않는 그 검사가
+     *       <b>여기</b>에 있다.</li>
+     * </ol>
+     *
+     * <p>{@code CHALLENGE.COACHING_ID} 의 UNIQUE 가 마지막 방어선이다 — 위 순서를 통과한
+     * 요청이 같은 코칭으로 두 번 들어오는 일은 1번에서 막히지만, 동시 요청은 인덱스에서
+     * 부딪힌다.
+     *
+     * <p>조합 검증(목표 유형과 목표 값의 짝, 기간)은 {@link #requireValidPeriod} 와
+     * {@link Challenge#of} 가 맡는다 — ERD 9장의 체크 조건을 DTO 에 한 번 더 적지 않고
+     * 엔티티가 던지는 것을 명세의 400 으로 번역한다. 규칙을 두 벌로 두면 어긋난다.
+     *
+     * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 코칭, 없는 카테고리 /
+     *                           409 {@code COACHING_ALREADY_ENDED} /
+     *                           409 {@code CHALLENGE_ALREADY_IN_PROGRESS} /
+     *                           400 {@code VALIDATION_ERROR} — 기간·목표 조합 위반
+     */
+    @Transactional
+    public ConfirmGoalResponse confirmGoal(Long userId, Long id, ConfirmGoalRequest request) {
+        Coaching coaching = coachingRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(BusinessException::notFound);
+        if (coaching.isEnded()) {
+            throw new BusinessException(ErrorCode.COACHING_ALREADY_ENDED);
+        }
+        if (challengeRepository.existsByCoachingUserIdAndStatus(userId, ChallengeStatus.IN_PROGRESS)) {
+            throw new BusinessException(ErrorCode.CHALLENGE_ALREADY_IN_PROGRESS);
+        }
+
+        requireValidPeriod(request);
+        Category category = expenseCategory(request.categoryId());
+
+        Challenge challenge = challengeRepository.save(challengeOf(coaching, category, request));
+        coaching.complete();
+
+        return ConfirmGoalResponse.of(challenge, coaching);
+    }
+
+    /**
+     * 명세 COACH-04: "{@code endDate} 는 {@code startDate} 이후. 기간은 7·14·30일 중 선택".
+     *
+     * <p>역순 날짜도 여기서 걸린다 — 기간이 0 이하가 되어 허용 목록에 없기 때문이다.
+     * {@code details} 없이 메시지만 내려보내는 이유는 {@code ConfirmGoalRequest} 의 설명에
+     * 있다(명세가 이 규칙의 {@code reason} 을 정해 두지 않았다).
+     */
+    private static void requireValidPeriod(ConfirmGoalRequest request) {
+        if (!request.hasAllowedPeriod()) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "챌린지 기간은 7일·14일·30일 중 하나여야 해요.");
+        }
+    }
+
+    /**
+     * 명세 COACH-04 의 "{@code categoryId}: 지출 카테고리".
+     *
+     * <p>없는 ID 는 404 다 — TX-01 이 없는 카테고리에 쓰는 코드와 같다(명세 TX-01 Errors).
+     * 있지만 수입 카테고리면 400 인데, 그건 "없음"이 아니라 요청 표의 규칙 위반이고
+     * 카테고리 목록은 CAT-01 로 누구나 볼 수 있어 숨길 것도 없다.
+     */
+    private Category expenseCategory(Long categoryId) {
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(BusinessException::notFound);
+        if (category.getType() != CategoryType.EXPENSE) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "절약 목표는 지출 카테고리에만 걸 수 있어요.");
+        }
+        return category;
+    }
+
+    /**
+     * ERD 9장 스냅샷. 엔티티가 체크 조건(유형에 맞는 목표 값, {@code endDate} ≥
+     * {@code startDate})을 들고 있으므로, 그 위반을 명세의 400 으로 옮기기만 한다.
+     */
+    private static Challenge challengeOf(Coaching coaching, Category category,
+                                         ConfirmGoalRequest request) {
+        try {
+            return Challenge.of(coaching, category, request.title(), request.goalType(),
+                    request.goalAmount(), request.goalCount(),
+                    request.startDate(), request.endDate());
+        } catch (IllegalArgumentException e) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR, e.getMessage());
+        }
     }
 
     /**

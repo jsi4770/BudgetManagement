@@ -126,6 +126,27 @@ public class Coaching {
     }
 
     /**
+     * 챌린지 확정으로 종료됐다 (COACH-04).
+     *
+     * <p>종료 시각을 저장하지 않는다 — {@code CHALLENGE.CREATED_AT} 이 그 값이다(ERD 7장
+     * "시작·종료 시각" 표). 그래서 이 메서드를 부르는 쪽은 같은 트랜잭션에서 챌린지를
+     * <b>반드시</b> 만들어야 한다. 챌린지 없는 {@code COMPLETED} 코칭은 종료 시각을 잃은
+     * 행이고, CHALLENGE 의 {@code COACHING_ID} UNIQUE 가 그 반대(한 코칭에 챌린지 둘)를
+     * 막아 준다.
+     *
+     * <p>{@link #cancel()} 과 같은 가드를 둔다 — 이미 종료된 세션을 다시 확정하면 챌린지가
+     * 두 개 생길 수 있고, 그건 "사용자당 진행 중 챌린지 1개"(ERD 9장)를 깬다. 호출자는
+     * 그 전에 {@link #isEnded()} 로 409 {@code COACHING_ALREADY_ENDED} 를 내보내므로 여기
+     * 예외는 마지막 방어선이다.
+     */
+    public void complete() {
+        if (isEnded()) {
+            throw new IllegalStateException("이미 종료된 코칭은 확정할 수 없어요 (status=%s).".formatted(status));
+        }
+        this.status = CoachingStatus.COMPLETED;
+    }
+
+    /**
      * 종료된 세션인지 — {@code COMPLETED} 와 {@code CANCELED} 를 묶는다.
      *
      * <p>COACH-03·04 가 409 {@code COACHING_ALREADY_ENDED} 를 낼 조건이다
