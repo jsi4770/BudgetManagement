@@ -1,6 +1,7 @@
 package com.back.was.domain.analysis.dto;
 
 import com.back.was.domain.analysis.AnalysisPeriod;
+import com.back.was.domain.category.dto.CategoryRefResponse;
 import com.back.was.global.support.DateRange;
 
 import java.math.BigDecimal;
@@ -30,6 +31,8 @@ public record CategoryComparisonResponse(
     /**
      * 카테고리 한 줄.
      *
+     * @param category      {@code {id, name}} 만 — 항목이 전부 지출이라 {@code type} 이 없다
+     *                      (명세 ANL-03)
      * @param averageAmount 평소 같은 기간 평균. <b>{@code null}</b> 이면 비교하지 않은 것 —
      *                      데이터 부족({@code dataSufficient: false}) 또는 월세({@code MONTH})
      * @param growthRate    평균 대비 증가율(%). 비교하지 않았거나 평균이 0원이면 {@code null}
@@ -37,21 +40,12 @@ public record CategoryComparisonResponse(
      *                      ·월세는 항상 {@code false}
      */
     public record Item(
-            CategoryRef category,
+            CategoryRefResponse category,
             int amount,
             Integer averageAmount,
             BigDecimal growthRate,
             boolean isAnomaly
     ) {
-    }
-
-    /**
-     * 항목의 카테고리. 명세 ANL-03 은 {@code {id, name}} 만 쓴다 — CAT-01·TX-01 의
-     * {@code CategoryResponse} 와 달리 {@code type} 이 없다. 항목이 전부 지출이라 type 이
-     * 의미가 없어서인데, 키 구성이 다르므로 그 레코드를 재사용하지 않는다
-     * ({@code MeResponse} vs {@code UserResponse} 와 같은 판단).
-     */
-    public record CategoryRef(Long id, String name) {
     }
 
     public static CategoryComparisonResponse of(AnalysisPeriod period, DateRange analysisRange,
