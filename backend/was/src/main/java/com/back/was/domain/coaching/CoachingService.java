@@ -2,7 +2,18 @@ package com.back.was.domain.coaching;
 
 import com.back.was.domain.ai.CoachingOpeningCommand;
 import com.back.was.domain.ai.CoachingOpeningGenerator;
+import com.back.was.domain.ai.CoachingReply;
+import com.back.was.domain.ai.CoachingReplyCommand;
+import com.back.was.domain.ai.CoachingReplyGenerator;
+import com.back.was.domain.ai.CoachingTurn;
+import com.back.was.domain.ai.ProposedGoal;
+import com.back.was.domain.category.Category;
+import com.back.was.domain.category.CategoryRepository;
+import com.back.was.domain.category.CategoryType;
+import com.back.was.domain.category.dto.CategoryResponse;
 import com.back.was.domain.coaching.dto.CoachingResponse;
+import com.back.was.domain.coaching.dto.SendMessageRequest;
+import com.back.was.domain.coaching.dto.SendMessageResponse;
 import com.back.was.domain.coaching.dto.StartCoachingRequest;
 import com.back.was.domain.nudge.Nudge;
 import com.back.was.domain.nudge.NudgeRepository;
@@ -10,13 +21,16 @@ import com.back.was.domain.nudge.NudgeStatus;
 import com.back.was.domain.user.User;
 import com.back.was.domain.user.UserRepository;
 import com.back.was.global.exception.BusinessException;
+import com.back.was.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-/** 명세 10장 AI 코칭(COACHING). 지금은 COACH-01 만 있다. */
+/** 명세 10장 AI 코칭(COACHING). 지금은 COACH-01~03 이 있고 COACH-04 가 남았다. */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CoachingService {
@@ -24,8 +38,11 @@ public class CoachingService {
     private final CoachingRepository coachingRepository;
     private final CoachingMessageRepository coachingMessageRepository;
     private final NudgeRepository nudgeRepository;
+    private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final CoachingOpeningGenerator coachingOpeningGenerator;
+    private final CoachingReplyGenerator coachingReplyGenerator;
+    private final CoachingReplyFallback coachingReplyFallback;
 
     /**
      * COACH-01 코칭 시작. 세션과 <b>AI 첫 메시지를 한 트랜잭션에서 함께</b> 저장한다
@@ -109,6 +126,137 @@ public class CoachingService {
         return CoachingResponse.of(
                 coaching,
                 coachingMessageRepository.findByCoachingIdOrderByCreatedAtAscIdAsc(coaching.getId()));
+    }
+
+    /**
+     * COACH-03 메시지 전송. 사용자 메시지와 AI 응답을 <b>한 트랜잭션에서</b> 저장하고,
+     * AI 가 목표를 제안했으면 {@code PROPOSAL_} 컬럼 6개를 덮어쓴다(서버_내부_처리 6장).
+     *
+     * <p><b>AI 가 실패해도 200 이다.</b> 명세 0장 4) 각주와 서버_내부_처리 8장이 코칭 대화는
+     * 에러 대신 대체 메시지로 응답하라고 정했다 — 그래서 포트 호출만 {@code try} 로 감싸고
+     * ({@link CoachingReplyGenerator} 는 일부러 던지는 포트다) 실패하면
+     * {@link CoachingReplyFallback} 이 만든 응답에 {@code isFallback: true} 를 붙인다.
+     * <b>지금은 AI 어댑터가 없어 이 경로가 항상 타진다.</b>
+     *
+     * <p>{@code RuntimeException} 을 통째로 잡는다. 8장은 어댑터가 실패를
+     * {@code AI_UNAVAILABLE} 로 변환하도록 정하지만, 변환을 빠뜨린 예외 하나가 500 으로
+     * 새면 "에러를 내지 않는다"는 규칙이 깨진다 — 대화는 대체 문구로라도 이어지는 쪽이
+     * 명세에 맞다. 원인은 로그에 남긴다.
+     *
+     * <p>순서가 규칙이다: <b>사용자 메시지를 먼저 저장</b>해야 AI 에게 넘길 맥락의 마지막
+     * 줄이 방금 받은 질문이 된다(ERD 8장). 그 다음 응답 → 저장 → 제안 반영.
+     *
+     * <p>종료된 세션이면 409 {@code COACHING_ALREADY_ENDED} 다(명세 COACH-03 Errors ·
+     * 서버_내부_처리 6장 "종료된 코칭에 요청"). {@code COMPLETED} 와 {@code CANCELED} 를
+     * 묶어서 묻는 것은 {@link Coaching#isEnded()} 다 — 읽기(COACH-02)에는 걸리지 않는
+     * 쓰기 전용 규칙이다.
+     *
+     * <p>외부 호출이 트랜잭션 안에 있는 것은 감수한 비용이다. 서버_내부_처리 6장이 두
+     * 메시지를 함께 저장하라고 하고 응답에 둘 다 필요하므로 커밋을 미룰 수밖에 없다 —
+     * 포트 계약의 10초 타임아웃(8장)이 그 시간의 상한이다.
+     *
+     * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 코칭,
+     *                           409 {@code COACHING_ALREADY_ENDED} — 종료된 코칭
+     */
+    @Transactional
+    public SendMessageResponse sendMessage(Long userId, Long id, SendMessageRequest request) {
+        Coaching coaching = coachingRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(BusinessException::notFound);
+        if (coaching.isEnded()) {
+            throw new BusinessException(ErrorCode.COACHING_ALREADY_ENDED);
+        }
+
+        CoachingMessage userMessage = coachingMessageRepository.save(
+                CoachingMessage.user(coaching, request.content()));
+
+        boolean fallback = false;
+        CoachingReply reply;
+        try {
+            reply = coachingReplyGenerator.reply(replyCommand(coaching));
+        } catch (RuntimeException e) {
+            log.warn("코칭 {} AI 응답 실패 — 대체 문구로 응답한다", coaching.getId(), e);
+            reply = coachingReplyFallback.of(coaching.getUser());
+            fallback = true;
+        }
+
+        CoachingMessage aiMessage = coachingMessageRepository.save(
+                CoachingMessage.ai(coaching, reply.message()));
+        boolean proposed = applyProposal(coaching, reply.proposal());
+
+        return SendMessageResponse.of(userMessage, aiMessage, fallback, coaching, proposed);
+    }
+
+    /**
+     * 대화 전체와 고를 수 있는 지출 카테고리를 모아 포트에 넘긴다.
+     *
+     * <p>방금 저장한 사용자 메시지까지 포함해야 하므로 저장 <b>후</b>에 다시 조회한다 —
+     * 메모리에서 이어 붙이면 정렬 규칙이 쿼리와 두 벌이 된다. 수입 카테고리는 제외한다:
+     * 절약 목표를 수입에 걸 수는 없다.
+     */
+    private CoachingReplyCommand replyCommand(Coaching coaching) {
+        List<CoachingTurn> conversation =
+                coachingMessageRepository.findByCoachingIdOrderByCreatedAtAscIdAsc(coaching.getId())
+                        .stream()
+                        .map(message -> new CoachingTurn(message.getRole(), message.getContent()))
+                        .toList();
+        List<CategoryResponse> categories = categoryRepository.findAllByOrderByIdAsc().stream()
+                .filter(category -> category.getType() == CategoryType.EXPENSE)
+                .map(CategoryResponse::from)
+                .toList();
+
+        return new CoachingReplyCommand(coaching.getUser().getUsername(), conversation, categories);
+    }
+
+    /**
+     * 제안을 ERD 7장 {@code PROPOSAL_} 컬럼에 덮어쓴다 (최신 1개만 보관).
+     *
+     * <p><b>저장하기 전에 전부 검증한다.</b> 값의 출처가 Gemini 일 수 있고, 저장된 제안은
+     * 사용자가 그대로 확정하면 챌린지가 된다 — 없는 카테고리나 유형에 맞지 않는 목표가
+     * 들어가면 COACH-04 에서 터지거나 틀린 챌린지가 만들어진다. 통과하지 못하면 제안만
+     * 버리고 <b>메시지는 그대로 내려보낸다</b>: TX-07 이 모르는 카테고리를 "기타"로
+     * 추측하지 않고 추출 실패로 처리한 것과 같은 판단이다.
+     *
+     * <p>제목이 비어 있으면 {@link GoalTitle} 로 채운다 — 명세 COACH-04 "기본값은 AI 제안
+     * 제목, 없으면 템플릿".
+     *
+     * @return 제안이 실제로 저장되면 {@code true}. 응답의 {@code proposal} 키가 이 값을 따른다
+     */
+    private boolean applyProposal(Coaching coaching, ProposedGoal goal) {
+        if (goal == null) {
+            return false;
+        }
+        if (goal.goalType() == null || goal.periodDays() == null || goal.categoryId() == null) {
+            log.warn("코칭 {} 제안에 필수 값이 비어 제안을 버린다: {}", coaching.getId(), goal);
+            return false;
+        }
+
+        Category category = categoryRepository.findById(goal.categoryId()).orElse(null);
+        if (category == null || category.getType() != CategoryType.EXPENSE) {
+            log.warn("코칭 {} 제안의 카테고리 {} 가 지출 카테고리가 아니어서 제안을 버린다",
+                    coaching.getId(), goal.categoryId());
+            return false;
+        }
+
+        try {
+            coaching.propose(category, titleOf(goal, category), goal.goalType(),
+                    goal.goalAmount(), goal.goalCount(), goal.periodDays());
+            return true;
+        } catch (IllegalArgumentException e) {
+            // ERD 7장 체크 조건 위반 (유형에 맞는 목표 값 없음, 기간 0 이하)
+            log.warn("코칭 {} 제안이 ERD 7장 조건을 어겨 제안을 버린다: {}", coaching.getId(), goal, e);
+            return false;
+        }
+    }
+
+    private static String titleOf(ProposedGoal goal, Category category) {
+        if (goal.title() != null && !goal.title().isBlank()) {
+            return goal.title();
+        }
+        Integer target = goal.goalType() == GoalType.AMOUNT ? goal.goalAmount() : goal.goalCount();
+
+        // 목표 값이 비어 있으면 propose 가 거부할 상황이라 제목도 의미가 없다. 그 판단은
+        // 한 곳(Coaching.propose)에만 두고, 여기서는 0 으로 템플릿만 채운다.
+        return GoalTitle.of(category.getName(), goal.goalType(), target == null ? 0 : target);
     }
 
     /**

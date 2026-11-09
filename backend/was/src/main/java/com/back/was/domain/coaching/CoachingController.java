@@ -1,9 +1,12 @@
 package com.back.was.domain.coaching;
 
 import com.back.was.domain.coaching.dto.CoachingResponse;
+import com.back.was.domain.coaching.dto.SendMessageRequest;
+import com.back.was.domain.coaching.dto.SendMessageResponse;
 import com.back.was.domain.coaching.dto.StartCoachingRequest;
 import com.back.was.global.response.ApiResponse;
 import com.back.was.global.security.AuthUser;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -54,5 +57,21 @@ public class CoachingController {
     public ApiResponse<CoachingResponse> getCoaching(@AuthenticationPrincipal AuthUser authUser,
                                                      @PathVariable Long id) {
         return ApiResponse.ok(coachingService.getCoaching(authUser.id(), id));
+    }
+
+    /**
+     * COACH-03 메시지 전송 → AI 응답.
+     *
+     * <p>201 이 아니라 <b>200</b> 이다(명세 COACH-03). 메시지 두 건이 새로 생기지만 응답이
+     * 가리키는 것은 새 리소스가 아니라 "이번 턴의 결과"이고, 명세가 그렇게 정했다.
+     *
+     * <p>AI 가 죽어도 200 이다 — 대체 문구와 {@code isFallback: true} 가 내려간다.
+     * 자세한 이유는 {@code CoachingService.sendMessage}.
+     */
+    @PostMapping("/{id}/messages")
+    public ApiResponse<SendMessageResponse> sendMessage(@AuthenticationPrincipal AuthUser authUser,
+                                                        @PathVariable Long id,
+                                                        @RequestBody @Valid SendMessageRequest request) {
+        return ApiResponse.ok(coachingService.sendMessage(authUser.id(), id, request));
     }
 }
