@@ -7,6 +7,8 @@ import com.back.was.global.security.AuthUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,5 +41,18 @@ public class CoachingController {
                                                @RequestBody(required = false) StartCoachingRequest request) {
         return ApiResponse.ok(
                 coachingService.start(authUser.id(), StartCoachingRequest.emptyIfNull(request)));
+    }
+
+    /**
+     * COACH-02 코칭 조회 (재진입). 응답 타입이 COACH-01 과 같은
+     * {@link CoachingResponse} 인 것은 명세 COACH-02 가 "COACH-01과 같은 형식"을 요구한
+     * 결과다 — 프론트가 두 응답을 같은 코드로 그린다.
+     *
+     * <p>상태 코드만 다르다: 시작은 201, 조회는 200.
+     */
+    @GetMapping("/{id}")
+    public ApiResponse<CoachingResponse> getCoaching(@AuthenticationPrincipal AuthUser authUser,
+                                                     @PathVariable Long id) {
+        return ApiResponse.ok(coachingService.getCoaching(authUser.id(), id));
     }
 }

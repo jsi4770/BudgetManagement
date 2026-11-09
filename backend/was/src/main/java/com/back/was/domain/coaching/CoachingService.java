@@ -79,6 +79,39 @@ public class CoachingService {
     }
 
     /**
+     * COACH-02 코칭 조회 — <b>재진입 시 대화 복원용</b>이다(명세 COACH-02). 응답 모양은
+     * COACH-01 과 같고({@link CoachingResponse}), 담기는 것만 다르다: 지금까지의 전체
+     * 메시지와 저장된 최신 제안.
+     *
+     * <p>지난 대화 <b>목록</b> API 는 없다(명세 COACH-02). 프론트는 ID 를 알고 들어오므로
+     * 이 엔드포인트만으로 충분하고, 그래서 사용자별 코칭 목록 쿼리도 만들지 않았다.
+     *
+     * <p><b>종료된 세션도 열린다.</b> {@code COMPLETED}·{@code CANCELED} 를 거르지 않는 건
+     * 명세 COACH-02 에 그런 조건이 없기 때문이고, 그게 맞다 — 확정까지 끝낸 대화를 다시
+     * 보는 것은 정상적인 열람이다. 409 {@code COACHING_ALREADY_ENDED} 는 "종료된 코칭에
+     * <i>요청</i>"(서버_내부_처리 6장), 즉 COACH-03·04 의 <b>쓰기</b> 규칙이지 읽기 규칙이
+     * 아니다. NDG-01 의 노출 조건이 NDG-02 상세에는 걸리지 않는 것과 같은 판단이다.
+     *
+     * <p>없는 코칭과 남의 코칭은 모두 404 다(명세 0장 5)). 조건이 쿼리에 들어 있어
+     * ({@code findByIdAndUserId}) 두 경우의 응답이 구조적으로 같다 — ID 를 순서대로 넣어
+     * 보는 것만으로 다른 사용자의 코칭 존재 여부를 알 수 없다.
+     *
+     * <p>메시지 정렬은 쿼리가 책임진다(명세 COACH-02 "{@code createdAt} 오름차순") —
+     * {@link CoachingResponse#of} 는 받은 순서를 그대로 쓴다.
+     *
+     * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 코칭
+     */
+    @Transactional(readOnly = true)
+    public CoachingResponse getCoaching(Long userId, Long id) {
+        Coaching coaching = coachingRepository.findByIdAndUserId(id, userId)
+                .orElseThrow(BusinessException::notFound);
+
+        return CoachingResponse.of(
+                coaching,
+                coachingMessageRepository.findByCoachingIdOrderByCreatedAtAscIdAsc(coaching.getId()));
+    }
+
+    /**
      * {@code nudgeId} 를 보내지 않았으면 {@code null} 이고, 그건 정상이다(넛지 없이 시작한
      * 코칭 — 명세 COACH-01 의 {@code nudgeId} 는 선택).
      *
