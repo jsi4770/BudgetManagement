@@ -72,6 +72,21 @@ public class User {
         return new User(username, email, passwordHash, Role.USER);
     }
 
+    /**
+     * 관리자 계정 — <b>시드 전용</b>이다 (명세 ADMIN-01 "관리자 계정은 시드 데이터로 생성").
+     *
+     * <p>ERD 1장이 금지한 것은 <b>가입 경로로</b> ADMIN 을 만드는 것이고, 그래서
+     * {@link #signUp} 이 역할을 하드코딩한다. 관리자는 어딘가에서 만들어져야 하므로 그
+     * 경로를 이렇게 하나만, 이름으로 드러나게 열어 둔다.
+     *
+     * <p><b>호출자는 {@code AdminSeeder} 하나여야 한다.</b> 요청을 처리하는 코드에서 이
+     * 메서드를 부르면 ERD 1장의 금지가 무의미해진다 — 리뷰에서 그 호출을 막는 것이 유일한
+     * 방어다. 그 시더는 dev 프로필 전용이므로 운영에는 관리자가 자동으로 생기지 않는다.
+     */
+    public static User admin(String username, String email, String passwordHash) {
+        return new User(username, email, passwordHash, Role.ADMIN);
+    }
+
     public void changeUsername(String username) {
         this.username = username;
     }

@@ -162,12 +162,31 @@ public class TransactionService {
      */
     @Transactional(readOnly = true)
     public ParsedTransactionResponse parse(ParseTransactionRequest request) {
+        return parseText(request.text());
+    }
+
+    /**
+     * 텍스트 한 덩이를 거래 정보로 정리한다 — TX-07 과 <b>RCPT-01 이 공유하는 경로</b>다.
+     *
+     * <p>RCPT-01 은 OCR 이 뽑은 텍스트를 가지고 여기로 들어온다(명세 RCPT-01 "응답 형식만
+     * TX-07과 같음", 서버_내부_처리 9장 3단계). <b>복사하지 않고 같은 메서드를 쓰는 것이
+     * 중요하다</b> — {@code missingFields} 유도 규칙, 422 조건, 모르는 카테고리 처리가
+     * 두 벌이 되면 같은 확인 화면에 서로 다른 계약이 내려간다.
+     *
+     * <p>{@code @Transactional(readOnly = true)} 가 위의 {@code parse} 에 걸려 있고 RCPT-01
+     * 쪽은 자기 트랜잭션에서 부른다. 저장하는 것이 없어 어느 쪽이든 안전하다.
+     *
+     * @param text 분석할 텍스트. 사용자가 입력한 문장(TX-07)이거나 OCR 원문(RCPT-01)
+     * @throws BusinessException 503 {@code AI_UNAVAILABLE} / 422 {@code AI_PARSE_FAILED}
+     */
+    @Transactional(readOnly = true)
+    public ParsedTransactionResponse parseText(String text) {
         List<CategoryResponse> categories = categoryRepository.findAllByOrderByIdAsc().stream()
                 .map(CategoryResponse::from)
                 .toList();
 
         ParsedTransaction parsed = transactionTextParser.parse(
-                new TextParseCommand(request.text(), KstTime.today(), categories));
+                new TextParseCommand(text, KstTime.today(), categories));
 
         CategoryResponse category = findCategory(categories, parsed.categoryId());
 

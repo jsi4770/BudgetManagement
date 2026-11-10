@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
@@ -80,6 +81,19 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResponse<Void>> handleMissingParam(MissingServletRequestParameterException e) {
         List<ErrorResponse.Detail> details = List.of(new ErrorResponse.Detail(e.getParameterName(), "REQUIRED"));
+        return build(ErrorCode.VALIDATION_ERROR, ErrorCode.VALIDATION_ERROR.getMessage(), details);
+    }
+
+    /**
+     * {@code multipart} 요청에서 파트가 빠진 경우 — RCPT-01 의 {@code image} 가 유일한
+     * 사용처다. 위의 쿼리 파라미터 누락과 같은 모양({@code reason: REQUIRED})으로 맞춘다.
+     *
+     * <p>이 핸들러가 없으면 맨 아래 {@code Exception} 핸들러로 떨어져 <b>500</b> 이 된다 —
+     * 파일을 안 붙인 요청은 서버 오류가 아니라 잘못된 요청이다.
+     */
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingPart(MissingServletRequestPartException e) {
+        List<ErrorResponse.Detail> details = List.of(new ErrorResponse.Detail(e.getRequestPartName(), "REQUIRED"));
         return build(ErrorCode.VALIDATION_ERROR, ErrorCode.VALIDATION_ERROR.getMessage(), details);
     }
 
