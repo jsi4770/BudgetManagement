@@ -61,15 +61,17 @@ class DevProfileOnlyTest {
     }
 
     @Test
-    @DisplayName("dev 프로필이 아니면 컨트롤러·서비스 빈이 없다")
+    @DisplayName("dev 프로필이 아니면 컨트롤러·서비스 빈이 하나도 없다")
     void devBeansAreNotRegistered() {
         assertThat(applicationContext.getBeanNamesForType(DevChallengeController.class)).isEmpty();
         assertThat(applicationContext.getBeanNamesForType(DevChallengeService.class)).isEmpty();
+        assertThat(applicationContext.getBeanNamesForType(DevSeedController.class)).isEmpty();
+        assertThat(applicationContext.getBeanNamesForType(DevSeedService.class)).isEmpty();
     }
 
     @Test
     @DisplayName("DEV-02 경로는 404 다 — 인증된 요청이어도 매핑 자체가 없다")
-    void devEndpointIsNotMapped() throws Exception {
+    void devChallengeEndpointIsNotMapped() throws Exception {
         assertThat(userRepository.findByEmail(EMAIL)).isPresent();
 
         mockMvc.perform(post("/dev/challenges/{id}/complete", 1)
@@ -77,5 +79,27 @@ class DevProfileOnlyTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("DEV-01 경로도 404 다 — 운영에 열리면 누구나 자기 데이터를 날릴 수 있다")
+    void devSeedEndpointIsNotMapped() throws Exception {
+        mockMvc.perform(post("/dev/seed")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"scenario\": \"NORMAL\"}"))
+                .andExpect(status().isNotFound());
+    }
+
+    /**
+     * {@code DemoTransactionPlanner} 는 프로필과 무관하게 등록된다 — DB 를 모르는 순수
+     * 계산이라 운영에 있어도 아무 일도 하지 않고, {@code @Profile} 을 붙이면 dev 테스트에서
+     * 단독으로 쓰기 어려워진다. 데이터를 건드리는 쪽(서비스·컨트롤러)만 막는 것이 요점이다.
+     */
+    @Test
+    @DisplayName("거래 계획기는 프로필과 무관하다 — 데이터를 건드리지 않는다")
+    void thePlannerIsProfileIndependent() {
+        assertThat(applicationContext.getBeanNamesForType(DemoTransactionPlanner.class))
+                .isNotEmpty();
     }
 }
