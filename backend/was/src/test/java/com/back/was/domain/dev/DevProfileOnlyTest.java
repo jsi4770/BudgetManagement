@@ -1,0 +1,81 @@
+package com.back.was.domain.dev;
+
+import com.back.was.domain.user.UserRepository;
+import com.jayway.jsonpath.JsonPath;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.ApplicationContext;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+/**
+ * {@code /dev/**} 가 <b>dev 프로필 밖에서는 아예 없다</b>는 것 — CLAUDE.md 규칙 ·
+ * 서버_내부_처리 12장 ("운영 환경에서는 {@code /dev/**} 비활성화").
+ *
+ * <p>프로필을 지정하지 않았으므로 기본 컨텍스트다. 운영 배포에서 이 API 가 열려 있으면
+ * 누구나 자기 챌린지를 즉시 종료시킬 수 있고, DEV-01 이 생기면 데이터 삭제까지 가능해진다 —
+ * 그래서 "등록되지 않는다"를 테스트로 고정한다.
+ *
+ * <p>동작하는 쪽은 {@code DevChallengeApiTest} 가 {@code @ActiveProfiles("dev")} 로 본다.
+ */
+@SpringBootTest
+@AutoConfigureMockMvc
+@Transactional
+class DevProfileOnlyTest {
+
+    private static final String EMAIL = "dev-profile@email.com";
+    private static final String PASSWORD = "password123!";
+
+    @Autowired
+    MockMvc mockMvc;
+
+    @Autowired
+    ApplicationContext applicationContext;
+
+    @Autowired
+    UserRepository userRepository;
+
+    private String accessToken;
+
+    @BeforeEach
+    void signUp() throws Exception {
+        String body = mockMvc.perform(post("/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username": "홍길동", "email": "%s", "password": "%s"}
+                                """.formatted(EMAIL, PASSWORD)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        accessToken = JsonPath.read(body, "$.data.accessToken");
+    }
+
+    @Test
+    @DisplayName("dev 프로필이 아니면 컨트롤러·서비스 빈이 없다")
+    void devBeansAreNotRegistered() {
+        assertThat(applicationContext.getBeanNamesForType(DevChallengeController.class)).isEmpty();
+        assertThat(applicationContext.getBeanNamesForType(DevChallengeService.class)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("DEV-02 경로는 404 다 — 인증된 요청이어도 매핑 자체가 없다")
+    void devEndpointIsNotMapped() throws Exception {
+        assertThat(userRepository.findByEmail(EMAIL)).isPresent();
+
+        mockMvc.perform(post("/dev/challenges/{id}/complete", 1)
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isNotFound());
+    }
+}
