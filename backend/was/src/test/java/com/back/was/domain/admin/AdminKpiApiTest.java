@@ -248,12 +248,25 @@ class AdminKpiApiTest {
         /**
          * 비밀번호가 문서에 적힌 계정을 운영에 띄우면 그게 백도어다. 운영에서는 관리자를
          * 의도적으로 만들어야 하고, 그때까지 ADMIN-01 은 존재하지만 아무도 통과하지 못한다.
+         *
+         * <p>근거는 두 가지고, <b>둘 다 실행 순서와 무관해야</b> 한다: 이 컨텍스트에
+         * 시더 빈이 없다는 것과, 가입이 {@code USER} 를 하드코딩한다는 것(ERD 1장).
+         * 둘을 합치면 기본 프로필에서 {@code ADMIN} 을 만드는 경로가 남지 않는다.
+         *
+         * <p><b>"{@code users} 에 관리자 행이 없다"는 여기서 단정할 수 없다.</b> 테스트
+         * 전체가 인메모리 H2 하나({@code jdbc:h2:mem:was;DB_CLOSE_DELAY=-1})를 컨텍스트와
+         * 무관하게 공유하는데, <b>dev 컨텍스트가 뜨는 순간 {@code AdminSeeder} 가 그 공용
+         * DB 에 관리자를 커밋</b>한다({@code ApplicationRunner} 라 테스트 트랜잭션 밖이다).
+         * 그러면 캐시된 이 컨텍스트의 테스트도 그 행을 보게 된다 — 즉 그 단정은 프로필의
+         * 성질이 아니라 "이 실행에서 dev 컨텍스트가 아직 안 떴다"는 <b>실행 순서</b>의
+         * 성질이었고, 순서가 바뀌면 깨졌다(실제로 깨졌다). dev 쪽의 긍정 확인은
+         * {@code AdminSeederTest} 가 맡는다.
          */
         @Test
-        @DisplayName("dev 프로필이 아니면 관리자 시더가 없다 — 운영에 관리자가 자동 생성되지 않는다")
+        @DisplayName("dev 프로필이 아니면 관리자 시더 빈이 없다 — 운영에 관리자가 자동 생성되지 않는다")
         void theAdminSeederIsDevOnly() {
             assertThat(applicationContext.getBeanNamesForType(AdminSeeder.class)).isEmpty();
-            assertThat(userRepository.findByEmail("admin@nudge.test")).isEmpty();
+            assertThat(user.getRole()).isEqualTo(Role.USER);
         }
     }
 }
