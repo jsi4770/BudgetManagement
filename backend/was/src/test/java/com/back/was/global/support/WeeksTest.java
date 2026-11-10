@@ -95,6 +95,32 @@ class WeeksTest {
         }
     }
 
+    @Test
+    @DisplayName("fullWeeksBefore: 직전 N주를 주 전체로 — 진행 중인 이번 주는 들어가지 않는다")
+    void fullWeeksBeforeCoversWholeWeeks() {
+        // D = 11-04(수), M0 = 11-02 → 직전 4주는 10-05(월) ~ 11-01(일)
+        assertThat(Weeks.fullWeeksBefore(D, 4))
+                .isEqualTo(new DateRange(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 11, 1)));
+        assertThat(Weeks.fullWeeksBefore(D, 1))
+                .isEqualTo(new DateRange(LocalDate.of(2026, 10, 26), LocalDate.of(2026, 11, 1)));
+    }
+
+    @Test
+    @DisplayName("fullWeeksBefore: 요일이 무엇이든 N × 7일이다 (elapsedWeeksAgo 와 다른 점)")
+    void fullWeeksBeforeIgnoresTheDayOfWeek() {
+        for (int dayOfMonth = 2; dayOfMonth <= 8; dayOfMonth++) {
+            LocalDate today = LocalDate.of(2026, 11, dayOfMonth);
+
+            // 월요일에 elapsedWeeksAgo 로 평균을 내면 하루치가 나오는데, 7일짜리 목표의
+            // 기준(AI_대체_문구 5장)은 요일과 무관하게 주 전체여야 한다.
+            assertThat(lengthOf(Weeks.fullWeeksBefore(today, 4)))
+                    .as("%s 기준 직전 4주 길이", today)
+                    .isEqualTo(28);
+            assertThat(Weeks.fullWeeksBefore(today, 4).end())
+                    .isEqualTo(Weeks.mondayOf(today).minusDays(1));
+        }
+    }
+
     private static int lengthOf(DateRange range) {
         return (int) (range.end().toEpochDay() - range.start().toEpochDay()) + 1;
     }

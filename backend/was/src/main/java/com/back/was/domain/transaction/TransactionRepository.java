@@ -31,6 +31,34 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
             Long userId, Long categoryId, LocalDate from, LocalDate to);
 
     /**
+     * 챌린지 실적 재계산의 집계 — 한 카테고리·한 기간의 <b>금액 합계와 건수</b>
+     * (서버_내부_처리 2장).
+     *
+     * <p>위의 {@code count...} 와 겹쳐 보이지만 합치지 않는다. 저쪽은 넛지 문구의
+     * {@code {count}} 하나만 필요해서 건수만 세고, 이쪽은 두 값이 <b>같은 집계</b>에서
+     * 나와야 한다({@link SpendingTotal} 설명).
+     *
+     * <p>{@code coalesce} 는 "기간 안에 거래가 없음"을 0원으로 만든다 — 거래를 전부 지워
+     * 실적이 0 이 되는 것은 정상 경로이고, {@code sum()} 이 {@code null} 인 줄을 레코드
+     * 생성자에 넣으면 {@code long} 언박싱에서 NPE 가 난다.
+     *
+     * <p>카테고리 타입을 조건에 넣지 않는다. 챌린지의 카테고리는 확정 시점에 지출로
+     * 검증되므로(COACH-04) ID 가 일치하면 이미 지출이다.
+     */
+    @Query("""
+            select new com.back.was.domain.transaction.SpendingTotal(
+                coalesce(sum(t.amount), 0L), count(t))
+            from Transaction t
+            where t.user.id = :userId
+              and t.category.id = :categoryId
+              and t.transactionDate between :from and :to
+            """)
+    SpendingTotal sumCategorySpending(@Param("userId") Long userId,
+                                      @Param("categoryId") Long categoryId,
+                                      @Param("from") LocalDate from,
+                                      @Param("to") LocalDate to);
+
+    /**
      * TX-02 목록. {@code type} · {@code categoryId} 는 {@code null} 이면 조건에서 빠진다
      * (명세 TX-02 "없으면 전체").
      *
