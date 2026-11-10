@@ -45,10 +45,11 @@ import java.time.LocalDateTime;
  * <p>{@code CREATED_AT} 은 확정 시각이자 <b>코칭의 종료 시각</b>이다(ERD 7장 "시작·종료
  * 시각" 표) — 코칭에 종료 시각 컬럼이 없는 이유가 이것이다.
  *
- * <p><b>실적 세 컬럼({@code SPENDING_AMOUNT} · {@code SPENDING_COUNT} ·
- * {@code ACHIEVEMENT_RATE})을 갱신하는 코드는 아직 없다</b> — 거래 후처리 2번이고
- * (서버_내부_처리 1장) 그래서 지금은 기본값 0 에 머문다. 들어올 자리는
- * {@code TransactionService} 의 {@code nudgeJudgement.judge(...)} 옆이다.
+ * <p>실적 세 컬럼({@code SPENDING_AMOUNT} · {@code SPENDING_COUNT} ·
+ * {@code ACHIEVEMENT_RATE})은 0 으로 시작해 <b>거래 후처리 2번</b>이 갱신한다 —
+ * {@code ChallengePerformance} 가 {@code TransactionService} 안에서
+ * {@code nudgeJudgement.judge(...)} <b>바로 앞에</b> 동기로 돌고(서버_내부_처리 1장 순서
+ * 2번), 기간 전체를 다시 집계해 덮어쓰므로 멱등하다.
  */
 @Entity
 @Table(
@@ -221,9 +222,13 @@ public class Challenge {
      * 종료 판정 — <b>일일 스케줄러의 자리</b>다 (ERD 9장 / SRS 7.4-4): 실적이 목표 이하면
      * {@code SUCCESS}, 아니면 {@code FAILED}. 어느 실적을 보는지는 목표 유형이 정한다.
      *
-     * <p>스케줄러 자체는 아직 없다(남은_작업_계획 2-4). 판정 규칙만 엔티티에 두는 이유는
-     * 규칙이 ERD 에 있고 상태 전이를 엔티티 밖에서 하면 되돌릴 수 없는 전이를 아무나 할 수
-     * 있게 되기 때문이다 — 한 번 판정된 챌린지는 얼어붙어야 한다.
+     * <p>부르는 쪽은 {@code ChallengeTermination} 이다(00:05 스케줄러 · DEV-02). 판정 규칙을
+     * 엔티티에 두는 이유는 규칙이 ERD 에 있고, 상태 전이를 엔티티 밖에서 하면 되돌릴 수 없는
+     * 전이를 아무나 할 수 있게 되기 때문이다 — 한 번 판정된 챌린지는 얼어붙어야 한다.
+     *
+     * <p>판정이 보는 실적은 후처리 2번({@code ChallengePerformance})이 마지막으로 쓴 값이다.
+     * 목표와 실적의 짝을 {@link #rateOf} 와 똑같이 {@code goalType} 에 물어보므로
+     * {@code ACHIEVEMENT_RATE} 와 판정 결과가 어긋날 수 없다.
      *
      * @throws IllegalStateException 이미 종료된 챌린지일 때 (늦은 기록으로 결과를 다시
      *                               쓰는 일을 막는다 — ERD 9장)
