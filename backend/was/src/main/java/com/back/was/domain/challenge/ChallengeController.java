@@ -6,6 +6,7 @@ import com.back.was.global.security.AuthUser;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -44,5 +45,20 @@ public class ChallengeController {
             @AuthenticationPrincipal AuthUser authUser,
             @RequestParam(required = false) ChallengeStatus status) {
         return ApiResponse.ok(challengeService.getChallenges(authUser.id(), status));
+    }
+
+    /**
+     * CHL-02 챌린지 상세. 응답 타입이 CHL-01 의 배열 원소와 같은
+     * {@link ChallengeResponse} 인 것은 명세 CHL-02 가 "CHL-01 항목과 같은 형식"을 요구한
+     * 결과다 — 배열이 아닌 단일 객체라는 점만 다르다.
+     *
+     * <p>이 매핑은 위의 목록({@code /challenges})과 경로가 겹치지 않는다. 리터럴 하위 경로가
+     * 아직 없으므로({@code /challenges/{id}/report} 는 CHL-03) 지금은 충돌 여지도 없다 —
+     * CHL-03 이 들어올 때 {@code /report} 가 더 구체적이라 먼저 매칭된다.
+     */
+    @GetMapping("/{id}")
+    public ApiResponse<ChallengeResponse> getChallenge(@AuthenticationPrincipal AuthUser authUser,
+                                                       @PathVariable Long id) {
+        return ApiResponse.ok(challengeService.getChallenge(authUser.id(), id));
     }
 }

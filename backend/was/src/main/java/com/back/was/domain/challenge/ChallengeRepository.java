@@ -6,8 +6,27 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface ChallengeRepository extends JpaRepository<Challenge, Long> {
+
+    /**
+     * CHL-02 챌린지 상세. <b>{@code id} 만으로 찾지 않는다</b> — 조건에 사용자가 함께
+     * 들어가야 남의 챌린지가 "없음"과 구분되지 않고 404 가 된다(명세 0장 5)). 소유권을
+     * 서비스에서 뒤늦게 비교하면 깜빡한 곳이 그대로 정보 노출이 된다.
+     *
+     * <p>이름의 {@code CoachingUserId} 가 조인이다 — CHALLENGE 에 {@code USER_ID} 가 없어서
+     * {@code COACHING.USER_ID} 로 경유한다(ERD 9장). {@code existsByCoachingUserIdAndStatus}
+     * 와 같은 경로다.
+     *
+     * <p><b>상태로 걸러내지 않는다.</b> 종료된 챌린지도 열려야 한다 — 명세 CHL-02 에 그런
+     * 조건이 없고, 끝난 챌린지를 다시 보는 것(CHL-03 성장 리포트로 가는 길)이 정상적인
+     * 열람이다. NDG-01 의 노출 조건이 NDG-02 에 걸리지 않는 것과 같다.
+     *
+     * <p>CHL-01 과 달리 {@code join fetch} 가 없다. 한 건이라 카테고리 지연 로딩이 쿼리
+     * 하나를 더하는 것뿐이고(N+1 이 아니다), 파생 쿼리 이름이 조인 경로를 그대로 보여 준다.
+     */
+    Optional<Challenge> findByIdAndCoachingUserId(Long id, Long userId);
 
     /**
      * CHL-01 챌린지 목록. {@code status} 가 {@code null} 이면 전체다 (명세 CHL-01
