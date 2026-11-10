@@ -10,6 +10,36 @@ import java.util.List;
 public interface ChallengeRepository extends JpaRepository<Challenge, Long> {
 
     /**
+     * CHL-01 챌린지 목록. {@code status} 가 {@code null} 이면 전체다 (명세 CHL-01
+     * "없으면 전체") — TX-02 의 선택 필터와 같은 {@code (:x is null or ...)} 방식이다.
+     *
+     * <p>사용자 범위는 {@code ch.coaching.user.id} 로 들어간다 (CHALLENGE 에
+     * {@code USER_ID} 가 없다 — ERD 9장). 조건이 쿼리에 있으므로 남의 챌린지가 목록에
+     * 섞일 경로가 없다.
+     *
+     * <p><b>정렬은 명세에 없어서 여기서 정했다</b>: 최신 확정 순
+     * ({@code createdAt} 내림차순). {@code CREATED_AT} 은 확정 시각이고(ERD 9장) 한 번
+     * 정해지면 바뀌지 않아서, 실적이 갱신돼도 목록의 순서가 흔들리지 않는다. 같은 초에
+     * 확정된 두 건의 순서는 {@code id} 가 정한다 — 없으면 목록 순서가 실행마다 달라진다.
+     *
+     * <p>{@code join fetch} 로 카테고리를 함께 읽어 응답 매핑 때의 N+1 을 막는다(TX-02 와
+     * 같은 이유). 코칭은 가져오지 않는다 — 응답에 들어가지 않고 조건으로만 쓰인다.
+     *
+     * <p>페이지네이션이 없다. 명세 CHL-01 이 {@code data} 를 바로 배열로 두고 페이지 정보를
+     * 요구하지 않는다(CAT-01 과 같은 모양). 챌린지는 한 번에 하나씩 진행하므로 한 사용자의
+     * 누적 건수가 빠르게 늘지 않는다 — 늘어나면 명세에 페이지 정보를 추가하는 것이 먼저다.
+     */
+    @Query("""
+            select ch from Challenge ch
+            join fetch ch.category
+            where ch.coaching.user.id = :userId
+              and (:status is null or ch.status = :status)
+            order by ch.createdAt desc, ch.id desc
+            """)
+    List<Challenge> findAllByUserId(@Param("userId") Long userId,
+                                    @Param("status") ChallengeStatus status);
+
+    /**
      * 거래 후처리 2번의 재계산 대상 — 서버_내부_처리 2장의 세 조건을 그대로 담았다:
      * 해당 사용자의 <b>{@code IN_PROGRESS}</b> 챌린지 중 <b>카테고리가 일치</b>하고
      * <b>거래 날짜가 {@code START_DATE} ~ {@code END_DATE} 안</b>에 있는 것.
