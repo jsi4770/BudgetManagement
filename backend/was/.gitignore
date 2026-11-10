@@ -37,6 +37,9 @@ out/
 .vscode/
 
 ### Custom ###
+# 실제 비밀값. .env_example 만 커밋한다.
+.env
+.env.local
 .claude/
 CLAUDE.md
 docs/**
