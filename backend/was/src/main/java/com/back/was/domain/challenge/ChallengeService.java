@@ -1,6 +1,8 @@
 package com.back.was.domain.challenge;
 
 import com.back.was.domain.challenge.dto.ChallengeResponse;
+import com.back.was.domain.report.GrowthReportRepository;
+import com.back.was.domain.report.dto.GrowthReportResponse;
 import com.back.was.global.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -9,7 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * 명세 11장 챌린지(CHALLENGE) 조회 — CHL-01·02.
+ * 명세 11장 챌린지(CHALLENGE) 조회 — CHL-01~03.
  *
  * <p><b>챌린지를 만드는 것은 COACH-04</b>, 실적을 갱신하는 것은 거래 후처리 2번
  * ({@link ChallengePerformance})이다. 여기는 읽기 전용이다 — 챌린지를 수정·삭제하거나
@@ -20,6 +22,7 @@ import java.util.List;
 public class ChallengeService {
 
     private final ChallengeRepository challengeRepository;
+    private final GrowthReportRepository growthReportRepository;
 
     /**
      * CHL-01 챌린지 목록.
@@ -67,6 +70,28 @@ public class ChallengeService {
     public ChallengeResponse getChallenge(Long userId, Long id) {
         return challengeRepository.findByIdAndCoachingUserId(id, userId)
                 .map(ChallengeResponse::from)
+                .orElseThrow(BusinessException::notFound);
+    }
+
+    /**
+     * CHL-03 성장 리포트. 리포트는 <b>챌린지가 끝날 때 서버가 만든다</b>
+     * ({@code ChallengeTermination}) — 이 메서드는 읽기만 한다.
+     *
+     * <p><b>명세 CHL-03 의 404 세 가지가 한 조회로 합쳐진다</b>: 없는 챌린지, 남의 챌린지,
+     * 그리고 "진행 중이라 리포트가 없음". 셋을 구분하지 않는 것이 의도다 — 구분하면 ID 를
+     * 훑어 남의 챌린지 존재 여부를 알 수 있고(명세 0장 5)), 프론트는 어느 경우든 "아직
+     * 리포트가 없다"로 같게 처리하면 된다.
+     *
+     * <p>리포트를 CHL-02 와 합쳐 하나의 응답으로 주지 않는 이유: 명세가 별도 엔드포인트로
+     * 뒀고, 진행 중 챌린지에는 리포트가 없어서 CHL-02 가 매번 {@code null} 필드를 안고
+     * 가야 한다.
+     *
+     * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 챌린지, 또는 진행 중
+     */
+    @Transactional(readOnly = true)
+    public GrowthReportResponse getReport(Long userId, Long challengeId) {
+        return growthReportRepository.findByChallengeIdAndUserId(challengeId, userId)
+                .map(GrowthReportResponse::from)
                 .orElseThrow(BusinessException::notFound);
     }
 }

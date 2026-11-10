@@ -59,6 +59,23 @@ public interface ChallengeRepository extends JpaRepository<Challenge, Long> {
                                     @Param("status") ChallengeStatus status);
 
     /**
+     * 종료 판정 대상 — 서버_내부_처리 4장: {@code END_DATE < 오늘} AND
+     * {@code STATUS = 'IN_PROGRESS'}.
+     *
+     * <p><b>조건 기반이라 밀린 것까지 처리된다</b>(4장). "어제 끝난 것"이 아니라 "끝났는데
+     * 아직 판정되지 않은 전부"를 집으므로, 서버가 며칠 꺼져 있었어도 다음 실행 한 번으로
+     * 따라잡는다. 그래서 스케줄러가 실패한 날을 따로 기억할 필요가 없다.
+     *
+     * <p>{@code endDate < today} 이므로 <b>종료일 당일은 아직 판정하지 않는다</b> — 그날
+     * 자정까지 기록이 더 들어올 수 있다. 판정은 종료일 다음 날 00:05 다.
+     *
+     * <p>오래된 것부터 처리한다. 순서가 결과를 바꾸지는 않지만(챌린지끼리 영향이 없다)
+     * 로그를 시간순으로 읽을 수 있다.
+     */
+    List<Challenge> findAllByStatusAndEndDateBeforeOrderByEndDateAsc(
+            ChallengeStatus status, LocalDate endDate);
+
+    /**
      * 거래 후처리 2번의 재계산 대상 — 서버_내부_처리 2장의 세 조건을 그대로 담았다:
      * 해당 사용자의 <b>{@code IN_PROGRESS}</b> 챌린지 중 <b>카테고리가 일치</b>하고
      * <b>거래 날짜가 {@code START_DATE} ~ {@code END_DATE} 안</b>에 있는 것.

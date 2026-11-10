@@ -1,6 +1,7 @@
 package com.back.was.domain.challenge;
 
 import com.back.was.domain.challenge.dto.ChallengeResponse;
+import com.back.was.domain.report.dto.GrowthReportResponse;
 import com.back.was.global.response.ApiResponse;
 import com.back.was.global.security.AuthUser;
 import lombok.RequiredArgsConstructor;
@@ -60,5 +61,20 @@ public class ChallengeController {
     public ApiResponse<ChallengeResponse> getChallenge(@AuthenticationPrincipal AuthUser authUser,
                                                        @PathVariable Long id) {
         return ApiResponse.ok(challengeService.getChallenge(authUser.id(), id));
+    }
+
+    /**
+     * CHL-03 성장 리포트.
+     *
+     * <p>{@code /{id}/report} 는 위의 {@code /{id}} 보다 구체적이라 Spring 이 먼저
+     * 매칭한다 — {@code report} 가 ID 로 해석되는 일은 없다.
+     *
+     * <p>리포트가 없으면(진행 중) 404 다 — 명세 CHL-03 Errors. 자세한 이유는
+     * {@code ChallengeService.getReport}.
+     */
+    @GetMapping("/{id}/report")
+    public ApiResponse<GrowthReportResponse> getReport(@AuthenticationPrincipal AuthUser authUser,
+                                                       @PathVariable Long id) {
+        return ApiResponse.ok(challengeService.getReport(authUser.id(), id));
     }
 }
