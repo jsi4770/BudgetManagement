@@ -1,8 +1,46 @@
 package com.back.was.domain.challenge;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDate;
+import java.util.List;
 
 public interface ChallengeRepository extends JpaRepository<Challenge, Long> {
+
+    /**
+     * 거래 후처리 2번의 재계산 대상 — 서버_내부_처리 2장의 세 조건을 그대로 담았다:
+     * 해당 사용자의 <b>{@code IN_PROGRESS}</b> 챌린지 중 <b>카테고리가 일치</b>하고
+     * <b>거래 날짜가 {@code START_DATE} ~ {@code END_DATE} 안</b>에 있는 것.
+     *
+     * <p>{@code status} 를 조건에 넣는 것이 "종료된 챌린지는 거래가 바뀌어도 재계산하지
+     * 않는다"(서버_내부_처리 1장)의 구현이다. 서비스에서 뒤늦게 걸러내면 깜빡한 곳이
+     * 그대로 확정된 결과를 덮어쓴다.
+     *
+     * <p><b>목록으로 받는다.</b> "사용자당 진행 중 1개"(ERD 9장)는 COACH-04 가 지키는
+     * 불변식이지 DB 제약이 아니라, 동시 확정으로 두 건이 남을 수 있다. 하나만 집어 오면
+     * 나머지 실적이 영구히 멈춘다.
+     *
+     * <p>이름을 파생 쿼리로 적으면
+     * {@code findByCoachingUserIdAndStatusAndCategoryIdAndStartDateLessThanEqualAnd...} 가
+     * 되어 읽을 수 없고, 날짜 두 개의 비교 방향을 이름만 보고 검증하기도 어렵다. 상태를
+     * 파라미터로 받는 이유는 JPQL 에 enum 상수를 FQCN 리터럴로 적지 않기 위함이다(TX-03 의
+     * 집계 쿼리와 같은 판단).
+     *
+     * @param date 거래의 날짜. 양끝을 포함한다 — {@code END_DATE} 당일 거래도 챌린지 실적이다
+     */
+    @Query("""
+            select ch from Challenge ch
+            where ch.coaching.user.id = :userId
+              and ch.status = :status
+              and ch.category.id = :categoryId
+              and :date between ch.startDate and ch.endDate
+            """)
+    List<Challenge> findCovering(@Param("userId") Long userId,
+                                 @Param("status") ChallengeStatus status,
+                                 @Param("categoryId") Long categoryId,
+                                 @Param("date") LocalDate date);
 
     /**
      * "이 사용자에게 이 상태의 챌린지가 있는지" — ERD 9장 "등록 규칙"(사용자당 진행 중

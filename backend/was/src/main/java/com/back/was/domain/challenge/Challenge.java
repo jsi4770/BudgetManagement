@@ -22,6 +22,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -161,6 +162,59 @@ public class Challenge {
         }
         return new Challenge(coaching, category, title, goalType, goalAmount, goalCount,
                 startDate, endDate);
+    }
+
+    /**
+     * 거래 후처리 <b>2번</b>: 기간 안의 실적을 다시 써 넣는다 (서버_내부_처리 2장).
+     *
+     * <p><b>누적이 아니라 덮어쓰기</b>다. 호출자가 챌린지 기간 전체를 다시 집계해서
+     * 넘기므로(거래 수정·삭제도 같은 경로를 탄다) 더하는 방식이면 지운 거래가 영원히
+     * 남는다.
+     *
+     * <p>{@code STATUS} 는 건드리지 않는다. <b>목표를 초과해도 자동으로 실패·취소되지
+     * 않는다</b> — 판정은 기간이 끝난 다음 날 00:05 에 스케줄러가 한 번만 하고
+     * ({@link #finish()}), 챌린지 상태에 {@code CANCELED} 라는 값 자체가 없다(ERD 9장).
+     * 초과는 {@code ACHIEVEMENT_RATE} 가 100 을 넘은 {@code IN_PROGRESS} 로 표현된다.
+     *
+     * <p>그래서 비율에 <b>상한을 두지 않는다</b>. 100 에서 잘라 버리면 "얼마나 넘겼는지"가
+     * 응답에서 사라지고, 화면의 "소비 한도의 N% 사용"이 초과 상황을 설명할 수 없게 된다.
+     *
+     * @param spendingAmount 기간 안의 금액 합계
+     * @param spendingCount  기간 안의 거래 건수
+     * @throws IllegalStateException 이미 종료된 챌린지일 때 — 종료된 챌린지는 거래가
+     *                               바뀌어도 재계산하지 않는다(서버_내부_처리 1장 ·
+     *                               ERD 9장 "늦은 기록은 반영하지 않아요"). 호출자가
+     *                               {@code IN_PROGRESS} 만 조회하므로 여기 예외는 마지막
+     *                               방어선이다
+     */
+    public void updatePerformance(int spendingAmount, int spendingCount) {
+        if (isFinished()) {
+            throw new IllegalStateException(
+                    "종료된 챌린지의 실적은 다시 계산하지 않아요 (status=%s).".formatted(status));
+        }
+        this.spendingAmount = spendingAmount;
+        this.spendingCount = spendingCount;
+        this.achievementRate = rateOf(spendingAmount, spendingCount);
+    }
+
+    /**
+     * ERD 9장: {@code ACHIEVEMENT_RATE} = {@code SPENDING ÷ GOAL × 100}.
+     *
+     * <p>어느 쪽 실적과 어느 쪽 목표를 쓰는지는 {@code GOAL_TYPE} 이 정한다 —
+     * {@link #finish()} 가 판정에 쓰는 짝과 같아야 하므로 둘 다 {@code goalType} 에
+     * 물어본다.
+     *
+     * <p>{@code HALF_UP} scale 2 는 이 프로젝트의 비율 관례다(CLAUDE.md ·
+     * {@code SpendingComparison} 의 증가율과 같은 방식). 목표는 1 이상이 보장되므로
+     * ({@link GoalType#requiredGoal}) 0 으로 나눌 일은 없다.
+     */
+    private BigDecimal rateOf(int spendingAmount, int spendingCount) {
+        int goal = goalType.requiredGoal(goalAmount, goalCount);
+        int spending = goalType == GoalType.AMOUNT ? spendingAmount : spendingCount;
+
+        return BigDecimal.valueOf(spending)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(goal), RATE_SCALE, RoundingMode.HALF_UP);
     }
 
     /**

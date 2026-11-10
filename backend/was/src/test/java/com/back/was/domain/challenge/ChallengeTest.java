@@ -88,13 +88,82 @@ class ChallengeTest {
                 50_000, null, START, START).getEndDate()).isEqualTo(START);
     }
 
-    /**
-     * <b>{@code FAILED} 쪽은 아직 테스트할 수 없다.</b> 실적을 올리는 경로 — 거래 후처리
-     * 2번 — 가 없어서 {@code SPENDING_AMOUNT}·{@code SPENDING_COUNT} 가 0 에 고정되고,
-     * 목표는 1 이상이므로({@code GoalType.requiredGoal}) 판정은 항상 {@code SUCCESS} 로
-     * 떨어진다. 후처리 2번이 들어와 실적을 쓰는 메서드가 생기면 그때 두 분기와 경계
-     * ("목표 이하"는 같은 값을 포함)를 여기에 추가할 것.
-     */
+    @Nested
+    @DisplayName("실적 갱신 (후처리 2번 — 서버_내부_처리 2장)")
+    class UpdatePerformance {
+
+        @Test
+        @DisplayName("ACHIEVEMENT_RATE = SPENDING ÷ GOAL × 100 (시연 5장 7단계: 24,000 / 50,000)")
+        void computesTheAchievementRate() {
+            Challenge challenge = amountChallenge(50_000);
+
+            challenge.updatePerformance(24_000, 1);
+
+            assertThat(challenge.getSpendingAmount()).isEqualTo(24_000);
+            assertThat(challenge.getSpendingCount()).isEqualTo(1);
+            assertThat(challenge.getAchievementRate()).isEqualByComparingTo("48.00");
+        }
+
+        @Test
+        @DisplayName("COUNT 목표는 횟수로 비율을 낸다 — finish() 가 보는 짝과 같아야 한다")
+        void countGoalUsesTheCount() {
+            Challenge challenge = Challenge.of(coaching(), null, "배달 2회 이하", GoalType.COUNT,
+                    null, 2, START, END);
+
+            challenge.updatePerformance(99_000, 3);
+
+            // 금액은 저장되지만 비율은 횟수 기준이다 (3 / 2 = 150%)
+            assertThat(challenge.getSpendingAmount()).isEqualTo(99_000);
+            assertThat(challenge.getAchievementRate()).isEqualByComparingTo("150.00");
+        }
+
+        @Test
+        @DisplayName("100% 를 넘겨도 자르지 않는다 — 얼마나 넘겼는지가 사라지면 안 된다")
+        void doesNotCapTheRate() {
+            Challenge challenge = amountChallenge(50_000);
+
+            challenge.updatePerformance(56_000, 3);
+
+            assertThat(challenge.getAchievementRate()).isEqualByComparingTo("112.00");
+            // 초과해도 진행 중이다 — 자동 실패·취소는 명세에 없다 (ERD 9장)
+            assertThat(challenge.getStatus()).isEqualTo(ChallengeStatus.IN_PROGRESS);
+        }
+
+        @Test
+        @DisplayName("비율은 scale 2 반올림 (10,000 / 30,000 → 33.33)")
+        void roundsToTwoDecimals() {
+            Challenge challenge = amountChallenge(30_000);
+
+            challenge.updatePerformance(10_000, 1);
+
+            assertThat(challenge.getAchievementRate()).isEqualByComparingTo("33.33");
+            assertThat(challenge.getAchievementRate().scale()).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("누적이 아니라 덮어쓴다 — 거래를 지우면 실적이 줄어야 한다")
+        void overwritesInsteadOfAccumulating() {
+            Challenge challenge = amountChallenge(50_000);
+            challenge.updatePerformance(24_000, 1);
+
+            challenge.updatePerformance(0, 0);
+
+            assertThat(challenge.getSpendingAmount()).isZero();
+            assertThat(challenge.getSpendingCount()).isZero();
+            assertThat(challenge.getAchievementRate()).isEqualByComparingTo("0.00");
+        }
+
+        @Test
+        @DisplayName("종료된 챌린지는 재계산하지 않는다 (서버_내부_처리 1장 '늦은 기록')")
+        void refusesToUpdateAFinishedChallenge() {
+            Challenge challenge = amountChallenge(50_000);
+            challenge.finish();
+
+            assertThatThrownBy(() -> challenge.updatePerformance(99_000, 5))
+                    .isInstanceOf(IllegalStateException.class);
+        }
+    }
+
     @Nested
     @DisplayName("종료 판정 (ERD 9장 / SRS 7.4-4 — 일일 스케줄러의 자리)")
     class Finish {
@@ -111,14 +180,37 @@ class ChallengeTest {
         }
 
         @Test
-        @DisplayName("COUNT: 보는 실적이 횟수로 바뀐다 — 유형이 어느 컬럼을 읽을지 정한다")
-        void countGoalReadsTheCountPerformance() {
-            Challenge challenge = Challenge.of(coaching(), null, "배달 2회 이하", GoalType.COUNT,
-                    null, 2, START, END);
+        @DisplayName("AMOUNT: 실적이 목표를 넘으면 FAILED")
+        void amountGoalOverBudgetFails() {
+            Challenge challenge = amountChallenge(50_000);
+            challenge.updatePerformance(56_000, 3);
+
+            challenge.finish();
+
+            assertThat(challenge.getStatus()).isEqualTo(ChallengeStatus.FAILED);
+        }
+
+        @Test
+        @DisplayName("경계: 실적이 목표와 같으면 SUCCESS ('목표 이하'는 같은 값을 포함)")
+        void spendingEqualToTheGoalSucceeds() {
+            Challenge challenge = amountChallenge(50_000);
+            challenge.updatePerformance(50_000, 2);
 
             challenge.finish();
 
             assertThat(challenge.getStatus()).isEqualTo(ChallengeStatus.SUCCESS);
+        }
+
+        @Test
+        @DisplayName("COUNT: 보는 실적이 횟수로 바뀐다 — 금액이 아무리 적어도 횟수로 판정한다")
+        void countGoalReadsTheCountPerformance() {
+            Challenge challenge = Challenge.of(coaching(), null, "배달 2회 이하", GoalType.COUNT,
+                    null, 2, START, END);
+            challenge.updatePerformance(1_000, 3);
+
+            challenge.finish();
+
+            assertThat(challenge.getStatus()).isEqualTo(ChallengeStatus.FAILED);
         }
 
         @Test
