@@ -59,6 +59,32 @@ public interface ChallengeRepository extends JpaRepository<Challenge, Long> {
                                     @Param("status") ChallengeStatus status);
 
     /**
+     * ADMIN-01 의 KPI 집계 (ERD 13장) — 종료된 챌린지 수와 그중 달성한 수.
+     *
+     * <p><b>사용자 범위가 없다.</b> 다른 모든 챌린지 쿼리와 달리 이것은 프로젝트 전체의
+     * 지표라서({@code 발표용 프로젝트 성공 지표} — 명세 ADMIN-01) {@code COACHING} 조인이
+     * 필요 없다. 권한은 {@code SecurityConfig} 의 {@code /admin/**} →
+     * {@code hasRole("ADMIN")} 이 막는다.
+     *
+     * <p>조건을 {@code status <> IN_PROGRESS} 로 쓰지 않았다. ERD 13장의 SQL 이
+     * {@code STATUS IN ('SUCCESS','FAILED')} 이고, 지금은 두 표현이 같지만 상태가 하나
+     * 늘면 {@code <>} 쪽은 조용히 그것까지 분모에 넣는다.
+     *
+     * <p>{@code coalesce} 가 필요하다 — 종료된 챌린지가 하나도 없으면 {@code count} 는
+     * 0 이지만 {@code sum} 은 {@code null} 이고, 그대로 레코드 생성자에 들어가면
+     * {@code long} 언박싱에서 NPE 가 난다.
+     */
+    @Query("""
+            select new com.back.was.domain.challenge.ChallengeOutcome(
+                count(ch),
+                coalesce(sum(case when ch.status = :success then 1L else 0L end), 0L))
+            from Challenge ch
+            where ch.status in (:success, :failed)
+            """)
+    ChallengeOutcome countOutcomes(@Param("success") ChallengeStatus success,
+                                   @Param("failed") ChallengeStatus failed);
+
+    /**
      * 종료 판정 대상 — 서버_내부_처리 4장: {@code END_DATE < 오늘} AND
      * {@code STATUS = 'IN_PROGRESS'}.
      *

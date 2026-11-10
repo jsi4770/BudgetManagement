@@ -1,0 +1,30 @@
+# 빌드 컨텍스트에서 제외할 것들. 여기 빠지면 Docker 가 수백 MB 를 데몬으로 보냅니다.
+
+# 빌드 산출물 — 컨테이너 안에서 다시 빌드하므로 보낼 이유가 없고,
+# 호스트의 산출물이 섞이면 "로컬에선 됐는데" 가 생깁니다.
+build/
+.gradle/
+
+# 버전 관리·에디터
+.git/
+.gitignore
+.idea/
+.vscode/
+*.iml
+
+# 이 저장소에서 추적하지 않는 것들 (.gitignore 와 같은 목록)
+docs/
+.claude/
+HELP.md
+CLAUDE.md
+
+# 비밀값 — 이미지에 들어가서는 안 되고 빌드에도 필요 없다.
+# 런타임 값은 compose 가 환경 변수로 넘긴다.
+.env
+.env.local
+
+# 도커 자신
+compose.yaml
+Dockerfile
+.dockerignore
+.env_example
