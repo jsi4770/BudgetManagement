@@ -1,22 +1,15 @@
 package com.back.was.domain.analysis;
 
-import com.back.was.domain.analysis.dto.CategoryComparisonRequest;
-import com.back.was.domain.analysis.dto.CategoryComparisonResponse;
 import com.back.was.domain.analysis.dto.MonthlySummaryResponse;
 import com.back.was.domain.analysis.dto.WeeklyTrendRequest;
 import com.back.was.domain.analysis.dto.WeeklyTrendResponse;
 import com.back.was.domain.budget.Budget;
 import com.back.was.domain.budget.BudgetService;
-import com.back.was.domain.category.Category;
-import com.back.was.domain.category.CategoryRepository;
 import com.back.was.domain.category.CategoryType;
 import com.back.was.domain.category.RentCategory;
-import com.back.was.domain.category.dto.CategoryRefResponse;
 import com.back.was.domain.transaction.AmountSummary;
 import com.back.was.domain.transaction.DailyAmount;
 import com.back.was.domain.transaction.TransactionRepository;
-import com.back.was.domain.user.UserRepository;
-import com.back.was.global.exception.BusinessException;
 import com.back.was.global.support.DateRange;
 import com.back.was.global.support.KstTime;
 import com.back.was.global.support.Months;
@@ -32,8 +25,8 @@ import java.util.List;
 
 /**
  * 명세 8장 소비 분석(ANALYSIS). <b>분석 결과를 저장하지 않는다</b> — 명세 8장 머리말대로
- * 조회 시점에 TRANSACTION 을 집계한다. 그래서 거래 후처리(넛지·챌린지)가 아직 없어도 이
- * 숫자는 항상 맞는다.
+ * 조회 시점에 TRANSACTION 을 집계한다. 그래서 이 숫자는 거래 후처리(넛지·챌린지)의 상태와
+ * 무관하게 항상 맞는다 — 후처리가 밀리거나 실패해도 분석 화면은 영향을 받지 않는다.
  *
  * <p>모든 집계 쿼리에 {@code userId} 가 들어가므로 남의 거래는 결과에 섞이지 않는다
  * (서버_내부_처리 공통 전제). 경로·쿼리에 사용자 ID 가 없어 범위를 바꿔 찔러볼 수단도 없다.
@@ -43,9 +36,6 @@ import java.util.List;
 public class AnalysisService {
 
     private final TransactionRepository transactionRepository;
-    private final SpendingSampler spendingSampler;
-    private final CategoryRepository categoryRepository;
-    private final UserRepository userRepository;
     private final BudgetService budgetService;
 
     /**
@@ -121,82 +111,4 @@ public class AnalysisService {
                 .sum();
     }
 
-    /**
-     * ANL-03 카테고리별 평소 대비 비교. {@code WEEK}/{@code MONTH} 의 차이는 전부
-     * {@link AnalysisPeriod} 에 있고, 여기서는 그 구간들을 집계해 비교에 넘긴다.
-     *
-     * <p>평균·증가율은 {@link SpendingComparison} 이 낸다 — 넛지 판정과 <b>같은 계산
-     * 함수</b>여야 한다는 서버_내부_처리 3장의 요구가 이 호출이다. 따로 계산하면 카드의
-     * "평소 평균"과 이 화면의 평균이 어긋난다.
-     *
-     * <p>집계는 {@link SpendingSampler} 가 읽는다 — 넛지 판정과 같은 경로를 쓰게 하려고
-     * 분리한 것이므로, 여기서 직접 쿼리하지 말 것.
-     *
-     * @throws BusinessException 404 {@code NOT_FOUND} — 토큰은 유효하나 사용자 행이 없을 때
-     */
-    @Transactional(readOnly = true)
-    public CategoryComparisonResponse getCategoryComparison(Long userId, CategoryComparisonRequest request) {
-        AnalysisPeriod period = request.periodOrDefault();
-        LocalDate baseDate = request.baseDateOrDefault();
-        DateRange analysisRange = period.analysisRange(baseDate);
-        Long excludedCategoryId = period.isRentExcluded() ? RentCategory.ID : null;
-
-        boolean dataSufficient = isDataSufficient(userId, period, baseDate);
-
-        // 데이터가 부족하면 표본을 아예 읽지 않는다 — 평균을 내지 않을 것이므로 쿼리도 낭비다.
-        SpendingSamples spending = new SpendingSamples(
-                spendingSampler.amountsIn(userId, analysisRange, excludedCategoryId),
-                dataSufficient
-                        ? spendingSampler.samplesOf(userId, period, baseDate, excludedCategoryId)
-                        : List.of());
-
-        List<CategoryComparisonResponse.Item> items =
-                categoryRepository.findAllByTypeOrderByIdAsc(CategoryType.EXPENSE).stream()
-                        .filter(category -> !period.isRentExcluded() || !RentCategory.isRent(category.getId()))
-                        .map(category -> toItem(period, category, spending))
-                        .toList();
-
-        return CategoryComparisonResponse.of(period, analysisRange, dataSufficient, items);
-    }
-
-    /**
-     * 명세 ANL-03 {@code dataSufficient} — 가입일이 가장 오래된 표본 구간의 시작보다 뒤면
-     * 비교할 기록이 없다. 경계는 포함이다(가입일 = 그 날짜면 충분).
-     */
-    private boolean isDataSufficient(Long userId, AnalysisPeriod period, LocalDate baseDate) {
-        LocalDate signUpDate = userRepository.findById(userId)
-                .orElseThrow(BusinessException::notFound)
-                .getCreatedAt()
-                .toLocalDate();
-
-        return !signUpDate.isAfter(period.oldestSampleStart(baseDate));
-    }
-
-    /**
-     * 카테고리 한 줄. 지출이 없는 카테고리도 0원으로 들어간다(명세 ANL-03 의 비교 화면은
-     * 평소 쓰던 항목이 0원이 된 것도 보여 준다 — docs/시연_데이터.md 6-1·6-3 표).
-     *
-     * <p>비교하지 <b>않는</b> 두 경우가 여기서 갈린다: 데이터 부족과 월세({@code MONTH} 의
-     * 월세는 항목·합계에는 있고 평균·증가율만 {@code null} 이다 — 납부일이 달마다 다르면
-     * 같은 기간 비교가 왜곡된다, ERD 4장).
-     */
-    private static CategoryComparisonResponse.Item toItem(AnalysisPeriod period, Category category,
-                                                          SpendingSamples spending) {
-        Long categoryId = category.getId();
-        CategoryRefResponse ref = CategoryRefResponse.from(category);
-        int amount = spending.amountOf(categoryId);
-
-        if (!spending.isComparable() || RentCategory.isRent(categoryId)) {
-            return new CategoryComparisonResponse.Item(ref, amount, null, null, false);
-        }
-
-        SpendingComparison comparison = spending.compare(categoryId);
-
-        return new CategoryComparisonResponse.Item(
-                ref,
-                amount,
-                comparison.average(),
-                comparison.growthRate(),
-                period.isAnomalyDetected() && comparison.isAnomaly());
-    }
 }

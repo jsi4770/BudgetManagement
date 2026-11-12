@@ -22,43 +22,6 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
     Optional<Transaction> findByIdAndUserId(Long id, Long userId);
 
     /**
-     * 넛지 문구 템플릿의 {@code {count}}("{days}일 동안 {count}번 결제했어요").
-     *
-     * <p>NUDGE 에는 금액만 저장되고 횟수가 없어서(ERD 6장) 문구를 만들 때 한 번 센다.
-     * 양끝을 포함하는 {@code between} 이라 분석 기간의 정의와 같다.
-     */
-    long countByUserIdAndCategoryIdAndTransactionDateBetween(
-            Long userId, Long categoryId, LocalDate from, LocalDate to);
-
-    /**
-     * 챌린지 실적 재계산의 집계 — 한 카테고리·한 기간의 <b>금액 합계와 건수</b>
-     * (서버_내부_처리 2장).
-     *
-     * <p>위의 {@code count...} 와 겹쳐 보이지만 합치지 않는다. 저쪽은 넛지 문구의
-     * {@code {count}} 하나만 필요해서 건수만 세고, 이쪽은 두 값이 <b>같은 집계</b>에서
-     * 나와야 한다({@link SpendingTotal} 설명).
-     *
-     * <p>{@code coalesce} 는 "기간 안에 거래가 없음"을 0원으로 만든다 — 거래를 전부 지워
-     * 실적이 0 이 되는 것은 정상 경로이고, {@code sum()} 이 {@code null} 인 줄을 레코드
-     * 생성자에 넣으면 {@code long} 언박싱에서 NPE 가 난다.
-     *
-     * <p>카테고리 타입을 조건에 넣지 않는다. 챌린지의 카테고리는 확정 시점에 지출로
-     * 검증되므로(COACH-04) ID 가 일치하면 이미 지출이다.
-     */
-    @Query("""
-            select new com.back.was.domain.transaction.SpendingTotal(
-                coalesce(sum(t.amount), 0L), count(t))
-            from Transaction t
-            where t.user.id = :userId
-              and t.category.id = :categoryId
-              and t.transactionDate between :from and :to
-            """)
-    SpendingTotal sumCategorySpending(@Param("userId") Long userId,
-                                      @Param("categoryId") Long categoryId,
-                                      @Param("from") LocalDate from,
-                                      @Param("to") LocalDate to);
-
-    /**
      * TX-02 목록. {@code type} · {@code categoryId} 는 {@code null} 이면 조건에서 빠진다
      * (명세 TX-02 "없으면 전체").
      *
@@ -170,36 +133,4 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                        @Param("to") LocalDate to,
                                        @Param("expense") CategoryType expense,
                                        @Param("excludedCategoryId") Long excludedCategoryId);
-
-    /**
-     * ANL-03 항목과 넛지 판정이 공유하는 집계 — 기간 안의 <b>카테고리별 지출</b> 합계.
-     *
-     * <p>분석 기간에도, 표본 구간(직전 4주 / 직전 3개월) 각각에도 같은 쿼리를 쓴다.
-     * 명세 ANL-03·서버_내부_처리 3장이 "넛지와 같은 계산 함수"를 요구하므로 평균을 만드는
-     * 입력이 한 종류여야 한다.
-     *
-     * <p>수입 카테고리는 조건에서 빠진다(비교 대상은 지출뿐). {@code excludedCategoryId} 로
-     * 월세를 빼는데, 빼는지 여부는 호출하는 쪽(주간/월간)에 따라 다르다 —
-     * {@link com.back.was.domain.category.RentCategory} 표 참고.
-     *
-     * <p>거래가 없는 카테고리는 줄이 아예 없다. "기록 없는 주는 0원으로 포함"(ERD 6장)은
-     * 그래서 호출자가 채워야 한다 — 빠뜨리면 표본이 4개 미만이 되어 평균이 과대평가된다.
-     */
-    @Query("""
-            select new com.back.was.domain.transaction.CategoryAmountSum(
-                c.id, c.name, sum(t.amount))
-            from Transaction t
-            join t.category c
-            where t.user.id = :userId
-              and t.transactionDate between :from and :to
-              and c.type = :expense
-              and (:excludedCategoryId is null or c.id <> :excludedCategoryId)
-            group by c.id, c.name
-            order by c.id
-            """)
-    List<CategoryAmountSum> sumExpensesByCategory(@Param("userId") Long userId,
-                                                  @Param("from") LocalDate from,
-                                                  @Param("to") LocalDate to,
-                                                  @Param("expense") CategoryType expense,
-                                                  @Param("excludedCategoryId") Long excludedCategoryId);
 }

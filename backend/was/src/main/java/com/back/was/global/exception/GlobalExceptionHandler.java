@@ -12,8 +12,6 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-import org.springframework.web.multipart.MaxUploadSizeExceededException;
-import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.List;
@@ -49,9 +47,7 @@ public class GlobalExceptionHandler {
             "NotNull", "REQUIRED",
             "NotBlank", "REQUIRED",
             "NotEmpty", "REQUIRED",
-            "NotFutureDate", "FUTURE_DATE",
-            // 명세가 정한 값이 아니라 FUTURE_DATE 와 짝을 맞춘 관례값 (COACH-04 startDate)
-            "NotPastDate", "PAST_DATE"
+            "NotFutureDate", "FUTURE_DATE"
     );
 
     @ExceptionHandler(BusinessException.class)
@@ -84,29 +80,31 @@ public class GlobalExceptionHandler {
         return build(ErrorCode.VALIDATION_ERROR, ErrorCode.VALIDATION_ERROR.getMessage(), details);
     }
 
-    /**
-     * {@code multipart} 요청에서 파트가 빠진 경우 — RCPT-01 의 {@code image} 가 유일한
-     * 사용처다. 위의 쿼리 파라미터 누락과 같은 모양({@code reason: REQUIRED})으로 맞춘다.
+    /*
+     * RCPT-01(영수증 OCR)이 돌아오면 핸들러 두 개를 여기에 되살려야 한다 — 그 엔드포인트가
+     * 이 프로젝트의 유일한 multipart 요청이고, 둘 다 없으면 맨 아래 Exception 핸들러로
+     * 떨어져 500 이 된다.
      *
-     * <p>이 핸들러가 없으면 맨 아래 {@code Exception} 핸들러로 떨어져 <b>500</b> 이 된다 —
-     * 파일을 안 붙인 요청은 서버 오류가 아니라 잘못된 요청이다.
+     *   MissingServletRequestPartException → 400 VALIDATION_ERROR
+     *       + details[{field: e.getRequestPartName(), reason: "REQUIRED"}]
+     *       (image 파트를 안 붙인 요청은 서버 오류가 아니라 잘못된 요청이다. 위의 쿼리
+     *        파라미터 누락과 같은 모양으로 맞춘다. 클래스가 ...web.multipart.support 에
+     *        있다는 점에 주의 — ...web.bind 가 아니다)
+     *
+     *   MaxUploadSizeExceededException → 413 FILE_TOO_LARGE (details 없음)
+     *       (용량 제한은 코드가 아니라 설정이다 — spring.servlet.multipart.max-file-size 를
+     *        main·test **양쪽** properties 에 10MB 로 넣어야 한다. Boot 기본값은 1MB 다.
+     *        MockMvc 는 컨테이너의 multipart 제한을 거치지 않으므로 이 핸들러는 엔드포인트
+     *        테스트로 검증할 수 없고 핸들러 단위로만 본다)
+     *
+     * 아래 415 핸들러는 남겨 둔다 — multipart 가 아닌 요청에서도 날 수 있다.
      */
-    @ExceptionHandler(MissingServletRequestPartException.class)
-    public ResponseEntity<ApiResponse<Void>> handleMissingPart(MissingServletRequestPartException e) {
-        List<ErrorResponse.Detail> details = List.of(new ErrorResponse.Detail(e.getRequestPartName(), "REQUIRED"));
-        return build(ErrorCode.VALIDATION_ERROR, ErrorCode.VALIDATION_ERROR.getMessage(), details);
-    }
 
     /** 타입 불일치·깨진 JSON은 어느 필드인지 신뢰할 수 없어 {@code details}를 비운다. */
     @ExceptionHandler({MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class})
     public ResponseEntity<ApiResponse<Void>> handleMalformedRequest(Exception e) {
         log.debug("malformed request: {}", e.getMessage());
         return build(ErrorCode.VALIDATION_ERROR, ErrorCode.VALIDATION_ERROR.getMessage(), null);
-    }
-
-    @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ApiResponse<Void>> handleFileTooLarge(MaxUploadSizeExceededException e) {
-        return build(ErrorCode.FILE_TOO_LARGE, ErrorCode.FILE_TOO_LARGE.getMessage(), null);
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)

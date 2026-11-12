@@ -12,6 +12,23 @@ import static org.assertj.core.api.Assertions.assertThat;
  *
  * <p>기대값은 docs/시연_데이터.md 용어 표 — D = 2026-11-04(수), M0 = 2026-11-02, k = 3,
  * 1주 전 = 10-26 ~ 11-01.
+ *
+ * <p>주 시작이 월요일인 것({@code Weeks.FIRST_DAY_OF_WEEK})은 <b>로케일에 맡기지 않은
+ * 결정</b>이다. {@code WeekFields.of(Locale.getDefault())} 를 쓰면 "이번 주"가 서버 로케일에
+ * 달리고, 그러면 넛지 판정 구간·주간 분석 막대·챌린지 기간이 환경마다 달라진다.
+ *
+ * <p>넛지 표본과 ANL-03 이 쓰던 구간 계산({@code elapsedWeekOf} · {@code elapsedWeeksAgo})과
+ * 룰 기반 목표 제안이 쓰던 {@code fullWeeksBefore} 는 해당 기능들과 함께 빠졌다. 다시 만들 때
+ * 고정해야 할 규칙:
+ * <ul>
+ *   <li><b>이번 주 분석 기간은 월요일 ~ 기준 날짜</b> (D → 11-02 ~ 11-04, 길이 k = 3)</li>
+ *   <li><b>표본은 각 주의 "월요일 ~ k번째 날"</b> — 1주 전은 10-26 ~ 10-28, 4주 전은
+ *       10-05 ~ 10-07. 요일이 무엇이든 표본 길이가 이번 주 경과 일수와 <b>같아야</b> 하고,
+ *       그게 시연 6-1 의 "요일을 바꿔도 Z 가 9.32" 를 성립시키는 유일한 이유다</li>
+ *   <li><b>직전 N주 평균은 주 전체(N × 7일)로</b> 끊는다 — 위의 k일 조각과 다르다.
+ *       월요일에 k일 조각으로 평균을 내면 하루치가 나와 터무니없는 목표가 제안된다
+ *       (AI_대체_문구 5장)</li>
+ * </ul>
  */
 class WeeksTest {
 
@@ -41,13 +58,6 @@ class WeeksTest {
     }
 
     @Test
-    @DisplayName("elapsedWeekOf: 이번 주 분석 기간은 월요일 ~ 오늘 (명세 ANL-02·ERD 6장)")
-    void elapsedWeekStopsAtGivenDate() {
-        assertThat(Weeks.elapsedWeekOf(D))
-                .isEqualTo(new DateRange(LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 4)));
-    }
-
-    @Test
     @DisplayName("weekOf: 막대 라벨용 월요일 ~ 일요일 전체 주")
     void weekOfCoversMondayToSunday() {
         assertThat(Weeks.weekOf(D))
@@ -66,62 +76,15 @@ class WeeksTest {
     }
 
     @Test
-    @DisplayName("elapsedWeeksAgo: 표본은 각 주의 '월요일 ~ k번째 날' — 1주 전은 10-26 ~ 10-28")
-    void sampleRangesKeepTheSameElapsedDays() {
-        assertThat(Weeks.elapsedWeeksAgo(D, 1))
-                .isEqualTo(new DateRange(LocalDate.of(2026, 10, 26), LocalDate.of(2026, 10, 28)));
-        assertThat(Weeks.elapsedWeeksAgo(D, 4))
-                .isEqualTo(new DateRange(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 7)));
-    }
+    @DisplayName("weekOf: 일곱 요일 어디서 불러도 같은 주를 가리키고 길이는 항상 7일이다")
+    void weekOfIsStableAcrossTheWeek() {
+        DateRange expected =
+                new DateRange(LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 8));
 
-    @Test
-    @DisplayName("요일이 무엇이든 표본 구간의 길이는 이번 주 경과 일수와 같다 (시연 6-1: 요일을 바꿔도 Z 동일)")
-    void sampleRangesAlwaysHaveTheSameLengthAsThisWeek() {
-        // 2026-11-02(월) ~ 11-08(일) 일곱 요일 전부
-        for (int dayOfMonth = 2; dayOfMonth <= 8; dayOfMonth++) {
-            LocalDate today = LocalDate.of(2026, 11, dayOfMonth);
-            int elapsed = Weeks.elapsedDays(today);
-
-            assertThat(lengthOf(Weeks.elapsedWeekOf(today)))
-                    .as("%s 의 이번 주 경과 일수", today)
-                    .isEqualTo(elapsed);
-            for (int weeksAgo = 1; weeksAgo <= 4; weeksAgo++) {
-                DateRange sample = Weeks.elapsedWeeksAgo(today, weeksAgo);
-                assertThat(lengthOf(sample))
-                        .as("%s 기준 %d주 전 표본 구간 길이", today, weeksAgo)
-                        .isEqualTo(elapsed);
-                assertThat(sample.start()).isEqualTo(Weeks.mondayOf(today).minusWeeks(weeksAgo));
-            }
-        }
-    }
-
-    @Test
-    @DisplayName("fullWeeksBefore: 직전 N주를 주 전체로 — 진행 중인 이번 주는 들어가지 않는다")
-    void fullWeeksBeforeCoversWholeWeeks() {
-        // D = 11-04(수), M0 = 11-02 → 직전 4주는 10-05(월) ~ 11-01(일)
-        assertThat(Weeks.fullWeeksBefore(D, 4))
-                .isEqualTo(new DateRange(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 11, 1)));
-        assertThat(Weeks.fullWeeksBefore(D, 1))
-                .isEqualTo(new DateRange(LocalDate.of(2026, 10, 26), LocalDate.of(2026, 11, 1)));
-    }
-
-    @Test
-    @DisplayName("fullWeeksBefore: 요일이 무엇이든 N × 7일이다 (elapsedWeeksAgo 와 다른 점)")
-    void fullWeeksBeforeIgnoresTheDayOfWeek() {
         for (int dayOfMonth = 2; dayOfMonth <= 8; dayOfMonth++) {
             LocalDate today = LocalDate.of(2026, 11, dayOfMonth);
 
-            // 월요일에 elapsedWeeksAgo 로 평균을 내면 하루치가 나오는데, 7일짜리 목표의
-            // 기준(AI_대체_문구 5장)은 요일과 무관하게 주 전체여야 한다.
-            assertThat(lengthOf(Weeks.fullWeeksBefore(today, 4)))
-                    .as("%s 기준 직전 4주 길이", today)
-                    .isEqualTo(28);
-            assertThat(Weeks.fullWeeksBefore(today, 4).end())
-                    .isEqualTo(Weeks.mondayOf(today).minusDays(1));
+            assertThat(Weeks.weekOf(today)).as("%s 의 주", today).isEqualTo(expected);
         }
-    }
-
-    private static int lengthOf(DateRange range) {
-        return (int) (range.end().toEpochDay() - range.start().toEpochDay()) + 1;
     }
 }
