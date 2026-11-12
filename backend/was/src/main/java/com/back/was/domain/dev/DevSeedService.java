@@ -1,30 +1,14 @@
 package com.back.was.domain.dev;
 
-import com.back.was.domain.ai.CoachingOpeningCommand;
-import com.back.was.domain.ai.CoachingOpeningGenerator;
-import com.back.was.domain.ai.GrowthFeedbackCommand;
-import com.back.was.domain.ai.GrowthFeedbackGenerator;
 import com.back.was.domain.budget.Budget;
 import com.back.was.domain.budget.BudgetRepository;
 import com.back.was.domain.budget.SpendingFocus;
 import com.back.was.domain.category.Category;
 import com.back.was.domain.category.CategoryRepository;
 import com.back.was.domain.category.CategoryType;
-import com.back.was.domain.challenge.Challenge;
-import com.back.was.domain.challenge.ChallengeRepository;
-import com.back.was.domain.challenge.ChallengeStatus;
-import com.back.was.domain.coaching.Coaching;
-import com.back.was.domain.coaching.CoachingMessage;
-import com.back.was.domain.coaching.CoachingMessageRepository;
-import com.back.was.domain.coaching.CoachingRepository;
-import com.back.was.domain.coaching.GoalType;
 import com.back.was.domain.dev.dto.SeedRequest;
 import com.back.was.domain.dev.dto.SeedResponse;
 import com.back.was.domain.nudge.NudgeJudgement;
-import com.back.was.domain.nudge.NudgeRepository;
-import com.back.was.domain.nudge.NudgeStatus;
-import com.back.was.domain.report.GrowthReport;
-import com.back.was.domain.report.GrowthReportRepository;
 import com.back.was.domain.transaction.Transaction;
 import com.back.was.domain.transaction.TransactionRepository;
 import com.back.was.domain.user.User;
@@ -78,60 +62,23 @@ public class DevSeedService {
     private static final int MONTHLY_BUDGET = 1_200_000;
     private static final int SAVINGS_GOAL = 200_000;
 
-    /** 시연_데이터 4장: 과거 챌린지의 코칭 제안 기간은 모두 7일. */
-    private static final int PROPOSAL_PERIOD_DAYS = 7;
-
-    /** 시연_데이터 4장: COACHING 20:00 → CHALLENGE 20:05 → GROWTH_REPORT 다음 날 00:05. */
-    private static final int COACHING_HOUR = 20;
-    private static final int CHALLENGE_MINUTE = 5;
-    private static final int REPORT_MINUTE = 5;
-
-    private static final long DELIVERY = 2L;
-    private static final long CAFE = 3L;
-    private static final long TRANSPORT = 4L;
-
     /**
-     * 시연_데이터 4장의 완료된 챌린지 4건. <b>실적·이전 기간 값은 3장의 거래로 계산한
-     * 값</b>이라 거래 데이터와 일치해야 하고, {@code DemoTransactionPlannerTest} 가 그
-     * 일치를 고정한다.
+     * 시연_데이터 4장의 과거 코칭·챌린지 4건은 <b>깔지 않는다</b> — 코칭과 챌린지
+     * 도메인이 인수인계되었다(docs/인수인계_넛지_이상치_리포트.md). 되살릴 때 필요한
+     * 값(제안 기간 7일 · COACHING 20:00 · CHALLENGE 20:05 · 리포트 다음 날 00:05,
+     * 그리고 C1~C4 의 목표·실적·이전 기간 표)은 시연_데이터 4장에 그대로 있고,
+     * 지웠을 때의 구현은 {@code git show backup/before-handover:<이 파일>} 에 있다.
      *
-     * <p>상태(SUCCESS·FAILED)를 직접 넣지 않는다 — {@code Challenge.finish()} 가 ERD 9장
-     * 규칙으로 판정하게 두면 문서의 결과(C2 만 FAILED)가 그대로 나온다. 직접 넣으면 판정
-     * 규칙과 시드가 어긋날 수 있다.
+     * <p>그래서 지금 DEV-01 은 <b>거래와 예산만</b> 깐다. CHL-01 목록도 ADMIN-01 의
+     * KPI(4건 중 3건 = 75%)도 재현되지 않는다.
      */
-    private static final List<PastChallenge> PAST_CHALLENGES = List.of(
-            new PastChallenge(12, "카페 30,000원 이내", CAFE,
-                    GoalType.AMOUNT, 30_000, null, 9_000, 2, 15_000, 3),
-            new PastChallenge(10, "배달 2회 이하", DELIVERY,
-                    GoalType.COUNT, null, 2, 59_000, 3, 60_000, 2),
-            new PastChallenge(8, "교통 20,000원 이내", TRANSPORT,
-                    GoalType.AMOUNT, 20_000, null, 12_400, 4, 15_500, 5),
-            new PastChallenge(6, "배달비 50,000원 이내", DELIVERY,
-                    GoalType.AMOUNT, 50_000, null, 35_000, 2, 64_000, 2)
-    );
-
-    /** 시연_데이터 4장 표의 한 줄. */
-    private record PastChallenge(
-            int weeksAgo, String title, long categoryId,
-            GoalType goalType, Integer goalAmount, Integer goalCount,
-            int spendingAmount, int spendingCount,
-            int beforeAmount, int beforeCount
-    ) {
-    }
 
     private final DemoTransactionPlanner planner;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final BudgetRepository budgetRepository;
     private final TransactionRepository transactionRepository;
-    private final CoachingRepository coachingRepository;
-    private final CoachingMessageRepository coachingMessageRepository;
-    private final ChallengeRepository challengeRepository;
-    private final GrowthReportRepository growthReportRepository;
-    private final NudgeRepository nudgeRepository;
     private final NudgeJudgement nudgeJudgement;
-    private final CoachingOpeningGenerator coachingOpeningGenerator;
-    private final GrowthFeedbackGenerator growthFeedbackGenerator;
     private final EntityManager entityManager;
 
     /**
@@ -160,12 +107,14 @@ public class DevSeedService {
         Map<Long, Category> categories = categoriesById();
         insertBudgets(user, today);
         int transactionCount = insertTransactions(user, today, request.scenario(), categories);
-        insertPastChallenges(user, today, categories);
+        // 과거 코칭·챌린지 4건(시연_데이터 4장)이 들어갈 자리다 — 두 도메인이
+        // 인수인계되어 비어 있다. 그래서 시드 후에도 CHL-01 목록과 ADMIN-01 의 KPI 는
+        // 비어 있다.
 
         judgeNudgeOnce(user, categories);
 
         log.info("DEV-01 시드: {} / 거래 {}건", request.scenario(), transactionCount);
-        return new SeedResponse(request.scenario(), transactionCount, hasNudge(userId, today));
+        return new SeedResponse(request.scenario(), transactionCount, hasNudge());
     }
 
     /**
@@ -177,29 +126,18 @@ public class DevSeedService {
      * 않으므로 전후로 {@code flush}·{@code clear} 한다 — 안 하면 지워진 행을 가리키는 1차
      * 캐시가 남아 아래 삽입이 이상하게 동작한다.
      *
-     * <p>CHALLENGE 와 GROWTH_REPORT 에는 {@code USER_ID} 가 없어서(ERD 9·10장) 코칭을
-     * 경유하는 서브쿼리로 범위를 잡는다.
+     * <p><b>지금은 두 테이블만 지운다</b> — 코칭·챌린지·성장 리포트·넛지 테이블이 전부
+     * 인수인계와 함께 사라졌다. 돌아오면 아래 순서를 그대로 되살릴 것(자식부터):
+     * {@code growth_reports} → {@code challenges} → {@code coaching_messages} →
+     * {@code coachings} → {@code transactions} → {@code nudges} → {@code budgets}.
+     * {@code CHALLENGE} 와 {@code GROWTH_REPORT} 에는 {@code USER_ID} 가 없어서
+     * (ERD 9·10장) 코칭을 경유하는 서브쿼리로 범위를 잡아야 한다 —
+     * {@code where coaching_id in (select id from coachings where user_id = :userId)}.
      */
     private void deleteMyData(Long userId) {
         entityManager.flush();
 
-        execute("""
-                delete from growth_reports where challenge_id in (
-                    select ch.id from challenges ch
-                    join coachings c on ch.coaching_id = c.id
-                    where c.user_id = :userId)
-                """, userId);
-        execute("""
-                delete from challenges where coaching_id in (
-                    select id from coachings where user_id = :userId)
-                """, userId);
-        execute("""
-                delete from coaching_messages where coaching_id in (
-                    select id from coachings where user_id = :userId)
-                """, userId);
-        execute("delete from coachings where user_id = :userId", userId);
         execute("delete from transactions where user_id = :userId", userId);
-        execute("delete from nudges where user_id = :userId", userId);
         execute("delete from budgets where user_id = :userId", userId);
 
         entityManager.clear();
@@ -254,85 +192,6 @@ public class DevSeedService {
         return transactions.size();
     }
 
-    /**
-     * 시연_데이터 4장: 완료된 코칭 · 챌린지 · 성장 리포트 4건. CHL-01 목록과 ADMIN-01 의
-     * KPI(4건 중 3건 성공 = 75%)가 이 데이터를 쓴다.
-     *
-     * <p><b>진행 중 챌린지는 넣지 않는다</b>(4장) — 시연에서 COACH-04 로 직접 만들어야
-     * 하고, 하나라도 있으면 그 확정이 409 로 막힌다.
-     */
-    private void insertPastChallenges(User user, LocalDate today, Map<Long, Category> categories) {
-        LocalDate monday = Weeks.mondayOf(today);
-
-        for (PastChallenge past : PAST_CHALLENGES) {
-            LocalDate start = monday.minusWeeks(past.weeksAgo());
-            LocalDate end = start.plusDays(6);
-            Category category = categories.get(past.categoryId());
-
-            Coaching coaching = coachingRepository.save(Coaching.start(user));
-            coaching.propose(category, past.title(), past.goalType(),
-                    past.goalAmount(), past.goalCount(), PROPOSAL_PERIOD_DAYS);
-            coachingMessageRepository.save(CoachingMessage.ai(coaching,
-                    coachingOpeningGenerator.generate(
-                            CoachingOpeningCommand.withoutNudge(user.getUsername()))));
-            coachingMessageRepository.save(CoachingMessage.user(coaching, "좋아요, 해볼게요"));
-            coaching.complete();
-
-            Challenge challenge = challengeRepository.save(Challenge.of(
-                    coaching, category, past.title(), past.goalType(),
-                    past.goalAmount(), past.goalCount(), start, end));
-            challenge.updatePerformance(past.spendingAmount(), past.spendingCount());
-            challenge.finish();
-
-            growthReportRepository.save(GrowthReport.of(
-                    challenge, past.beforeAmount(), past.beforeCount(),
-                    feedbackFor(challenge, past)));
-
-            backdateTimestamps(coaching.getId(), challenge.getId(), start, end);
-        }
-    }
-
-    private String feedbackFor(Challenge challenge, PastChallenge past) {
-        boolean amountGoal = past.goalType() == GoalType.AMOUNT;
-
-        return growthFeedbackGenerator.generate(new GrowthFeedbackCommand(
-                challenge.getStatus() == ChallengeStatus.SUCCESS,
-                past.goalType(),
-                past.goalType().requiredGoal(past.goalAmount(), past.goalCount()),
-                amountGoal ? past.spendingAmount() : past.spendingCount(),
-                past.beforeAmount(),
-                PROPOSAL_PERIOD_DAYS));
-    }
-
-    /**
-     * 시연_데이터 4장의 시각들을 박는다: 코칭 시작일 20:00, 챌린지 20:05, 리포트는 종료일
-     * 다음 날 00:05(스케줄러가 돌았을 시각).
-     *
-     * <p>세 값 모두 {@code @CreationTimestamp} 라 네이티브 UPDATE 가 필요하다. 이게 없으면
-     * 네 챌린지의 {@code createdAt} 이 전부 "지금"이 되어 CHL-01 목록의 순서가 시연 흐름과
-     * 어긋나고(최신 확정 순 정렬), 리포트의 생성 시각도 과거 챌린지의 것으로 보이지 않는다.
-     */
-    private void backdateTimestamps(Long coachingId, Long challengeId,
-                                    LocalDate start, LocalDate end) {
-        entityManager.flush();
-
-        updateCreatedAt("coachings", coachingId, start.atTime(COACHING_HOUR, 0));
-        updateCreatedAt("challenges", challengeId, start.atTime(COACHING_HOUR, CHALLENGE_MINUTE));
-        entityManager.createNativeQuery(
-                        "update growth_reports set created_at = :at where challenge_id = :id")
-                .setParameter("at", end.plusDays(1).atTime(0, REPORT_MINUTE))
-                .setParameter("id", challengeId)
-                .executeUpdate();
-    }
-
-    private void updateCreatedAt(String table, Long id, LocalDateTime at) {
-        // 테이블 이름은 이 클래스의 상수에서만 오므로 주입 경로가 없다.
-        entityManager.createNativeQuery(
-                        "update " + table + " set created_at = :at where id = :id")
-                .setParameter("at", at)
-                .setParameter("id", id)
-                .executeUpdate();
-    }
 
     /**
      * 서버_내부_처리 12장: "이번 주 넛지 판정 <b>1회</b> 실행".
@@ -349,12 +208,16 @@ public class DevSeedService {
         nudgeJudgement.judge(user, expenses);
     }
 
-    /** 응답의 {@code nudgeCreated} — NDG-01 과 같은 조건으로 본다. */
-    private boolean hasNudge(Long userId, LocalDate today) {
-        return nudgeRepository
-                .findTopByUserIdAndAnalysisStartDateAndStatusOrderByUpdatedAtDesc(
-                        userId, Weeks.mondayOf(today), NudgeStatus.UNREAD)
-                .isPresent();
+    /**
+     * 응답의 {@code nudgeCreated} — 넛지 테이블과 판정이 인수인계되어 <b>항상
+     * {@code false}</b> 다. 필드를 지우지 않은 것은 명세 DEV-01 의 응답 모양이기 때문이다.
+     *
+     * <p>넛지가 돌아오면 NDG-01 과 <b>같은 조건</b>으로 되살릴 것:
+     * {@code findTopByUserIdAndAnalysisStartDateAndStatusOrderByUpdatedAtDesc(
+     * userId, Weeks.mondayOf(today), NudgeStatus.UNREAD).isPresent()}.
+     */
+    private static boolean hasNudge() {
+        return false;
     }
 
     private Map<Long, Category> categoriesById() {

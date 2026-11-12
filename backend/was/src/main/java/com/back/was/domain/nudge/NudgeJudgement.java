@@ -1,139 +1,60 @@
 package com.back.was.domain.nudge;
 
-import com.back.was.domain.analysis.AnalysisPeriod;
-import com.back.was.domain.analysis.SpendingComparison;
-import com.back.was.domain.analysis.SpendingSampler;
-import com.back.was.domain.analysis.SpendingSamples;
 import com.back.was.domain.category.Category;
-import com.back.was.domain.category.CategoryType;
-import com.back.was.domain.category.RentCategory;
 import com.back.was.domain.user.User;
-import com.back.was.global.support.DateRange;
-import com.back.was.global.support.KstTime;
-import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Component;
-
-import java.time.LocalDate;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
 
 /**
- * 넛지 판정 (서버_내부_처리 3장 = ERD 6장 "넛지 판정 규칙").
+ * 거래 변경 후처리 <b>3번</b>: 넛지 판정 (서버_내부_처리 1장 순서 3번 · 3장 = ERD 6장
+ * "넛지 판정 규칙").
  *
- * <p>거래가 등록·수정·삭제될 때 {@code TransactionService} 가 <b>같은 트랜잭션 안에서
- * 동기로</b> 부른다(서버_내부_처리 1장 순서 3번). 이벤트 리스너가 아닌 이유도 거기 있다 —
- * 거래 저장과 넛지가 한 커밋에 묶여야 "저장은 됐는데 카드만 안 생긴" 상태가 없다.
+ * <p><b>이 인터페이스는 구현되어 있지 않다</b> — 유일한 구현은 아무 일도 하지 않는
+ * {@link NoOpNudgeJudgement} 다. 넛지 판정·노출(NDG-01~03)·AI 문구는 별도 담당자의
+ * 작업으로 넘겼고, 그 자리를 비워 두기 위한 포트다. 자세한 내용은
+ * {@code docs/인수인계_넛지_이상치_리포트.md}.
  *
- * <p>카드를 만들거나 갱신하면 {@link NudgeJudgedEvent} 를 쏜다 — 후처리 5번(AI 문구)이
- * 커밋 후 비동기로 받는다.
+ * <h2>구현자가 지켜야 하는 것</h2>
+ * <ul>
+ *   <li><b>같은 트랜잭션 안에서 동기로</b> 돌아야 한다. {@code TransactionService} 가
+ *       이벤트 리스너가 아니라 직접 부르는 이유다 — 거래 저장과 카드가 한 커밋에 묶여야
+ *       "저장은 됐는데 카드만 안 생긴" 상태가 없다. 호출 위치는
+ *       {@code TransactionService} 의 실적 재계산
+ *       ({@link com.back.was.domain.challenge.ChallengePerformance}) <b>다음</b>이고,
+ *       그 순서는 서버_내부_처리 1장이 정한 것이라 바꾸면 안 된다.</li>
+ *   <li><b>판정 기간은 언제나 이번 주</b>다. 3주 전 거래를 고쳐도 판정을 다시 돌려야
+ *       한다 — 그 거래는 직전 4주 표본에 들어가 평균과 Z 를 바꾼다. 그래서 호출자는
+ *       거래 날짜로 걸러내지 않고 무조건 부른다.</li>
+ *   <li><b>평균·Z 계산은 ANL-03 {@code WEEK} 과 같은 함수를 써야 한다</b>
+ *       (서버_내부_처리 3장 "같은 계산 함수 사용 → 넛지 평균과 분석 화면 평균이 항상
+ *       일치"). ANL-03 도 같은 담당자에게 넘어갔으니, 두 곳에서 따로 집계하지 말고 공용
+ *       컴포넌트를 하나 만들어 양쪽이 쓰게 할 것.</li>
+ *   <li>판정 대상은 <b>지출 카테고리이고 월세(ID 5)가 아닌 것</b>뿐이다 (ERD 6장).</li>
+ *   <li>ERD 6장의 <b>판정 생략 두 가지</b>(가입일이 표본 첫 주 월요일 이후 / 표본
+ *       표준편차 0)에서 "생략"은 <b>아무것도 건드리지 않는 것</b>이다 — 기존 카드를
+ *       지우지도, 갱신하지도 않는다. "조건 미달로 바뀜"(= UNREAD 카드 삭제, 반응한
+ *       카드는 유지)과 다르다.</li>
+ *   <li>카드를 만들거나 갱신했으면 후처리 5번(AI 문구, 커밋 후 비동기)의 트리거를 쏠 것.
+ *       갱신일 때도 쏘아야 한다 — 금액이 바뀌면 문구도 다시 생성해야 한다(ERD 6장).</li>
+ * </ul>
  *
- * <p>평균·Z 는 {@link SpendingComparison} 이, 표본 수집은 {@link SpendingSampler} 가 한다.
- * ANL-03 {@code WEEK} 과 <b>같은 두 컴포넌트</b>를 쓰는 것이 핵심이다(서버_내부_처리 3장
- * "같은 계산 함수 사용 → 넛지 평균과 분석 화면 평균이 항상 일치"). 여기서 집계를 따로
- * 구현하면 카드의 "평소 이맘때 평균"과 분석 화면의 평균이 조용히 달라진다.
- *
- * <p>판정 기간은 <b>언제나 이번 주</b>다. 그래서 3주 전 거래를 고쳐도 판정을 다시 돌려야
- * 한다 — 그 거래는 직전 4주 표본에 들어가 평균과 Z 를 바꾼다. 호출자가 거래 날짜로
- * 걸러내면 안 되는 이유다.
+ * <p>테이블({@link Nudge})·리포지토리({@link NudgeRepository})·상태
+ * ({@link NudgeStatus})는 남아 있다. COACH-01/03 이 읽기 때문이다(넛지에서 시작한 코칭,
+ * 룰 기반 목표 제안의 신호 ①). 구현자는 그 세 개를 그대로 쓰면 된다.
  */
-@Component
-@RequiredArgsConstructor
-public class NudgeJudgement {
-
-    /** 넛지는 주간 기준이다 (ERD 6장 — 직전 4주, 월요일 시작). */
-    private static final AnalysisPeriod PERIOD = AnalysisPeriod.WEEK;
-
-    private final NudgeRepository nudgeRepository;
-    private final SpendingSampler spendingSampler;
-    private final ApplicationEventPublisher events;
+public interface NudgeJudgement {
 
     /**
      * 주어진 카테고리들의 이번 주 넛지를 다시 판정한다.
      *
-     * <p>TX-05 는 수정 전·후 카테고리를 둘 다 넘긴다(서버_내부_처리 1장). 카테고리가 바뀌지
-     * 않아 같은 값이 두 번 들어오면 <b>한 번만</b> 판정한다 — 호출자가 비교할 필요가 없게
-     * 여기서 ID 로 중복을 없앤다.
+     * <p>TX-05 는 수정 전·후 카테고리를 <b>둘 다</b> 넘긴다(서버_내부_처리 1장). 카테고리가
+     * 바뀌지 않아 같은 값이 두 번 들어올 수 있으므로 <b>구현에서 ID 로 중복을 없애야</b>
+     * 한다 — 호출자가 비교하지 않는다. 중복 제거가 필요한 이유는 판정이 이벤트를 쏘기
+     * 때문이다(두 번 도는 것이 공짜가 아니다).
      *
-     * <p>표본 조회는 카테고리 수와 무관하게 구간 수(이번 주 + 4주)만큼이다. 카테고리별로
-     * 따로 돌면 거래 한 건마다 쿼리가 두 배가 된다.
-     */
-    public void judge(User user, Category... categories) {
-        Map<Long, Category> targets = new LinkedHashMap<>();
-        for (Category category : categories) {
-            if (isJudgeable(category)) {
-                targets.putIfAbsent(category.getId(), category);
-            }
-        }
-        if (targets.isEmpty()) {
-            return;
-        }
-
-        LocalDate today = KstTime.today();
-        if (!hasEnoughHistory(user, today)) {
-            return;
-        }
-
-        DateRange analysisPeriod = PERIOD.analysisRange(today);
-        SpendingSamples spending = spendingSampler.collect(user.getId(), PERIOD, today, RentCategory.ID);
-
-        targets.values().forEach(category -> judgeOne(user, category, analysisPeriod, spending));
-    }
-
-    /**
-     * 판정 대상인지 — <b>지출 카테고리이고 월세가 아닐 때</b>만이다
-     * (ERD 6장 "월세 제외, 수입 제외").
+     * <p>표본 조회는 카테고리 수와 무관하게 구간 수(이번 주 + 직전 4주)만큼이어야 한다.
+     * 카테고리별로 따로 돌면 거래 한 건마다 쿼리가 배로 늘어난다.
      *
-     * <p>수입이 섞이면 "평소보다 많이 벌었어요" 카드가 생기고, 월세는 한 달에 한 번 큰
-     * 금액이라 주간 표본을 흔든다. 표본 쿼리에서도 월세를 빼지만
-     * ({@link RentCategory#ID}) 대상 판단을 여기서 한 번 더 하는 쪽이 읽기 쉽다.
+     * @param categories 판정할 카테고리들. {@code null} 원소가 섞여 들어올 수 있다
+     *                   (TX-05 가 수정 전 값을 그대로 넘긴다)
      */
-    private static boolean isJudgeable(Category category) {
-        return category != null
-                && category.getType() == CategoryType.EXPENSE
-                && !RentCategory.isRent(category.getId());
-    }
-
-    /**
-     * ERD 6장 "판정 생략 ① 가입일이 표본 첫 주 월요일 이후" — 4주치 기록이 아직 없으면
-     * 비교가 성립하지 않는다. ANL-03 의 {@code dataSufficient} 와 같은 식이다.
-     */
-    private static boolean hasEnoughHistory(User user, LocalDate today) {
-        return !user.getCreatedAt().toLocalDate().isAfter(PERIOD.oldestSampleStart(today));
-    }
-
-    private void judgeOne(User user, Category category, DateRange analysisPeriod,
-                          SpendingSamples spending) {
-        SpendingComparison comparison = spending.compare(category.getId());
-        Optional<Nudge> existing = nudgeRepository.findByUserIdAndCategoryIdAndAnalysisStartDate(
-                user.getId(), category.getId(), analysisPeriod.start());
-
-        // ERD 6장 "판정 생략 ② 표준편차 0" — 표본이 전부 같은 값이면 Z 를 낼 수 없다.
-        // 생략은 생략이다: 기존 카드를 지우지도, 갱신하지도 않는다. 조건을 평가조차 하지
-        // 못한 상황과 "조건 미달로 바뀜"은 다르다.
-        if (comparison.zScore() == null) {
-            return;
-        }
-
-        if (comparison.isAnomaly()) {
-            Nudge nudge = existing
-                    .map(found -> {
-                        found.refresh(analysisPeriod.end(), comparison);
-                        return found;
-                    })
-                    .orElseGet(() -> nudgeRepository.save(
-                            Nudge.of(user, category, analysisPeriod, comparison)));
-
-            // 후처리 5번: 커밋 후 비동기로 AI 문구를 채운다 (서버_내부_처리 1장·8장).
-            // 갱신일 때도 쏜다 — 금액이 바뀌었으면 문구도 다시 생성해야 한다(ERD 6장).
-            events.publishEvent(new NudgeJudgedEvent(nudge.getId()));
-            return;
-        }
-
-        // 조건 미달로 바뀜 (ERD 6장): UNREAD 면 삭제, 이미 반응한 카드는 유지한다 —
-        // 사용자가 보고 닫거나 코칭까지 시작한 카드를 서버가 치우면 이력이 사라진다.
-        existing.filter(nudge -> nudge.getStatus() == NudgeStatus.UNREAD)
-                .ifPresent(nudgeRepository::delete);
-    }
+    void judge(User user, Category... categories);
 }

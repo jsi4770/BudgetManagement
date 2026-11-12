@@ -5,7 +5,6 @@ import com.back.was.domain.ai.TextParseCommand;
 import com.back.was.domain.ai.TransactionTextParser;
 import com.back.was.domain.category.Category;
 import com.back.was.domain.category.CategoryRepository;
-import com.back.was.domain.challenge.ChallengePerformance;
 import com.back.was.domain.category.CategoryType;
 import com.back.was.domain.category.dto.CategoryResponse;
 import com.back.was.domain.nudge.NudgeJudgement;
@@ -47,7 +46,6 @@ public class TransactionService {
     private static final int REQUIRED_PARSED_FIELD_COUNT = 3;
 
     private final TransactionRepository transactionRepository;
-    private final ChallengePerformance challengePerformance;
     private final NudgeJudgement nudgeJudgement;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
@@ -62,6 +60,11 @@ public class TransactionService {
      * <p>후처리는 명세의 순서대로 2번(챌린지 실적) → 3번(넛지 판정)이다. <b>5번(넛지 AI
      * 문구)</b>만 커밋 후 비동기라 여기 없다.
      *
+     * <p><b>지금은 3번의 호출만 남아 있다</b> — 2번은 챌린지 도메인과 함께, 5번은 넛지
+     * 도메인과 함께 인수인계되었다. 2번이 들어갈 자리는 주석으로 표시해 두었고, 순서가
+     * 규칙이므로 되살릴 때 넛지 판정 **앞**이어야 한다
+     * (docs/인수인계_넛지_이상치_리포트.md).
+     *
      * @throws BusinessException 404 {@code NOT_FOUND} — 없는 카테고리 (명세 TX-01 Errors)
      */
     @Transactional
@@ -74,7 +77,9 @@ public class TransactionService {
         Transaction transaction = transactionRepository.save(Transaction.of(
                 user, category, request.amount(), request.transactionDate(), request.memo()));
 
-        challengePerformance.recalculate(user, category, transaction.getTransactionDate());
+        // 후처리 2번(진행 중 챌린지 실적 재계산)이 이 자리, **넛지 판정 앞**에 들어간다 —
+        // 서버_내부_처리 1장이 정한 순서다. 챌린지 도메인이 인수인계되어 지금은 비어 있다
+        // (docs/인수인계_넛지_이상치_리포트.md).
         nudgeJudgement.judge(user, category);
 
         return TransactionResponse.from(transaction);
@@ -109,9 +114,10 @@ public class TransactionService {
                 .orElseThrow(BusinessException::notFound);
 
         // 변경을 적용하기 전에 붙잡아 둔다 — 아래에서 바뀌면 되찾을 방법이 없다.
-        // 넛지는 카테고리만, 챌린지는 날짜까지 필요하다(서버_내부_처리 1장·2장).
+        // 넛지는 카테고리만 필요하다. 챌린지 실적(후처리 2번)은 **날짜까지** 필요하므로
+        // (서버_내부_처리 2장) 그 도메인이 돌아오면 여기서
+        // `LocalDate previousDate = transaction.getTransactionDate();` 를 함께 붙잡을 것.
         Category previousCategory = transaction.getCategory();
-        LocalDate previousDate = transaction.getTransactionDate();
 
         // 유일하게 실패할 수 있는 변경(없는 카테고리 → 404)을 먼저 처리한다. 롤백이
         // 어차피 되살려 주지만, 그래야 영속성 컨텍스트에 절반만 바뀐 엔티티가 남지 않는다.
@@ -131,8 +137,11 @@ public class TransactionService {
 
         User owner = transaction.getUser();
 
-        challengePerformance.recalculate(owner, previousCategory, previousDate);
-        challengePerformance.recalculate(owner, transaction.getCategory(), transaction.getTransactionDate());
+        // 후처리 2번은 이 자리에서 **수정 전 (카테고리, 날짜)** 와 **수정 후
+        // (카테고리, 날짜)** 로 각각 한 번씩, 넛지 판정 앞에 불러야 한다
+        // (서버_내부_처리 1장). 카테고리가 그대로여도 날짜가 챌린지 기간 밖으로 나가면
+        // 이전 기간의 합계가 바뀌므로 **수정 전 날짜**가 필요하다 — 챌린지 도메인이
+        // 돌아오면 그 값을 여기서 다시 붙잡아야 한다.
         // 카테고리가 그대로면 같은 값이 두 번 들어가는데, 판정이 ID 로 중복을 없앤다.
         nudgeJudgement.judge(owner, previousCategory, transaction.getCategory());
 
@@ -248,7 +257,8 @@ public class TransactionService {
 
         transactionRepository.delete(transaction);
 
-        challengePerformance.recalculate(owner, category, date);
+        // 후처리 2번이 이 자리, 넛지 판정 앞에 들어간다 — 삭제된 행의 카테고리·날짜가
+        // 필요해서 지우기 **전에** 붙잡아 두는 것이다(지운 뒤에는 얻을 수 없다).
         nudgeJudgement.judge(owner, category);
     }
 
