@@ -1,19 +1,10 @@
 package com.back.was.domain.dev;
 
 import com.back.was.domain.budget.BudgetRepository;
-import com.back.was.domain.challenge.Challenge;
-import com.back.was.domain.challenge.ChallengeRepository;
-import com.back.was.domain.challenge.ChallengeStatus;
-import com.back.was.domain.coaching.CoachingMessageRepository;
-import com.back.was.domain.coaching.CoachingRepository;
-import com.back.was.domain.coaching.CoachingStatus;
-import com.back.was.domain.nudge.NudgeRepository;
-import com.back.was.domain.report.GrowthReportRepository;
 import com.back.was.domain.transaction.TransactionRepository;
 import com.back.was.domain.user.User;
 import com.back.was.domain.user.UserRepository;
 import com.back.was.global.support.KstTime;
-import com.back.was.global.support.Weeks;
 import com.jayway.jsonpath.JsonPath;
 import jakarta.persistence.EntityManager;
 import org.hamcrest.Matchers;
@@ -32,7 +23,6 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -45,8 +35,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *
  * <p>거래 생성 규칙 자체는 {@code DemoTransactionPlannerTest} 가 문서의 CSV 와 비교해
  * 검증한다. 여기서 보는 것은 <b>영속화와 순서</b>다: 기존 데이터가 지워지는지, 가입일이
- * 뒤로 밀리는지, 과거 챌린지 4건이 문서의 결과(C2 만 FAILED)로 들어가는지, 넛지 판정이
- * 한 번 돌아 시나리오대로 카드가 생기는지.
+ * 뒤로 밀리는지, 예산이 직전 3개월만 들어가는지.
+ *
+ * <p>시연_데이터 12장이 요구하는 나머지 두 단계 — <b>과거 코칭·챌린지 4건</b>과
+ * <b>이번 주 넛지 판정 1회</b> — 는 해당 도메인이 미구현이라 아직 검증할 것이 없다.
  *
  * <p>{@code @Transactional} 로 돈다 — 시드가 한 트랜잭션이고 비동기 후처리를 거치지 않아서
  * 테스트 트랜잭션 안에서 결과를 그대로 볼 수 있다.
@@ -62,8 +54,6 @@ class DevSeedApiTest {
 
     private static final LocalDate TODAY = KstTime.today();
 
-    private static final long DELIVERY = 2L;
-
     @Autowired
     MockMvc mockMvc;
 
@@ -72,21 +62,6 @@ class DevSeedApiTest {
 
     @Autowired
     BudgetRepository budgetRepository;
-
-    @Autowired
-    ChallengeRepository challengeRepository;
-
-    @Autowired
-    GrowthReportRepository growthReportRepository;
-
-    @Autowired
-    CoachingRepository coachingRepository;
-
-    @Autowired
-    CoachingMessageRepository coachingMessageRepository;
-
-    @Autowired
-    NudgeRepository nudgeRepository;
 
     @Autowired
     UserRepository userRepository;
@@ -125,15 +100,16 @@ class DevSeedApiTest {
                 .andReturn().getResponse().getContentAsString();
     }
 
-    private List<Challenge> myChallenges() {
-        return challengeRepository.findAllByUserId(user.getId(), null);
-    }
-
     // --- 응답 ---------------------------------------------------------------
 
+    /**
+     * 응답에 {@code nudgeCreated} 가 <b>아직 없다</b> — 넛지 도메인이 미구현이라 시드가 거래와
+     * 예산만 깔고 끝난다. 판정을 붙이면 {@code SeedResponse} 에 그 필드를 되살리고
+     * {@code DELIVERY_SPIKE} 는 {@code true} 를 단정해야 한다.
+     */
     @Test
-    @DisplayName("명세 DEV-01: DELIVERY_SPIKE 는 거래를 깔고 넛지를 만든다")
-    void deliverySpikeCreatesANudge() throws Exception {
+    @DisplayName("명세 DEV-01: DELIVERY_SPIKE 는 거래를 깐다")
+    void deliverySpikeSeedsTransactions() throws Exception {
         mockMvc.perform(authed(post("/dev/seed"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -143,12 +119,12 @@ class DevSeedApiTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.scenario").value("DELIVERY_SPIKE"))
                 .andExpect(jsonPath("$.data.transactionCount").value(Matchers.greaterThan(150)))
-                .andExpect(jsonPath("$.data.nudgeCreated").value(true));
+                .andExpect(jsonPath("$.data.nudgeCreated").doesNotExist());
     }
 
     @Test
-    @DisplayName("NORMAL 은 같은 과거 데이터에 평소 수준 이번 주 → 넛지 없음")
-    void normalCreatesNoNudge() throws Exception {
+    @DisplayName("NORMAL 도 같은 과거 데이터에 평소 수준 이번 주를 깐다")
+    void normalSeedsTransactions() throws Exception {
         mockMvc.perform(authed(post("/dev/seed"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -156,9 +132,7 @@ class DevSeedApiTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.scenario").value("NORMAL"))
-                .andExpect(jsonPath("$.data.nudgeCreated").value(false));
-
-        assertThat(nudgeRepository.findAll()).isEmpty();
+                .andExpect(jsonPath("$.data.transactionCount").value(Matchers.greaterThan(150)));
     }
 
     @Test
@@ -196,78 +170,16 @@ class DevSeedApiTest {
                 .satisfies(budget -> assertThat(budget.getMonthlyBudget()).isEqualTo(1_200_000));
     }
 
-    @Test
-    @DisplayName("완료된 챌린지 4건이 문서의 결과로 들어간다 — C2 만 FAILED (KPI 75%)")
-    void insertsFourFinishedChallenges() throws Exception {
-        seed("DELIVERY_SPIKE");
-
-        List<Challenge> challenges = myChallenges();
-        assertThat(challenges).hasSize(4).allSatisfy(challenge ->
-                assertThat(challenge.isFinished()).isTrue());
-        assertThat(challenges).filteredOn(c -> c.getStatus() == ChallengeStatus.SUCCESS).hasSize(3);
-        assertThat(challenges).filteredOn(c -> c.getStatus() == ChallengeStatus.FAILED)
-                .singleElement()
-                .satisfies(c2 -> {
-                    assertThat(c2.getTitle()).isEqualTo("배달 2회 이하");
-                    assertThat(c2.getSpendingCount()).isEqualTo(3);
-                    assertThat(c2.getAchievementRate()).isEqualByComparingTo("150.00");
-                });
-    }
-
-    @Test
-    @DisplayName("진행 중 챌린지는 없다 — 시연에서 COACH-04 로 직접 만들어야 한다")
-    void leavesNoRunningChallenge() throws Exception {
-        seed("DELIVERY_SPIKE");
-
-        assertThat(challengeRepository.findAllByUserId(user.getId(), ChallengeStatus.IN_PROGRESS))
-                .isEmpty();
-    }
-
-    @Test
-    @DisplayName("챌린지마다 코칭·메시지 2개·성장 리포트가 함께 들어간다")
-    void insertsCoachingAndReportForEachChallenge() throws Exception {
-        seed("DELIVERY_SPIKE");
-
-        assertThat(coachingRepository.findAll()).hasSize(4).allSatisfy(coaching -> {
-            assertThat(coaching.getStatus()).isEqualTo(CoachingStatus.COMPLETED);
-            assertThat(coaching.hasProposal()).isTrue();
-            assertThat(coachingMessageRepository
-                    .findByCoachingIdOrderByCreatedAtAscIdAsc(coaching.getId())).hasSize(2);
-        });
-        assertThat(growthReportRepository.findAll()).hasSize(4).allSatisfy(report ->
-                assertThat(report.getFeedback()).isNotBlank());
-    }
-
-    @Test
-    @DisplayName("과거 챌린지의 시각이 뒤로 밀려 있다 — CHL-01 의 최신 확정 순 정렬이 흐름과 맞는다")
-    void backdatesTheChallengeTimestamps() throws Exception {
-        seed("DELIVERY_SPIKE");
-        entityManager.clear();
-
-        // 목록은 createdAt 내림차순이라 가장 최근 확정(6주 전 C4)이 먼저 와야 한다
-        assertThat(myChallenges()).first()
-                .satisfies(newest -> assertThat(newest.getTitle()).isEqualTo("배달비 50,000원 이내"));
-        assertThat(myChallenges()).last()
-                .satisfies(oldest -> assertThat(oldest.getTitle()).isEqualTo("카페 30,000원 이내"));
-        assertThat(myChallenges()).allSatisfy(challenge ->
-                assertThat(challenge.getCreatedAt().toLocalDate()).isBefore(TODAY));
-    }
-
-    @Test
-    @DisplayName("넛지는 배달에 한 장만 생긴다 (시연 6-1)")
-    void createsOnlyTheDeliveryNudge() throws Exception {
-        seed("DELIVERY_SPIKE");
-
-        assertThat(nudgeRepository.findAll())
-                .singleElement()
-                .satisfies(nudge -> {
-                    assertThat(nudge.getCategory().getId()).isEqualTo(DELIVERY);
-                    assertThat(nudge.getSpendingAmount()).isEqualTo(101_000);
-                    assertThat(nudge.getAvgAmount()).isEqualTo(60_000);
-                    assertThat(nudge.getGrowthRate()).isEqualByComparingTo("68.33");
-                    assertThat(nudge.getAnalysisStartDate()).isEqualTo(Weeks.mondayOf(TODAY));
-                });
-    }
+    /*
+     * 코칭·챌린지·넛지가 구현되면 여기에 네 가지를 더해야 한다 (기대값은 시연_데이터 4장,
+     * 자세한 내용은 docs/AI_코칭_소비분석_인수인계.md 6장):
+     *
+     *   과거 챌린지 4건이 문서의 결과로 들어가는지 — C2 만 FAILED, 달성률 150.00 (KPI 75%)
+     *   진행 중 챌린지가 0건인지 — 하나라도 있으면 시연의 COACH-04 확정이 409 로 막힌다
+     *   챌린지마다 코칭 1건 + 메시지 2건이 함께 들어가는지
+     *   코칭 20:00 / 챌린지 20:05 로 시각이 과거에 박히는지 (CHL-01 의 최신 확정 순 정렬)
+     *   배달 넛지가 한 장 생기는지 — 101,000 / 평균 60,000 / +68.33% / 이번 주 월요일
+     */
 
     // --- 재실행 (명세 DEV-01 "전체 삭제 후 삽입") ---------------------------
 
@@ -286,20 +198,7 @@ class DevSeedApiTest {
 
             assertThat(secondCount).isEqualTo(firstCount);
             assertThat(transactionRepository.count()).isEqualTo(firstCount);
-            assertThat(myChallenges()).hasSize(4);
-            assertThat(growthReportRepository.findAll()).hasSize(4);
-            assertThat(coachingRepository.findAll()).hasSize(4);
-        }
-
-        @Test
-        @DisplayName("시나리오를 바꿔 누르면 넛지도 따라 사라진다")
-        void switchingScenarioRemovesTheNudge() throws Exception {
-            seed("DELIVERY_SPIKE");
-            assertThat(nudgeRepository.findAll()).hasSize(1);
-
-            seed("NORMAL");
-
-            assertThat(nudgeRepository.findAll()).isEmpty();
+            // 과거 챌린지·코칭이 4건으로 유지되는지도 여기서 봤었다 (인수인계)
         }
 
         @Test
@@ -362,8 +261,20 @@ class DevSeedApiTest {
 
     // --- 시연 흐름이 실제로 돌아가는지 --------------------------------------
 
+    /**
+     * 시연 3단계(넛지 카드, {@code GET /nudges/current})는 <b>엔드포인트 자체가 없다</b> —
+     * NDG-01~03 이 별도 담당자의 작업으로 넘어갔다. 돌아오면 아래를 되살릴 것:
+     * <pre>
+     * mockMvc.perform(authed(get("/nudges/current")))
+     *         .andExpect(status().isOk())
+     *         .andExpect(jsonPath("$.data.category.name").value("배달"))
+     *         .andExpect(jsonPath("$.data.spendingAmount").value(101_000))
+     *         .andExpect(jsonPath("$.data.avgAmount").value(60_000))
+     *         .andExpect(jsonPath("$.data.growthRate").value(68.33));
+     * </pre>
+     */
     @Test
-    @DisplayName("시드 직후 홈·주간 분석·넛지·챌린지 목록이 시연값으로 응답한다 (시연 5장 2~4단계)")
+    @DisplayName("시드 직후 홈·주간 분석이 시연값으로 응답한다 (시연 5장 2·4단계)")
     void theDemoScreensWorkRightAfterSeeding() throws Exception {
         seed("DELIVERY_SPIKE");
 
@@ -379,17 +290,6 @@ class DevSeedApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.weeks[0].totalExpense").value(116_150));
 
-        // 3단계 넛지 카드
-        mockMvc.perform(authed(get("/nudges/current")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.category.name").value("배달"))
-                .andExpect(jsonPath("$.data.spendingAmount").value(101_000))
-                .andExpect(jsonPath("$.data.avgAmount").value(60_000))
-                .andExpect(jsonPath("$.data.growthRate").value(68.33));
-
-        // 완료 목록 4건
-        mockMvc.perform(authed(get("/challenges")))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data", Matchers.hasSize(4)));
+        // 완료 챌린지 목록 4건(CHL-01)도 여기서 봤었다 — 코칭·챌린지 인수인계로 빠졌다.
     }
 }

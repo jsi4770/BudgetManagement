@@ -63,22 +63,12 @@ class DevProfileOnlyTest {
     @Test
     @DisplayName("dev 프로필이 아니면 컨트롤러·서비스 빈이 하나도 없다")
     void devBeansAreNotRegistered() {
-        assertThat(applicationContext.getBeanNamesForType(DevChallengeController.class)).isEmpty();
-        assertThat(applicationContext.getBeanNamesForType(DevChallengeService.class)).isEmpty();
+        // DEV-02(DevChallengeController/Service)는 챌린지 종료 판정과 함께 별도 담당자의
+        // 작업으로 넘어가 클래스 자체가 없다. 돌아오면 두 줄을 여기에 되살릴 것 —
+        // @Profile 을 컨트롤러에만 붙이면 서비스 빈이 운영 컨텍스트에 남는다.
         assertThat(applicationContext.getBeanNamesForType(DevSeedController.class)).isEmpty();
         assertThat(applicationContext.getBeanNamesForType(DevSeedService.class)).isEmpty();
-    }
-
-    @Test
-    @DisplayName("DEV-02 경로는 404 다 — 인증된 요청이어도 매핑 자체가 없다")
-    void devChallengeEndpointIsNotMapped() throws Exception {
         assertThat(userRepository.findByEmail(EMAIL)).isPresent();
-
-        mockMvc.perform(post("/dev/challenges/{id}/complete", 1)
-                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isNotFound());
     }
 
     @Test

@@ -45,45 +45,4 @@ public final class Weeks {
         LocalDate monday = mondayOf(date);
         return new DateRange(monday, monday.plusDays(6));
     }
-
-    /**
-     * 월요일 ~ 주어진 날짜 (= 이번 주 경과분, 길이 k일).
-     *
-     * <p>넛지·ANL-03 {@code WEEK} 의 분석 기간이고, ANL-02 이번 주 막대의 <b>합계 범위</b>
-     * 이기도 하다 (명세 ANL-02 "이번 주 = 월요일 ~ 오늘").
-     */
-    public static DateRange elapsedWeekOf(LocalDate date) {
-        return new DateRange(mondayOf(date), date);
-    }
-
-    /**
-     * {@code weeksAgo} 주 전의 "월요일 ~ k번째 날" — 넛지·ANL-03 {@code WEEK} 의 표본 구간.
-     *
-     * <p>{@code minusWeeks} 는 요일을 보존하므로 k 가 그대로 유지된다. 그래서 별도의 보정
-     * 없이 "같은 경과 일수끼리" 비교가 된다.
-     *
-     * @param weeksAgo 1 이면 지난 주, 4 면 4주 전
-     */
-    public static DateRange elapsedWeeksAgo(LocalDate date, int weeksAgo) {
-        return elapsedWeekOf(date.minusWeeks(weeksAgo));
-    }
-
-    /**
-     * 그 날짜가 속한 주 <b>바로 앞</b>의 완전한 {@code weeks} 주 — 월요일부터 지난 일요일까지.
-     *
-     * <p>{@link #elapsedWeeksAgo} 와 <b>용도가 다르다</b>. 저쪽은 "같은 경과 일수끼리"
-     * 비교하기 위해 각 주를 k일로 자르고(ERD 6장), 이쪽은 <b>주 전체</b>를 쓴다 —
-     * {@code docs/AI_대체_문구.md} 5장의 "직전 4주 주간 평균"처럼 7일짜리 목표의 기준을
-     * 잡을 때는 7일치 기록과 견줘야 한다. 월요일에 k일 슬라이스로 평균을 내면 하루치가
-     * 나와 목표가 터무니없이 작아진다.
-     *
-     * <p>진행 중인 이번 주는 들어가지 않는다 — 아직 끝나지 않은 주의 부분 합계가 평균을
-     * 끌어내리기 때문이다.
-     *
-     * @param weeks 1 이면 지난 주 한 주, 4 면 지난 4주
-     */
-    public static DateRange fullWeeksBefore(LocalDate date, int weeks) {
-        LocalDate monday = mondayOf(date);
-        return new DateRange(monday.minusWeeks(weeks), monday.minusDays(1));
-    }
 }

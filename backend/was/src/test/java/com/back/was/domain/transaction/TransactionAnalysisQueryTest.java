@@ -8,7 +8,6 @@ import com.back.was.domain.user.User;
 import com.back.was.domain.user.UserRepository;
 import com.back.was.global.support.DateRange;
 import com.back.was.global.support.Months;
-import com.back.was.global.support.Weeks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -23,7 +22,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 분석 API(ANL-01~03)와 넛지 판정이 쓰는 집계 쿼리.
+ * 분석 API(ANL-01/02)가 쓰는 집계 쿼리.
+ *
+ * <p>ANL-03 과 넛지 판정이 쓰던 {@code sumExpensesByCategory}(카테고리별 지출) 의 테스트도
+ * 여기 있었다 — 쿼리와 함께 빠졌다. 되살릴 때의 규칙("거래가 없는 카테고리는 줄이 아예 없다
+ * → 0원 채우기는 호출자 몫")은 {@code docs/AI_코칭_소비분석_인수인계.md} 1장 ① 에 있다.
  *
  * <p>고정 데이터는 docs/시연_데이터.md 6장의 11월 1~4일이다 — 총지출 666,150원(월세 포함),
  * 수입 2,400,000원, 월세 제외 116,150원. 명세 ANL-01 응답 예시의 숫자와 같아서, 이 쿼리가
@@ -93,11 +96,6 @@ class TransactionAnalysisQueryTest {
                 CategoryType.EXPENSE, excludedCategoryId);
     }
 
-    private List<CategoryAmountSum> sumExpensesByCategory(DateRange range, Long excludedCategoryId) {
-        return transactionRepository.sumExpensesByCategory(user.getId(), range.start(), range.end(),
-                CategoryType.EXPENSE, excludedCategoryId);
-    }
-
     // --- ANL-01 월 합계 -----------------------------------------------------
 
     @Test
@@ -132,7 +130,9 @@ class TransactionAnalysisQueryTest {
     @Test
     @DisplayName("시연 6-2: 이번 주(11-02 ~ 11-04) 월세 제외 지출은 116,150 — 하루 합산, 거래 있는 날만")
     void dailyExpensesExcludeRent() {
-        List<DailyAmount> daily = sumDailyExpenses(Weeks.elapsedWeekOf(D), RentCategory.ID);
+        // D 가 수요일이므로 그 주의 월요일 ~ D = 11-02 ~ 11-04
+        List<DailyAmount> daily = sumDailyExpenses(
+                new DateRange(LocalDate.of(2026, 11, 2), D), RentCategory.ID);
 
         assertThat(daily).containsExactly(
                 new DailyAmount(LocalDate.of(2026, 11, 2), 25_650),
@@ -175,53 +175,9 @@ class TransactionAnalysisQueryTest {
     @Test
     @DisplayName("거래가 없는 주는 빈 목록이다 — 0원 채우기는 호출자 몫 (ERD 6장)")
     void emptyWeekReturnsNoRows() {
-        assertThat(sumDailyExpenses(Weeks.elapsedWeeksAgo(D, 4), RentCategory.ID)).isEmpty();
-    }
-
-    // --- ANL-03 · 넛지 카테고리별 지출 --------------------------------------
-
-    @Test
-    @DisplayName("시연 6-3: 11월 1~4일 카테고리별 지출을 ID 순으로 준다 (월세 제외)")
-    void categoryTotalsWithoutRent() {
-        List<CategoryAmountSum> sums = sumExpensesByCategory(Months.elapsedMonthOf(D), RentCategory.ID);
-
-        assertThat(sums).containsExactly(
-                new CategoryAmountSum(FOOD, "식비", 9_000),
-                new CategoryAmountSum(DELIVERY, "배달", 101_000),
-                new CategoryAmountSum(CAFE, "카페", 4_500),
-                new CategoryAmountSum(TRANSPORT, "교통", 1_650));
-    }
-
-    @Test
-    @DisplayName("ANL-03 MONTH 는 월세를 항목으로 포함한다 — 합계가 홈 총지출(666,150)과 같아야 한다")
-    void categoryTotalsWithRent() {
-        List<CategoryAmountSum> sums = sumExpensesByCategory(Months.elapsedMonthOf(D), null);
-
-        assertThat(sums).extracting(CategoryAmountSum::categoryId)
-                .containsExactly(FOOD, DELIVERY, CAFE, TRANSPORT, RentCategory.ID);
-        assertThat(sums.stream().mapToLong(CategoryAmountSum::amount).sum()).isEqualTo(666_150);
-    }
-
-    @Test
-    @DisplayName("수입 카테고리는 비교 대상이 아니다 — 급여는 어느 줄에도 없다")
-    void incomeCategoryIsExcluded() {
-        List<CategoryAmountSum> sums = sumExpensesByCategory(Months.monthOf(YearMonth.of(2026, 11)), null);
-
-        assertThat(sums).extracting(CategoryAmountSum::categoryId).doesNotContain(SALARY);
-    }
-
-    @Test
-    @DisplayName("표본 구간(직전 4주)에 거래가 없으면 줄이 없다 — 평균 계산 전에 0원으로 채워야 한다")
-    void emptySamplePeriodReturnsNoRows() {
-        assertThat(sumExpensesByCategory(Weeks.elapsedWeeksAgo(D, 2), RentCategory.ID)).isEmpty();
-    }
-
-    @Test
-    @DisplayName("다른 사용자의 거래는 카테고리 집계에도 섞이지 않는다")
-    void categoryTotalsAreScopedByUser() {
-        List<CategoryAmountSum> sums = transactionRepository.sumExpensesByCategory(
-                other.getId(), LocalDate.of(2026, 11, 1), D, CategoryType.EXPENSE, RentCategory.ID);
-
-        assertThat(sums).containsExactly(new CategoryAmountSum(DELIVERY, "배달", 99_000));
+        // 4주 전 같은 요일까지 = 10-05 ~ 10-07 (시드 데이터가 없는 구간)
+        assertThat(sumDailyExpenses(
+                new DateRange(LocalDate.of(2026, 10, 5), LocalDate.of(2026, 10, 7)),
+                RentCategory.ID)).isEmpty();
     }
 }

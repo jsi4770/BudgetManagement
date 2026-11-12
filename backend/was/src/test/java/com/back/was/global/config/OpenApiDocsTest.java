@@ -34,11 +34,32 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class OpenApiDocsTest {
 
     /**
-     * 명세의 엔드포인트 33개. {@code "METHOD /경로"} 형식이다.
+     * <b>지금 구현되어 있는</b> 엔드포인트. {@code "METHOD /경로"} 형식이다.
      *
      * <p><b>경로에 {@code /api/v1} 이 없다.</b> springdoc 은 {@code paths} 를 context-path
      * 없이 적고 그 접두사는 {@code servers[].url} 에 넣는다 — 그래서 Swagger UI 의
      * "Try it out" 은 실제 주소로 가지만 문서상의 키는 상대 경로다.
+     *
+     * <p>명세는 33개지만 <b>15개가 빠져 있다</b> — 인수인계된 영역들이다
+     * ({@code docs/AI_코칭_소비분석_인수인계.md}). 구현이 들어오면 아래 줄들을 이 목록에
+     * 다시 넣을 것 — 넣지 않으면 {@code @Operation} 을 빠뜨려도 이 테스트가 잡지 못한다.
+     * <pre>
+     * "get /analysis/categories",        // ANL-03
+     * "get /nudges/current",             // NDG-01
+     * "get /nudges/{id}",                // NDG-02
+     * "patch /nudges/{id}",              // NDG-03
+     * "post /coachings",                 // COACH-01
+     * "get /coachings/{id}",             // COACH-02
+     * "post /coachings/{id}/messages",   // COACH-03
+     * "post /coachings/{id}/confirm",    // COACH-04
+     * "get /challenges",                 // CHL-01
+     * "get /challenges/{id}",            // CHL-02
+     * "get /challenges/{id}/report",     // CHL-03
+     * "get /admin/kpi",                  // ADMIN-01
+     * "post /transactions/parse",         // TX-07
+     * "post /receipts/ocr",               // RCPT-01
+     * </pre>
+     * 15번째는 DEV-02 이고, 그쪽은 {@code DEV_ONLY_ENDPOINTS} 에 그대로 남아 있다.
      */
     private static final List<String> SPEC_ENDPOINTS = List.of(
             // 1장 인증
@@ -61,33 +82,24 @@ class OpenApiDocsTest {
             "get /transactions/{id}",
             "patch /transactions/{id}",
             "delete /transactions/{id}",
-            "post /transactions/parse",
-            // 7장 영수증
-            "post /receipts/ocr",
-            // 8장 분석
+            // 6장 거래 — TX-07 "post /transactions/parse" 는 인수인계됨
+            // 7장 영수증 — RCPT-01 "post /receipts/ocr" 인수인계됨
+            // 8장 분석 (ANL-03 "get /analysis/categories" 는 인수인계됨)
             "get /analysis/monthly",
-            "get /analysis/weekly",
-            "get /analysis/categories",
-            // 9장 넛지
-            "get /nudges/current",
-            "get /nudges/{id}",
-            "patch /nudges/{id}",
-            // 10장 코칭
-            "post /coachings",
-            "get /coachings/{id}",
-            "post /coachings/{id}/messages",
-            "post /coachings/{id}/confirm",
-            // 11장 챌린지
-            "get /challenges",
-            "get /challenges/{id}",
-            "get /challenges/{id}/report",
-            // 13장 관리자
-            "get /admin/kpi"
+            "get /analysis/weekly"
+            // 9장 넛지 — NDG-01~03 전부 인수인계됨
+            // 10장 코칭 — COACH-01~04 전부 인수인계됨
+            // 11장 챌린지 — CHL-01~03 전부 인수인계됨
+            // 13장 관리자 — ADMIN-01 인수인계됨
     );
 
     /**
-     * dev 프로필 전용이라 기본 컨텍스트의 문서에는 없어야 하는 두 개 (명세 12장).
+     * dev 프로필 전용이라 기본 컨텍스트의 문서에는 없어야 하는 경로 (명세 12장).
      * 문서가 운영에서 공개될 수 있는 이상, 시연용 API 의 존재 자체가 노출되지 않는 편이 낫다.
+     *
+     * <p>DEV-02({@code /dev/challenges/{id}/complete})는 챌린지 종료 판정과 함께
+     * 인수인계되어 지금 없다. <b>목록에는 남겨 둔다</b> — "문서에 없어야 한다"는 단정이라
+     * 구현이 없어도 통과하고, 돌아왔을 때 {@code @Profile} 을 빠뜨리면 여기서 걸린다.
      */
     private static final List<String> DEV_ONLY_ENDPOINTS = List.of(
             "/dev/seed",
@@ -115,7 +127,7 @@ class OpenApiDocsTest {
     }
 
     @Test
-    @DisplayName("명세 33개(dev 2개 제외 31개)가 모두 문서에 있고, 전부 summary 를 갖는다")
+    @DisplayName("구현된 엔드포인트(명세 33개 중 인수인계 15개 제외)가 모두 문서에 있고, 전부 summary 를 갖는다")
     void everyEndpointIsDocumented() throws Exception {
         DocumentContext docs = apiDocs();
         Map<String, Map<String, Object>> paths = docs.read("$.paths");
