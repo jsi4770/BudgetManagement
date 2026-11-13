@@ -11,16 +11,28 @@ __pycache__/
 .Python
 
 # 환경변수 (비밀값)
-# .env.example 만 커밋한다 (was/.gitignore 와 같은 규칙)
+# .env.example 만 커밋한다
 .env
 .env.local
+.env.*.local
+
+# GCP Service Account Key 및 보안 키 파일
+*.json
+!package.json
+!tsconfig.json
+secrets/
 
 # Django 정적 파일 수집 결과
 staticfiles/
 static/
 
-# 미디어 업로드 (영수증 이미지 — SNFR-008: 저장하지 않음)
+# 미디어 업로드 (영수증 이미지 — 저장하지 않음)
 media/
+uploads/
+*.jpg
+*.jpeg
+*.png
+*.webp
 
 # IDE
 .idea/
@@ -34,4 +46,3 @@ Thumbs.db
 # 테스트 커버리지
 .coverage
 htmlcov/
-
