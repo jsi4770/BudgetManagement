@@ -133,4 +133,36 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                        @Param("to") LocalDate to,
                                        @Param("expense") CategoryType expense,
                                        @Param("excludedCategoryId") Long excludedCategoryId);
+
+    /**
+     * ANL-03 항목과 넛지 판정이 공유하는 집계 — 기간 안의 <b>카테고리별 지출</b> 합계.
+     *
+     * <p>분석 기간에도, 표본 구간(직전 4주 / 직전 3개월) 각각에도 같은 쿼리를 쓴다.
+     * 명세 ANL-03·서버_내부_처리 3장이 "넛지와 같은 계산 함수"를 요구하므로 평균을 만드는
+     * 입력이 한 종류여야 한다.
+     *
+     * <p>수입 카테고리는 조건에서 빠진다(비교 대상은 지출뿐). {@code excludedCategoryId} 로
+     * 월세를 빼는데, 빼는지 여부는 호출하는 쪽(주간/월간)에 따라 다르다 —
+     * {@link com.back.was.domain.category.RentCategory} 표 참고.
+     *
+     * <p>거래가 없는 카테고리는 줄이 아예 없다. "기록 없는 주는 0원으로 포함"(ERD 6장)은
+     * 그래서 호출자가 채워야 한다 — 빠뜨리면 표본이 4개 미만이 되어 평균이 과대평가된다.
+     */
+    @Query("""
+            select new com.back.was.domain.transaction.CategoryAmountSum(
+                c.id, c.name, sum(t.amount))
+            from Transaction t
+            join t.category c
+            where t.user.id = :userId
+              and t.transactionDate between :from and :to
+              and c.type = :expense
+              and (:excludedCategoryId is null or c.id <> :excludedCategoryId)
+            group by c.id, c.name
+            order by c.id
+            """)
+    List<CategoryAmountSum> sumExpensesByCategory(@Param("userId") Long userId,
+                                                  @Param("from") LocalDate from,
+                                                  @Param("to") LocalDate to,
+                                                  @Param("expense") CategoryType expense,
+                                                  @Param("excludedCategoryId") Long excludedCategoryId);
 }

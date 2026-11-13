@@ -109,6 +109,16 @@ services:
       # 프론트 주소. 없으면 properties 의 기본값(Vite 개발 서버)이 쓰입니다.
       APP_CORS_ALLOWED_ORIGINS:
 
+      # AI 기능(TX-07 한 줄 입력 · RCPT-01 영수증). JWT_SECRET 과 같은 이유로 **값 없이 키만**
+      # 적었습니다 — 호스트에 있을 때만 전달되고, 없으면 properties 의 기본값이 쓰입니다.
+      #
+      # GEMINI_API_KEY 가 없어도 앱은 뜹니다. AI 기능만 503 AI_UNAVAILABLE 이고, 프론트는
+      # 그 코드를 받으면 직접 입력 화면으로 안내합니다. 키를 코드·저장소에 두지 마세요.
+      GEMINI_API_KEY:
+      # Django OCR 서버(backend/ocr) 주소. 없으면 Gemini 가 영수증 이미지를 직접 읽습니다.
+      # 컨테이너 안에서 호스트의 서버를 가리키려면 http://host.docker.internal:8000
+      OCR_BASE_URL:
+
     ports:
       # 명세 0장 1) Base URL — http://localhost:8080/api/v1
       - "8080:8080"

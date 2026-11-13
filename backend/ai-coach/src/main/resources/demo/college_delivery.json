@@ -1,0 +1,2886 @@
+{
+ "persona": "college_delivery",
+ "name": "야식·배달이 늘어난 대학생 김하준",
+ "transactions": [
+  {
+   "date": "2026-05-01",
+   "type": "expense",
+   "category": "월세/관리비",
+   "merchant": "월세/관리비",
+   "amount": 380000,
+   "id": 1
+  },
+  {
+   "date": "2026-05-01",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 4600,
+   "id": 2
+  },
+  {
+   "date": "2026-05-02",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2500,
+   "id": 3
+  },
+  {
+   "date": "2026-05-05",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 22000,
+   "id": 4
+  },
+  {
+   "date": "2026-05-05",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 10500,
+   "id": 5
+  },
+  {
+   "date": "2026-05-05",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 6200,
+   "id": 6
+  },
+  {
+   "date": "2026-05-05",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1800,
+   "id": 7
+  },
+  {
+   "date": "2026-05-06",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 8200,
+   "id": 8
+  },
+  {
+   "date": "2026-05-06",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 5600,
+   "id": 9
+  },
+  {
+   "date": "2026-05-07",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 7300,
+   "id": 10
+  },
+  {
+   "date": "2026-05-08",
+   "type": "expense",
+   "category": "구독",
+   "merchant": "넷플릭스",
+   "amount": 14900,
+   "id": 11
+  },
+  {
+   "date": "2026-05-09",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 10000,
+   "id": 12
+  },
+  {
+   "date": "2026-05-10",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 3600,
+   "id": 13
+  },
+  {
+   "date": "2026-05-11",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 8700,
+   "id": 14
+  },
+  {
+   "date": "2026-05-11",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1800,
+   "id": 15
+  },
+  {
+   "date": "2026-05-12",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 17800,
+   "id": 16
+  },
+  {
+   "date": "2026-05-12",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 15200,
+   "id": 17
+  },
+  {
+   "date": "2026-05-12",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2200,
+   "id": 18
+  },
+  {
+   "date": "2026-05-13",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 10600,
+   "id": 19
+  },
+  {
+   "date": "2026-05-13",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 3600,
+   "id": 20
+  },
+  {
+   "date": "2026-05-13",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 4000,
+   "id": 21
+  },
+  {
+   "date": "2026-05-13",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1800,
+   "id": 22
+  },
+  {
+   "date": "2026-05-15",
+   "type": "expense",
+   "category": "통신비",
+   "merchant": "통신비",
+   "amount": 45000,
+   "id": 23
+  },
+  {
+   "date": "2026-05-15",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 8000,
+   "id": 24
+  },
+  {
+   "date": "2026-05-15",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 9700,
+   "id": 25
+  },
+  {
+   "date": "2026-05-15",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2700,
+   "id": 26
+  },
+  {
+   "date": "2026-05-16",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 4900,
+   "id": 27
+  },
+  {
+   "date": "2026-05-17",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 9400,
+   "id": 28
+  },
+  {
+   "date": "2026-05-17",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 6300,
+   "id": 29
+  },
+  {
+   "date": "2026-05-17",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 4200,
+   "id": 30
+  },
+  {
+   "date": "2026-05-17",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 3800,
+   "id": 31
+  },
+  {
+   "date": "2026-05-18",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2300,
+   "id": 32
+  },
+  {
+   "date": "2026-05-18",
+   "type": "expense",
+   "category": "쇼핑",
+   "merchant": "다이소",
+   "amount": 37100,
+   "id": 33
+  },
+  {
+   "date": "2026-05-19",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2700,
+   "id": 34
+  },
+  {
+   "date": "2026-05-20",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2300,
+   "id": 35
+  },
+  {
+   "date": "2026-05-21",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2600,
+   "id": 36
+  },
+  {
+   "date": "2026-05-21",
+   "type": "expense",
+   "category": "문화/여가",
+   "merchant": "CGV",
+   "amount": 23900,
+   "id": 37
+  },
+  {
+   "date": "2026-05-22",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 16600,
+   "id": 38
+  },
+  {
+   "date": "2026-05-22",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 7400,
+   "id": 39
+  },
+  {
+   "date": "2026-05-23",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2500,
+   "id": 40
+  },
+  {
+   "date": "2026-05-23",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2500,
+   "id": 41
+  },
+  {
+   "date": "2026-05-24",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 23000,
+   "id": 42
+  },
+  {
+   "date": "2026-05-24",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2000,
+   "id": 43
+  },
+  {
+   "date": "2026-05-25",
+   "type": "income",
+   "category": "용돈/알바",
+   "merchant": "용돈/알바",
+   "amount": 1100000,
+   "id": 44
+  },
+  {
+   "date": "2026-05-25",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2400,
+   "id": 45
+  },
+  {
+   "date": "2026-05-26",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1600,
+   "id": 46
+  },
+  {
+   "date": "2026-05-27",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 19700,
+   "id": 47
+  },
+  {
+   "date": "2026-05-27",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 8100,
+   "id": 48
+  },
+  {
+   "date": "2026-05-27",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1600,
+   "id": 49
+  },
+  {
+   "date": "2026-05-28",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 19100,
+   "id": 50
+  },
+  {
+   "date": "2026-05-28",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 10900,
+   "id": 51
+  },
+  {
+   "date": "2026-05-28",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1500,
+   "id": 52
+  },
+  {
+   "date": "2026-05-28",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2000,
+   "id": 53
+  },
+  {
+   "date": "2026-05-29",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 9300,
+   "id": 54
+  },
+  {
+   "date": "2026-05-29",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2400,
+   "id": 55
+  },
+  {
+   "date": "2026-05-30",
+   "type": "expense",
+   "category": "쇼핑",
+   "merchant": "쿠팡",
+   "amount": 47900,
+   "id": 56
+  },
+  {
+   "date": "2026-05-31",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1900,
+   "id": 57
+  },
+  {
+   "date": "2026-06-01",
+   "type": "expense",
+   "category": "월세/관리비",
+   "merchant": "월세/관리비",
+   "amount": 380000,
+   "id": 58
+  },
+  {
+   "date": "2026-06-01",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 17600,
+   "id": 59
+  },
+  {
+   "date": "2026-06-01",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2000,
+   "id": 60
+  },
+  {
+   "date": "2026-06-02",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 16200,
+   "id": 61
+  },
+  {
+   "date": "2026-06-03",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1900,
+   "id": 62
+  },
+  {
+   "date": "2026-06-03",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2600,
+   "id": 63
+  },
+  {
+   "date": "2026-06-04",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1700,
+   "id": 64
+  },
+  {
+   "date": "2026-06-04",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2500,
+   "id": 65
+  },
+  {
+   "date": "2026-06-05",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 7700,
+   "id": 66
+  },
+  {
+   "date": "2026-06-05",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 3800,
+   "id": 67
+  },
+  {
+   "date": "2026-06-06",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 7100,
+   "id": 68
+  },
+  {
+   "date": "2026-06-06",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2800,
+   "id": 69
+  },
+  {
+   "date": "2026-06-08",
+   "type": "expense",
+   "category": "구독",
+   "merchant": "넷플릭스",
+   "amount": 14900,
+   "id": 70
+  },
+  {
+   "date": "2026-06-08",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1700,
+   "id": 71
+  },
+  {
+   "date": "2026-06-09",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 5600,
+   "id": 72
+  },
+  {
+   "date": "2026-06-09",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2500,
+   "id": 73
+  },
+  {
+   "date": "2026-06-10",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 6000,
+   "id": 74
+  },
+  {
+   "date": "2026-06-11",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 23700,
+   "id": 75
+  },
+  {
+   "date": "2026-06-11",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 18400,
+   "id": 76
+  },
+  {
+   "date": "2026-06-11",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1700,
+   "id": 77
+  },
+  {
+   "date": "2026-06-13",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1600,
+   "id": 78
+  },
+  {
+   "date": "2026-06-13",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2200,
+   "id": 79
+  },
+  {
+   "date": "2026-06-15",
+   "type": "expense",
+   "category": "통신비",
+   "merchant": "통신비",
+   "amount": 45000,
+   "id": 80
+  },
+  {
+   "date": "2026-06-15",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 6700,
+   "id": 81
+  },
+  {
+   "date": "2026-06-15",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 10700,
+   "id": 82
+  },
+  {
+   "date": "2026-06-16",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 6200,
+   "id": 83
+  },
+  {
+   "date": "2026-06-16",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 9600,
+   "id": 84
+  },
+  {
+   "date": "2026-06-17",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 21000,
+   "id": 85
+  },
+  {
+   "date": "2026-06-17",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 7000,
+   "id": 86
+  },
+  {
+   "date": "2026-06-17",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2700,
+   "id": 87
+  },
+  {
+   "date": "2026-06-18",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 6200,
+   "id": 88
+  },
+  {
+   "date": "2026-06-18",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2600,
+   "id": 89
+  },
+  {
+   "date": "2026-06-18",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1600,
+   "id": 90
+  },
+  {
+   "date": "2026-06-18",
+   "type": "expense",
+   "category": "쇼핑",
+   "merchant": "다이소",
+   "amount": 31900,
+   "id": 91
+  },
+  {
+   "date": "2026-06-19",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 5500,
+   "id": 92
+  },
+  {
+   "date": "2026-06-19",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 4700,
+   "id": 93
+  },
+  {
+   "date": "2026-06-20",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 5800,
+   "id": 94
+  },
+  {
+   "date": "2026-06-20",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2600,
+   "id": 95
+  },
+  {
+   "date": "2026-06-21",
+   "type": "expense",
+   "category": "문화/여가",
+   "merchant": "CGV",
+   "amount": 22300,
+   "id": 96
+  },
+  {
+   "date": "2026-06-22",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 19300,
+   "id": 97
+  },
+  {
+   "date": "2026-06-22",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2100,
+   "id": 98
+  },
+  {
+   "date": "2026-06-23",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 10900,
+   "id": 99
+  },
+  {
+   "date": "2026-06-23",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 11000,
+   "id": 100
+  },
+  {
+   "date": "2026-06-25",
+   "type": "income",
+   "category": "용돈/알바",
+   "merchant": "용돈/알바",
+   "amount": 1100000,
+   "id": 101
+  },
+  {
+   "date": "2026-06-25",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 4000,
+   "id": 102
+  },
+  {
+   "date": "2026-06-25",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1500,
+   "id": 103
+  },
+  {
+   "date": "2026-06-26",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 6500,
+   "id": 104
+  },
+  {
+   "date": "2026-06-27",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 27400,
+   "id": 105
+  },
+  {
+   "date": "2026-06-27",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 7600,
+   "id": 106
+  },
+  {
+   "date": "2026-06-27",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 3600,
+   "id": 107
+  },
+  {
+   "date": "2026-06-27",
+   "type": "expense",
+   "category": "쇼핑",
+   "merchant": "무신사",
+   "amount": 56800,
+   "id": 108
+  },
+  {
+   "date": "2026-06-28",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 10900,
+   "id": 109
+  },
+  {
+   "date": "2026-06-28",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 3800,
+   "id": 110
+  },
+  {
+   "date": "2026-06-28",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2600,
+   "id": 111
+  },
+  {
+   "date": "2026-06-28",
+   "type": "expense",
+   "category": "문화/여가",
+   "merchant": "PC방",
+   "amount": 11100,
+   "id": 112
+  },
+  {
+   "date": "2026-06-29",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1900,
+   "id": 113
+  },
+  {
+   "date": "2026-06-30",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2300,
+   "id": 114
+  },
+  {
+   "date": "2026-07-01",
+   "type": "expense",
+   "category": "월세/관리비",
+   "merchant": "월세/관리비",
+   "amount": 380000,
+   "id": 115
+  },
+  {
+   "date": "2026-07-02",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 8600,
+   "id": 116
+  },
+  {
+   "date": "2026-07-03",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 20200,
+   "id": 117
+  },
+  {
+   "date": "2026-07-04",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 18600,
+   "id": 118
+  },
+  {
+   "date": "2026-07-04",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 8800,
+   "id": 119
+  },
+  {
+   "date": "2026-07-04",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2300,
+   "id": 120
+  },
+  {
+   "date": "2026-07-04",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2100,
+   "id": 121
+  },
+  {
+   "date": "2026-07-04",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2700,
+   "id": 122
+  },
+  {
+   "date": "2026-07-05",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2500,
+   "id": 123
+  },
+  {
+   "date": "2026-07-05",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1700,
+   "id": 124
+  },
+  {
+   "date": "2026-07-05",
+   "type": "expense",
+   "category": "쇼핑",
+   "merchant": "무신사",
+   "amount": 32800,
+   "id": 125
+  },
+  {
+   "date": "2026-07-06",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 5400,
+   "id": 126
+  },
+  {
+   "date": "2026-07-07",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 27800,
+   "id": 127
+  },
+  {
+   "date": "2026-07-07",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 14900,
+   "id": 128
+  },
+  {
+   "date": "2026-07-07",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 23200,
+   "id": 129
+  },
+  {
+   "date": "2026-07-07",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2200,
+   "id": 130
+  },
+  {
+   "date": "2026-07-08",
+   "type": "expense",
+   "category": "구독",
+   "merchant": "넷플릭스",
+   "amount": 14900,
+   "id": 131
+  },
+  {
+   "date": "2026-07-08",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 22400,
+   "id": 132
+  },
+  {
+   "date": "2026-07-09",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 6700,
+   "id": 133
+  },
+  {
+   "date": "2026-07-09",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 9500,
+   "id": 134
+  },
+  {
+   "date": "2026-07-11",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 26800,
+   "id": 135
+  },
+  {
+   "date": "2026-07-11",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 5700,
+   "id": 136
+  },
+  {
+   "date": "2026-07-12",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 9500,
+   "id": 137
+  },
+  {
+   "date": "2026-07-12",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 4400,
+   "id": 138
+  },
+  {
+   "date": "2026-07-14",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 4500,
+   "id": 139
+  },
+  {
+   "date": "2026-07-15",
+   "type": "expense",
+   "category": "통신비",
+   "merchant": "통신비",
+   "amount": 45000,
+   "id": 140
+  },
+  {
+   "date": "2026-07-15",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 10400,
+   "id": 141
+  },
+  {
+   "date": "2026-07-16",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 6600,
+   "id": 142
+  },
+  {
+   "date": "2026-07-17",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 3900,
+   "id": 143
+  },
+  {
+   "date": "2026-07-17",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 4200,
+   "id": 144
+  },
+  {
+   "date": "2026-07-17",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2000,
+   "id": 145
+  },
+  {
+   "date": "2026-07-18",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2500,
+   "id": 146
+  },
+  {
+   "date": "2026-07-19",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 3900,
+   "id": 147
+  },
+  {
+   "date": "2026-07-20",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 10500,
+   "id": 148
+  },
+  {
+   "date": "2026-07-20",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1500,
+   "id": 149
+  },
+  {
+   "date": "2026-07-21",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2700,
+   "id": 150
+  },
+  {
+   "date": "2026-07-21",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1400,
+   "id": 151
+  },
+  {
+   "date": "2026-07-21",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2800,
+   "id": 152
+  },
+  {
+   "date": "2026-07-24",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2400,
+   "id": 153
+  },
+  {
+   "date": "2026-07-25",
+   "type": "income",
+   "category": "용돈/알바",
+   "merchant": "용돈/알바",
+   "amount": 1100000,
+   "id": 154
+  },
+  {
+   "date": "2026-07-25",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2200,
+   "id": 155
+  },
+  {
+   "date": "2026-07-26",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 7800,
+   "id": 156
+  },
+  {
+   "date": "2026-07-26",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 10800,
+   "id": 157
+  },
+  {
+   "date": "2026-07-27",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 6300,
+   "id": 158
+  },
+  {
+   "date": "2026-07-28",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2100,
+   "id": 159
+  },
+  {
+   "date": "2026-07-29",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 25800,
+   "id": 160
+  },
+  {
+   "date": "2026-07-29",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 20400,
+   "id": 161
+  },
+  {
+   "date": "2026-07-29",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2100,
+   "id": 162
+  },
+  {
+   "date": "2026-07-29",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2200,
+   "id": 163
+  },
+  {
+   "date": "2026-07-29",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2300,
+   "id": 164
+  },
+  {
+   "date": "2026-07-30",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 27200,
+   "id": 165
+  },
+  {
+   "date": "2026-07-30",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 6300,
+   "id": 166
+  },
+  {
+   "date": "2026-07-30",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 4300,
+   "id": 167
+  },
+  {
+   "date": "2026-07-30",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1500,
+   "id": 168
+  },
+  {
+   "date": "2026-07-30",
+   "type": "expense",
+   "category": "문화/여가",
+   "merchant": "PC방",
+   "amount": 12200,
+   "id": 169
+  },
+  {
+   "date": "2026-07-31",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 5800,
+   "id": 170
+  },
+  {
+   "date": "2026-07-31",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2000,
+   "id": 171
+  },
+  {
+   "date": "2026-08-01",
+   "type": "expense",
+   "category": "월세/관리비",
+   "merchant": "월세/관리비",
+   "amount": 380000,
+   "id": 172
+  },
+  {
+   "date": "2026-08-01",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 6500,
+   "id": 173
+  },
+  {
+   "date": "2026-08-01",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2400,
+   "id": 174
+  },
+  {
+   "date": "2026-08-01",
+   "type": "expense",
+   "category": "쇼핑",
+   "merchant": "쿠팡",
+   "amount": 30400,
+   "id": 175
+  },
+  {
+   "date": "2026-08-03",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 9100,
+   "id": 176
+  },
+  {
+   "date": "2026-08-04",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 27600,
+   "id": 177
+  },
+  {
+   "date": "2026-08-04",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2500,
+   "id": 178
+  },
+  {
+   "date": "2026-08-05",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 10600,
+   "id": 179
+  },
+  {
+   "date": "2026-08-06",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 4400,
+   "id": 180
+  },
+  {
+   "date": "2026-08-07",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 6500,
+   "id": 181
+  },
+  {
+   "date": "2026-08-08",
+   "type": "expense",
+   "category": "구독",
+   "merchant": "넷플릭스",
+   "amount": 14900,
+   "id": 182
+  },
+  {
+   "date": "2026-08-08",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1700,
+   "id": 183
+  },
+  {
+   "date": "2026-08-09",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 27400,
+   "id": 184
+  },
+  {
+   "date": "2026-08-09",
+   "type": "expense",
+   "category": "쇼핑",
+   "merchant": "쿠팡",
+   "amount": 25600,
+   "id": 185
+  },
+  {
+   "date": "2026-08-11",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1500,
+   "id": 186
+  },
+  {
+   "date": "2026-08-12",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2200,
+   "id": 187
+  },
+  {
+   "date": "2026-08-12",
+   "type": "expense",
+   "category": "문화/여가",
+   "merchant": "CGV",
+   "amount": 16300,
+   "id": 188
+  },
+  {
+   "date": "2026-08-13",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 17100,
+   "id": 189
+  },
+  {
+   "date": "2026-08-13",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 26100,
+   "id": 190
+  },
+  {
+   "date": "2026-08-13",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 6300,
+   "id": 191
+  },
+  {
+   "date": "2026-08-13",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2600,
+   "id": 192
+  },
+  {
+   "date": "2026-08-13",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2600,
+   "id": 193
+  },
+  {
+   "date": "2026-08-14",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 24100,
+   "id": 194
+  },
+  {
+   "date": "2026-08-14",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 5200,
+   "id": 195
+  },
+  {
+   "date": "2026-08-14",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 10800,
+   "id": 196
+  },
+  {
+   "date": "2026-08-14",
+   "type": "expense",
+   "category": "문화/여가",
+   "merchant": "PC방",
+   "amount": 25900,
+   "id": 197
+  },
+  {
+   "date": "2026-08-15",
+   "type": "expense",
+   "category": "통신비",
+   "merchant": "통신비",
+   "amount": 45000,
+   "id": 198
+  },
+  {
+   "date": "2026-08-15",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 18900,
+   "id": 199
+  },
+  {
+   "date": "2026-08-15",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 9900,
+   "id": 200
+  },
+  {
+   "date": "2026-08-15",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 9200,
+   "id": 201
+  },
+  {
+   "date": "2026-08-17",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 15300,
+   "id": 202
+  },
+  {
+   "date": "2026-08-17",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1400,
+   "id": 203
+  },
+  {
+   "date": "2026-08-19",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2300,
+   "id": 204
+  },
+  {
+   "date": "2026-08-19",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1600,
+   "id": 205
+  },
+  {
+   "date": "2026-08-20",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 24700,
+   "id": 206
+  },
+  {
+   "date": "2026-08-20",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 22200,
+   "id": 207
+  },
+  {
+   "date": "2026-08-20",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 5200,
+   "id": 208
+  },
+  {
+   "date": "2026-08-20",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2700,
+   "id": 209
+  },
+  {
+   "date": "2026-08-20",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2200,
+   "id": 210
+  },
+  {
+   "date": "2026-08-21",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 14900,
+   "id": 211
+  },
+  {
+   "date": "2026-08-23",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1700,
+   "id": 212
+  },
+  {
+   "date": "2026-08-24",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 4400,
+   "id": 213
+  },
+  {
+   "date": "2026-08-24",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 4700,
+   "id": 214
+  },
+  {
+   "date": "2026-08-24",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1500,
+   "id": 215
+  },
+  {
+   "date": "2026-08-25",
+   "type": "income",
+   "category": "용돈/알바",
+   "merchant": "용돈/알바",
+   "amount": 1100000,
+   "id": 216
+  },
+  {
+   "date": "2026-08-25",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1900,
+   "id": 217
+  },
+  {
+   "date": "2026-08-26",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 27800,
+   "id": 218
+  },
+  {
+   "date": "2026-08-26",
+   "type": "expense",
+   "category": "쇼핑",
+   "merchant": "다이소",
+   "amount": 22200,
+   "id": 219
+  },
+  {
+   "date": "2026-08-27",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 5100,
+   "id": 220
+  },
+  {
+   "date": "2026-08-27",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 3700,
+   "id": 221
+  },
+  {
+   "date": "2026-08-27",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 6000,
+   "id": 222
+  },
+  {
+   "date": "2026-08-28",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 5400,
+   "id": 223
+  },
+  {
+   "date": "2026-08-28",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1400,
+   "id": 224
+  },
+  {
+   "date": "2026-08-30",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 10500,
+   "id": 225
+  },
+  {
+   "date": "2026-08-30",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 6900,
+   "id": 226
+  },
+  {
+   "date": "2026-08-30",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 4000,
+   "id": 227
+  },
+  {
+   "date": "2026-08-30",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1800,
+   "id": 228
+  },
+  {
+   "date": "2026-08-30",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1800,
+   "id": 229
+  },
+  {
+   "date": "2026-08-30",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2500,
+   "id": 230
+  },
+  {
+   "date": "2026-08-31",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 19200,
+   "id": 231
+  },
+  {
+   "date": "2026-08-31",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 3600,
+   "id": 232
+  },
+  {
+   "date": "2026-09-01",
+   "type": "expense",
+   "category": "월세/관리비",
+   "merchant": "월세/관리비",
+   "amount": 380000,
+   "id": 233
+  },
+  {
+   "date": "2026-09-02",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 10000,
+   "id": 234
+  },
+  {
+   "date": "2026-09-02",
+   "type": "expense",
+   "category": "쇼핑",
+   "merchant": "쿠팡",
+   "amount": 15400,
+   "id": 235
+  },
+  {
+   "date": "2026-09-03",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 6400,
+   "id": 236
+  },
+  {
+   "date": "2026-09-03",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1900,
+   "id": 237
+  },
+  {
+   "date": "2026-09-04",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 22200,
+   "id": 238
+  },
+  {
+   "date": "2026-09-06",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 25300,
+   "id": 239
+  },
+  {
+   "date": "2026-09-06",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2600,
+   "id": 240
+  },
+  {
+   "date": "2026-09-06",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1600,
+   "id": 241
+  },
+  {
+   "date": "2026-09-07",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 14400,
+   "id": 242
+  },
+  {
+   "date": "2026-09-08",
+   "type": "expense",
+   "category": "구독",
+   "merchant": "넷플릭스",
+   "amount": 14900,
+   "id": 243
+  },
+  {
+   "date": "2026-09-08",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 19300,
+   "id": 244
+  },
+  {
+   "date": "2026-09-08",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 10100,
+   "id": 245
+  },
+  {
+   "date": "2026-09-08",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1800,
+   "id": 246
+  },
+  {
+   "date": "2026-09-08",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2300,
+   "id": 247
+  },
+  {
+   "date": "2026-09-10",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 7600,
+   "id": 248
+  },
+  {
+   "date": "2026-09-10",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 7400,
+   "id": 249
+  },
+  {
+   "date": "2026-09-10",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 9600,
+   "id": 250
+  },
+  {
+   "date": "2026-09-10",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 5700,
+   "id": 251
+  },
+  {
+   "date": "2026-09-10",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2500,
+   "id": 252
+  },
+  {
+   "date": "2026-09-10",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1700,
+   "id": 253
+  },
+  {
+   "date": "2026-09-10",
+   "type": "expense",
+   "category": "문화/여가",
+   "merchant": "CGV",
+   "amount": 13900,
+   "id": 254
+  },
+  {
+   "date": "2026-09-11",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 3700,
+   "id": 255
+  },
+  {
+   "date": "2026-09-11",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 5400,
+   "id": 256
+  },
+  {
+   "date": "2026-09-11",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1800,
+   "id": 257
+  },
+  {
+   "date": "2026-09-12",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 3900,
+   "id": 258
+  },
+  {
+   "date": "2026-09-12",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 4000,
+   "id": 259
+  },
+  {
+   "date": "2026-09-12",
+   "type": "expense",
+   "category": "쇼핑",
+   "merchant": "무신사",
+   "amount": 43300,
+   "id": 260
+  },
+  {
+   "date": "2026-09-13",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 17100,
+   "id": 261
+  },
+  {
+   "date": "2026-09-13",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 7100,
+   "id": 262
+  },
+  {
+   "date": "2026-09-13",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2200,
+   "id": 263
+  },
+  {
+   "date": "2026-09-13",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1400,
+   "id": 264
+  },
+  {
+   "date": "2026-09-14",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2100,
+   "id": 265
+  },
+  {
+   "date": "2026-09-15",
+   "type": "expense",
+   "category": "통신비",
+   "merchant": "통신비",
+   "amount": 45000,
+   "id": 266
+  },
+  {
+   "date": "2026-09-17",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 6000,
+   "id": 267
+  },
+  {
+   "date": "2026-09-18",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 22300,
+   "id": 268
+  },
+  {
+   "date": "2026-09-18",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 5500,
+   "id": 269
+  },
+  {
+   "date": "2026-09-19",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 4100,
+   "id": 270
+  },
+  {
+   "date": "2026-09-19",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2600,
+   "id": 271
+  },
+  {
+   "date": "2026-09-19",
+   "type": "expense",
+   "category": "쇼핑",
+   "merchant": "다이소",
+   "amount": 51600,
+   "id": 272
+  },
+  {
+   "date": "2026-09-20",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 3600,
+   "id": 273
+  },
+  {
+   "date": "2026-09-20",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2700,
+   "id": 274
+  },
+  {
+   "date": "2026-09-21",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 28000,
+   "id": 275
+  },
+  {
+   "date": "2026-09-21",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 18500,
+   "id": 276
+  },
+  {
+   "date": "2026-09-21",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 9400,
+   "id": 277
+  },
+  {
+   "date": "2026-09-22",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1400,
+   "id": 278
+  },
+  {
+   "date": "2026-09-23",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 21000,
+   "id": 279
+  },
+  {
+   "date": "2026-09-23",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 18200,
+   "id": 280
+  },
+  {
+   "date": "2026-09-23",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 7800,
+   "id": 281
+  },
+  {
+   "date": "2026-09-23",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1500,
+   "id": 282
+  },
+  {
+   "date": "2026-09-24",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 23900,
+   "id": 283
+  },
+  {
+   "date": "2026-09-24",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 4200,
+   "id": 284
+  },
+  {
+   "date": "2026-09-24",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 5100,
+   "id": 285
+  },
+  {
+   "date": "2026-09-24",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2800,
+   "id": 286
+  },
+  {
+   "date": "2026-09-25",
+   "type": "income",
+   "category": "용돈/알바",
+   "merchant": "용돈/알바",
+   "amount": 1100000,
+   "id": 287
+  },
+  {
+   "date": "2026-09-25",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1600,
+   "id": 288
+  },
+  {
+   "date": "2026-09-26",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1800,
+   "id": 289
+  },
+  {
+   "date": "2026-09-27",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 15700,
+   "id": 290
+  },
+  {
+   "date": "2026-09-27",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 8800,
+   "id": 291
+  },
+  {
+   "date": "2026-09-28",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 24500,
+   "id": 292
+  },
+  {
+   "date": "2026-09-28",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1400,
+   "id": 293
+  },
+  {
+   "date": "2026-09-29",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 21700,
+   "id": 294
+  },
+  {
+   "date": "2026-09-29",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1500,
+   "id": 295
+  },
+  {
+   "date": "2026-09-29",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2700,
+   "id": 296
+  },
+  {
+   "date": "2026-09-29",
+   "type": "expense",
+   "category": "문화/여가",
+   "merchant": "노래방",
+   "amount": 12600,
+   "id": 297
+  },
+  {
+   "date": "2026-10-01",
+   "type": "expense",
+   "category": "월세/관리비",
+   "merchant": "월세/관리비",
+   "amount": 380000,
+   "id": 298
+  },
+  {
+   "date": "2026-10-01",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 7300,
+   "id": 299
+  },
+  {
+   "date": "2026-10-01",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2200,
+   "id": 300
+  },
+  {
+   "date": "2026-10-02",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 14200,
+   "id": 301
+  },
+  {
+   "date": "2026-10-02",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 4600,
+   "id": 302
+  },
+  {
+   "date": "2026-10-03",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 27000,
+   "id": 303
+  },
+  {
+   "date": "2026-10-03",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 5300,
+   "id": 304
+  },
+  {
+   "date": "2026-10-03",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 5300,
+   "id": 305
+  },
+  {
+   "date": "2026-10-03",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 5700,
+   "id": 306
+  },
+  {
+   "date": "2026-10-04",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 19000,
+   "id": 307
+  },
+  {
+   "date": "2026-10-04",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2500,
+   "id": 308
+  },
+  {
+   "date": "2026-10-05",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 22800,
+   "id": 309
+  },
+  {
+   "date": "2026-10-05",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 27500,
+   "id": 310
+  },
+  {
+   "date": "2026-10-05",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 16300,
+   "id": 311
+  },
+  {
+   "date": "2026-10-05",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 6800,
+   "id": 312
+  },
+  {
+   "date": "2026-10-05",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1700,
+   "id": 313
+  },
+  {
+   "date": "2026-10-07",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 5700,
+   "id": 314
+  },
+  {
+   "date": "2026-10-08",
+   "type": "expense",
+   "category": "구독",
+   "merchant": "넷플릭스",
+   "amount": 14900,
+   "id": 315
+  },
+  {
+   "date": "2026-10-08",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1800,
+   "id": 316
+  },
+  {
+   "date": "2026-10-09",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 23100,
+   "id": 317
+  },
+  {
+   "date": "2026-10-09",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1500,
+   "id": 318
+  },
+  {
+   "date": "2026-10-09",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1900,
+   "id": 319
+  },
+  {
+   "date": "2026-10-10",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 27800,
+   "id": 320
+  },
+  {
+   "date": "2026-10-10",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 7100,
+   "id": 321
+  },
+  {
+   "date": "2026-10-11",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 17100,
+   "id": 322
+  },
+  {
+   "date": "2026-10-12",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 15200,
+   "id": 323
+  },
+  {
+   "date": "2026-10-12",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2200,
+   "id": 324
+  },
+  {
+   "date": "2026-10-13",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 5200,
+   "id": 325
+  },
+  {
+   "date": "2026-10-13",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2500,
+   "id": 326
+  },
+  {
+   "date": "2026-10-14",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 7400,
+   "id": 327
+  },
+  {
+   "date": "2026-10-14",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2300,
+   "id": 328
+  },
+  {
+   "date": "2026-10-14",
+   "type": "expense",
+   "category": "문화/여가",
+   "merchant": "PC방",
+   "amount": 25600,
+   "id": 329
+  },
+  {
+   "date": "2026-10-15",
+   "type": "expense",
+   "category": "통신비",
+   "merchant": "통신비",
+   "amount": 45000,
+   "id": 330
+  },
+  {
+   "date": "2026-10-15",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "학식",
+   "amount": 7800,
+   "id": 331
+  },
+  {
+   "date": "2026-10-16",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 10900,
+   "id": 332
+  },
+  {
+   "date": "2026-10-17",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "스타벅스",
+   "amount": 5800,
+   "id": 333
+  },
+  {
+   "date": "2026-10-17",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 5200,
+   "id": 334
+  },
+  {
+   "date": "2026-10-17",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2500,
+   "id": 335
+  },
+  {
+   "date": "2026-10-17",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1800,
+   "id": 336
+  },
+  {
+   "date": "2026-10-17",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 1800,
+   "id": 337
+  },
+  {
+   "date": "2026-10-17",
+   "type": "expense",
+   "category": "쇼핑",
+   "merchant": "쿠팡",
+   "amount": 28200,
+   "id": 338
+  },
+  {
+   "date": "2026-10-18",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "컴포즈",
+   "amount": 3500,
+   "id": 339
+  },
+  {
+   "date": "2026-10-18",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2400,
+   "id": 340
+  },
+  {
+   "date": "2026-10-19",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 27500,
+   "id": 341
+  },
+  {
+   "date": "2026-10-20",
+   "type": "expense",
+   "category": "문화/여가",
+   "merchant": "노래방",
+   "amount": 12000,
+   "id": 342
+  },
+  {
+   "date": "2026-10-21",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "쿠팡이츠",
+   "amount": 24600,
+   "id": 343
+  },
+  {
+   "date": "2026-10-21",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 6500,
+   "id": 344
+  },
+  {
+   "date": "2026-10-22",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 21900,
+   "id": 345
+  },
+  {
+   "date": "2026-10-22",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 26400,
+   "id": 346
+  },
+  {
+   "date": "2026-10-22",
+   "type": "expense",
+   "category": "카페",
+   "merchant": "메가커피",
+   "amount": 6300,
+   "id": 347
+  },
+  {
+   "date": "2026-10-22",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2400,
+   "id": 348
+  },
+  {
+   "date": "2026-10-23",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2500,
+   "id": 349
+  },
+  {
+   "date": "2026-10-24",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "배달의민족",
+   "amount": 16900,
+   "id": 350
+  },
+  {
+   "date": "2026-10-24",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 2400,
+   "id": 351
+  },
+  {
+   "date": "2026-10-25",
+   "type": "income",
+   "category": "용돈/알바",
+   "merchant": "용돈/알바",
+   "amount": 1100000,
+   "id": 352
+  },
+  {
+   "date": "2026-10-25",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "지하철",
+   "amount": 1400,
+   "id": 353
+  },
+  {
+   "date": "2026-10-26",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "편의점",
+   "amount": 8300,
+   "id": 354
+  },
+  {
+   "date": "2026-10-28",
+   "type": "expense",
+   "category": "배달",
+   "merchant": "요기요",
+   "amount": 19400,
+   "id": 355
+  },
+  {
+   "date": "2026-10-28",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 5600,
+   "id": 356
+  },
+  {
+   "date": "2026-10-30",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2400,
+   "id": 357
+  },
+  {
+   "date": "2026-10-30",
+   "type": "expense",
+   "category": "교통",
+   "merchant": "버스",
+   "amount": 2000,
+   "id": 358
+  },
+  {
+   "date": "2026-10-30",
+   "type": "expense",
+   "category": "쇼핑",
+   "merchant": "무신사",
+   "amount": 36300,
+   "id": 359
+  },
+  {
+   "date": "2026-10-31",
+   "type": "expense",
+   "category": "식비",
+   "merchant": "분식집",
+   "amount": 5400,
+   "id": 360
+  }
+ ]
+}

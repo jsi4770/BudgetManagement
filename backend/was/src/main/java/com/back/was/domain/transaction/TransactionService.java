@@ -1,18 +1,26 @@
 package com.back.was.domain.transaction;
 
+import com.back.was.domain.ai.ParsedTransaction;
+import com.back.was.domain.ai.TextParseCommand;
+import com.back.was.domain.ai.TransactionTextParser;
 import com.back.was.domain.category.Category;
 import com.back.was.domain.category.CategoryRepository;
 import com.back.was.domain.category.CategoryType;
+import com.back.was.domain.category.dto.CategoryResponse;
 import com.back.was.domain.transaction.dto.CalendarResponse;
 import com.back.was.domain.transaction.dto.CreateTransactionRequest;
 import com.back.was.domain.transaction.dto.TransactionListItem;
 import com.back.was.domain.transaction.dto.TransactionResponse;
+import com.back.was.domain.transaction.dto.ParseTransactionRequest;
+import com.back.was.domain.transaction.dto.ParsedTransactionResponse;
 import com.back.was.domain.transaction.dto.TransactionSearchRequest;
 import com.back.was.domain.transaction.dto.UpdateTransactionRequest;
 import com.back.was.domain.user.User;
 import com.back.was.domain.user.UserRepository;
 import com.back.was.global.exception.BusinessException;
+import com.back.was.global.exception.ErrorCode;
 import com.back.was.global.response.PageResponse;
+import com.back.was.global.support.KstTime;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -36,6 +45,10 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final TransactionTextParser transactionTextParser;
+
+    /** TX-07 의 필수 추출 필드 수 — amount · transactionDate · category. 셋 다 못 뽑으면 422. */
+    private static final int REQUIRED_PARSED_FIELD_COUNT = 3;
 
     /**
      * TX-01. 거래는 항상 토큰 주인의 것으로 저장된다 — 요청에 사용자 ID 가 없다.
@@ -53,6 +66,82 @@ public class TransactionService {
                 user, category, request.amount(), request.transactionDate(), request.memo()));
 
         return TransactionResponse.from(transaction);
+    }
+
+    /**
+     * TX-07 자연어 분석. 저장하지 않고 추출 결과만 돌려준다 — 최종 저장은 프론트가 확인·수정한
+     * 뒤 TX-01 로 한다.
+     *
+     * @throws BusinessException 503 {@code AI_UNAVAILABLE} / 422 {@code AI_PARSE_FAILED}
+     */
+    @Transactional(readOnly = true)
+    public ParsedTransactionResponse parse(ParseTransactionRequest request) {
+        return parseText(request.text());
+    }
+
+    /**
+     * 텍스트 한 덩이를 거래 정보로 정리한다.
+     *
+     * @throws BusinessException 503 {@code AI_UNAVAILABLE} / 422 {@code AI_PARSE_FAILED}
+     */
+    @Transactional(readOnly = true)
+    public ParsedTransactionResponse parseText(String text) {
+        List<CategoryResponse> categories = selectableCategories();
+        ParsedTransaction parsed = transactionTextParser.parse(
+                new TextParseCommand(text, KstTime.today(), categories));
+        return assemble(parsed, categories);
+    }
+
+    /** 모델이 고를 수 있는 카테고리 전체(ID 순). 프롬프트와 {@link #assemble} 이 같은 목록을 쓴다. */
+    @Transactional(readOnly = true)
+    public List<CategoryResponse> selectableCategories() {
+        return categoryRepository.findAllByOrderByIdAsc().stream()
+                .map(CategoryResponse::from)
+                .toList();
+    }
+
+    /**
+     * 추출 결과({@link ParsedTransaction})를 TX-07 응답으로 만든다 — <b>TX-07 과 RCPT-01 이
+     * 공유하는 경로</b>다. {@code missingFields} 유도 규칙·422 조건·모르는 카테고리 처리가 두 벌이
+     * 되면 같은 확인 화면에 서로 다른 계약이 내려가므로 복사하지 않고 이 메서드를 쓴다.
+     *
+     * <p>{@code missingFields} 는 모델이 말한 목록이 아니라 {@code null} 로부터 만든다 — 값과
+     * 목록이 어긋나는 응답을 계약으로 흘려보내지 않기 위해서다.
+     *
+     * @throws BusinessException 422 {@code AI_PARSE_FAILED} — 필수 세 필드를 모두 못 뽑음
+     */
+    public ParsedTransactionResponse assemble(ParsedTransaction parsed, List<CategoryResponse> categories) {
+        CategoryResponse category = findCategory(categories, parsed.categoryId());
+
+        List<String> missingFields = new ArrayList<>();
+        if (parsed.amount() == null) {
+            missingFields.add("amount");
+        }
+        if (parsed.transactionDate() == null) {
+            missingFields.add("transactionDate");
+        }
+        if (category == null) {
+            missingFields.add("category");
+        }
+
+        if (missingFields.size() == REQUIRED_PARSED_FIELD_COUNT) {
+            throw new BusinessException(ErrorCode.AI_PARSE_FAILED);
+        }
+
+        return new ParsedTransactionResponse(
+                parsed.amount(), parsed.transactionDate(), category, parsed.memo(),
+                List.copyOf(missingFields));
+    }
+
+    /** 모델이 고른 ID 를 실제 카테고리로 되돌린다. 목록에 없으면 {@code null}. */
+    private static CategoryResponse findCategory(List<CategoryResponse> categories, Long categoryId) {
+        if (categoryId == null) {
+            return null;
+        }
+        return categories.stream()
+                .filter(category -> category.id().equals(categoryId))
+                .findFirst()
+                .orElse(null);
     }
 
     /**

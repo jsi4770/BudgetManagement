@@ -1,0 +1,191 @@
+{
+ "summary": {
+  "persona": "frugal_saver",
+  "name": "절약 중이지만 목표가 없는 직장인 이도윤",
+  "month": "2026-10",
+  "months_covered": [
+   "2026-05",
+   "2026-06",
+   "2026-07",
+   "2026-08",
+   "2026-09",
+   "2026-10"
+  ],
+  "income": 3000000,
+  "spending": 1958200,
+  "saving": 300000,
+  "fixed": 909000,
+  "variable": 1049200,
+  "fixed_ratio": 46.4,
+  "savings_rate": 34.7,
+  "subscription": null,
+  "categories": [
+   {
+    "category": "식비",
+    "amount": 305900,
+    "share": 29.2,
+    "prev_amount": 282600,
+    "mom_pct": 8.2,
+    "baseline_avg": 290540,
+    "vs_baseline_pct": 5.3,
+    "trend_per_month": 2000,
+    "count": 26
+   },
+   {
+    "category": "쇼핑",
+    "amount": 287600,
+    "share": 27.4,
+    "prev_amount": 300500,
+    "mom_pct": -4.3,
+    "baseline_avg": 330060,
+    "vs_baseline_pct": -12.9,
+    "trend_per_month": -29000,
+    "count": 3
+   },
+   {
+    "category": "외식",
+    "amount": 262400,
+    "share": 25.0,
+    "prev_amount": 242100,
+    "mom_pct": 8.4,
+    "baseline_avg": 255200,
+    "vs_baseline_pct": 2.8,
+    "trend_per_month": 800,
+    "count": 6
+   },
+   {
+    "category": "문화/여가",
+    "amount": 114400,
+    "share": 10.9,
+    "prev_amount": 130800,
+    "mom_pct": -12.5,
+    "baseline_avg": 127400,
+    "vs_baseline_pct": -10.2,
+    "trend_per_month": -4200,
+    "count": 4
+   },
+   {
+    "category": "교통",
+    "amount": 51300,
+    "share": 4.9,
+    "prev_amount": 48000,
+    "mom_pct": 6.9,
+    "baseline_avg": 48320,
+    "vs_baseline_pct": 6.2,
+    "trend_per_month": 300,
+    "count": 23
+   },
+   {
+    "category": "카페",
+    "amount": 27600,
+    "share": 2.6,
+    "prev_amount": 29200,
+    "mom_pct": -5.5,
+    "baseline_avg": 32620,
+    "vs_baseline_pct": -15.4,
+    "trend_per_month": -1200,
+    "count": 7
+   }
+  ],
+  "late_month_share": {},
+  "top_merchants": [
+   {
+    "merchant": "쿠팡",
+    "amount": 208000,
+    "count": 2
+   },
+   {
+    "merchant": "회사근처식당",
+    "amount": 144200,
+    "count": 12
+   },
+   {
+    "merchant": "이자카야",
+    "amount": 97000,
+    "count": 2
+   },
+   {
+    "merchant": "고깃집",
+    "amount": 91100,
+    "count": 2
+   },
+   {
+    "merchant": "마트",
+    "amount": 90000,
+    "count": 8
+   }
+  ],
+  "anomalies": [],
+  "monthly_totals": {
+   "2026-05": 2187800,
+   "2026-06": 2004000,
+   "2026-07": 1966600,
+   "2026-08": 2015600,
+   "2026-09": 2163300,
+   "2026-10": 1958200
+  }
+ },
+ "report": {
+  "headline": "저축률이 높지만 목표가 없는 10월, 훌륭한 저축 여유를 살려 목표를 세워보세요!",
+  "insights": [
+   {
+    "title": "안정적인 저축 여유",
+    "category": "저축",
+    "severity": "info",
+    "message": "현재 저축률이 34.7%로 매우 훌륭하게 관리되고 있어요. 뚜렷한 목표가 아직 없으신데, 이번 기회에 저축 여유를 살릴 수 있는 구체적인 저축 목표를 세워보시는 건 어떨까요?",
+    "evidence": [
+     {
+      "label": "저축률",
+      "value": 34.7,
+      "unit": "%"
+     },
+     {
+      "label": "저축액",
+      "value": 300000.0,
+      "unit": "원"
+     }
+    ],
+    "action": "이번 달 저축 목표 금액이나 사용 목적을 다이어리에 적어보기"
+   },
+   {
+    "title": "쇼핑 지출 감소",
+    "category": "쇼핑",
+    "severity": "info",
+    "message": "쇼핑 카테고리 지출이 지난달보다 4.3% 줄어들었어요. 지출 관리를 잘하고 계시네요!",
+    "evidence": [
+     {
+      "label": "전월 대비 증감률",
+      "value": -4.3,
+      "unit": "%"
+     },
+     {
+      "label": "쇼핑 지출액",
+      "value": 287600.0,
+      "unit": "원"
+     }
+    ],
+    "action": "이번 주 불필요한 장바구니 비우기 1회 하기"
+   },
+   {
+    "title": "식비와 외식 소폭 증가",
+    "category": "식비",
+    "severity": "info",
+    "message": "식비와 외식 지출이 전월 대비 각각 8.2%, 8.4% 소폭 늘어났어요. 혹시 외식이나 식료품 구매 패턴에 어떤 변화가 있었나요?",
+    "evidence": [
+     {
+      "label": "식비 전월 대비 증감률",
+      "value": 8.2,
+      "unit": "%"
+     },
+     {
+      "label": "외식 전월 대비 증감률",
+      "value": 8.4,
+      "unit": "%"
+     }
+    ],
+    "action": "이번 주 외식 횟수 1번 줄이기"
+   }
+  ]
+ },
+ "problems": []
+}

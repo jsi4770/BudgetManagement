@@ -1,0 +1,204 @@
+{
+ "summary": {
+  "persona": "college_delivery",
+  "name": "야식·배달이 늘어난 대학생 김하준",
+  "month": "2026-10",
+  "months_covered": [
+   "2026-05",
+   "2026-06",
+   "2026-07",
+   "2026-08",
+   "2026-09",
+   "2026-10"
+  ],
+  "income": 1100000,
+  "spending": 1054600,
+  "saving": 0,
+  "fixed": 425000,
+  "variable": 629600,
+  "fixed_ratio": 40.3,
+  "savings_rate": 4.1,
+  "subscription": {
+   "count": 1,
+   "prev_count": 1,
+   "monthly_total": 14900,
+   "new_services": []
+  },
+  "categories": [
+   {
+    "category": "배달",
+    "amount": 346700,
+    "share": 55.1,
+    "prev_amount": 292100,
+    "mom_pct": 18.7,
+    "baseline_avg": 212340,
+    "vs_baseline_pct": 63.3,
+    "trend_per_month": 44300,
+    "count": 16
+   },
+   {
+    "category": "식비",
+    "amount": 71900,
+    "share": 11.4,
+    "prev_amount": 95700,
+    "mom_pct": -24.9,
+    "baseline_avg": 106180,
+    "vs_baseline_pct": -32.3,
+    "trend_per_month": -10200,
+    "count": 10
+   },
+   {
+    "category": "쇼핑",
+    "amount": 64500,
+    "share": 10.2,
+    "prev_amount": 110300,
+    "mom_pct": -41.5,
+    "baseline_avg": 79000,
+    "vs_baseline_pct": -18.4,
+    "trend_per_month": 200,
+    "count": 2
+   },
+   {
+    "category": "카페",
+    "amount": 53800,
+    "share": 8.5,
+    "prev_amount": 39700,
+    "mom_pct": 35.5,
+    "baseline_avg": 40440,
+    "vs_baseline_pct": 33.0,
+    "trend_per_month": 3100,
+    "count": 10
+   },
+   {
+    "category": "교통",
+    "amount": 40200,
+    "share": 6.4,
+    "prev_amount": 41900,
+    "mom_pct": -4.1,
+    "baseline_avg": 41920,
+    "vs_baseline_pct": -4.1,
+    "trend_per_month": -700,
+    "count": 19
+   },
+   {
+    "category": "문화/여가",
+    "amount": 37600,
+    "share": 6.0,
+    "prev_amount": 26500,
+    "mom_pct": 41.9,
+    "baseline_avg": 27640,
+    "vs_baseline_pct": 36.0,
+    "trend_per_month": 2200,
+    "count": 2
+   },
+   {
+    "category": "구독",
+    "amount": 14900,
+    "share": 2.4,
+    "prev_amount": 14900,
+    "mom_pct": 0.0,
+    "baseline_avg": 14900,
+    "vs_baseline_pct": 0.0,
+    "trend_per_month": 0,
+    "count": 1
+   }
+  ],
+  "late_month_share": {},
+  "top_merchants": [
+   {
+    "merchant": "요기요",
+    "amount": 191600,
+    "count": 8
+   },
+   {
+    "merchant": "배달의민족",
+    "amount": 100000,
+    "count": 5
+   },
+   {
+    "merchant": "쿠팡이츠",
+    "amount": 55100,
+    "count": 3
+   },
+   {
+    "merchant": "학식",
+    "amount": 36400,
+    "count": 5
+   },
+   {
+    "merchant": "무신사",
+    "amount": 36300,
+    "count": 1
+   }
+  ],
+  "anomalies": [
+   {
+    "kind": "category_spike",
+    "category": "배달",
+    "detail": "배달 346,700원, 이전 평균 212,340원 대비 +63.3%",
+    "value": 134360
+   }
+  ],
+  "monthly_totals": {
+   "2026-05": 890200,
+   "2026-06": 899600,
+   "2026-07": 899300,
+   "2026-08": 1001900,
+   "2026-09": 1046100,
+   "2026-10": 1054600
+  }
+ },
+ "report": {
+  "headline": "배달 지출이 전체 변동 지출의 큰 비중을 차지하고 있어요",
+  "insights": [
+   {
+    "title": "배달 지출이 크게 늘었어요",
+    "category": "배달",
+    "severity": "warn",
+    "message": "이번 달 배달 지출은 346,700원으로, 이전 평균 212,340원 대비 63.3% 증가했어요. 식비가 71,900원으로 줄어든 것과 대체 효과가 있었을까요?",
+    "evidence": [
+     {
+      "label": "배달 지출 금액",
+      "value": 346700.0,
+      "unit": "원"
+     },
+     {
+      "label": "이전 평균 대비 증가율",
+      "value": 63.3,
+      "unit": "%"
+     }
+    ],
+    "action": "이번 주 배달 2회만 줄이기"
+   },
+   {
+    "title": "저축 여력이 부족해요",
+    "category": "저축",
+    "severity": "warn",
+    "message": "이번 달 저축률은 4.1%로 나타났어요. 지출을 점검하여 저축 여력을 늘려보는 것은 어떨까요?",
+    "evidence": [
+     {
+      "label": "저축률",
+      "value": 4.1,
+      "unit": "%"
+     }
+    ],
+    "action": "고정 지출과 변동 지출 항목 다시 살펴보기"
+   },
+   {
+    "title": "카페 지출이 늘어났어요",
+    "category": "카페",
+    "severity": "info",
+    "message": "카페 지출은 53,800원으로 전월 39,700원 대비 증가했어요.",
+    "evidence": [
+     {
+      "label": "카페 지출 금액",
+      "value": 53800.0,
+      "unit": "원"
+     }
+    ],
+    "action": "이번 주 카페 방문 횟수 정하기"
+   }
+  ]
+ },
+ "problems": []
+}

@@ -1,0 +1,19 @@
+gemini:
+  api-key: ${GEMINI_API_KEY:}
+  model: ${GEMINI_MODEL:gemini-3.5-flash-lite}
+  fallback-model: ${GEMINI_FALLBACK_MODEL:gemini-2.5-flash}
+  timeout: 30s
+  max-retries: 1
+  mock: ${GEMINI_MOCK:false}
+  mock-delay-ms: ${GEMINI_MOCK_DELAY_MS:0}   # 성능 테스트용: mock 응답에 인위적 지연
+
+ocr:
+  django-url: ${OCR_DJANGO_URL:}
+  timeout: 20s
+  gemini-fallback: true
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
