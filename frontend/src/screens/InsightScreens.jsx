@@ -3,7 +3,7 @@ import { api } from '../api';
 import { Hd, Loading, Usage } from '../components/common';
 import { iconFor, percent, rangeLabel, won, yearMonth } from '../format';
 
-export function Analysis({ c }) {
+export function Analysis() {
   const [tab, setTab] = useState('WEEK');
   const [weekly, setWeekly] = useState([]);
   const [monthly, setMonthly] = useState(null);
@@ -36,7 +36,6 @@ export function Analysis({ c }) {
   }, [tab]);
 
   const max = Math.max(1, ...weekly.map((week) => week.totalExpense));
-  const anomaly = comparison?.items?.find((item) => item.isAnomaly);
 
   return (
     <div className="screen">
@@ -50,7 +49,7 @@ export function Analysis({ c }) {
       {!loading && (
         <>
           <div className="card">
-            <div className="t2">{tab === 'WEEK' ? '주간 지출 추이' : '이번 달 총지출'}</div>
+            <div className="t2">{tab === 'WEEK' ? '이번 주 지출(월세 제외)' : '이번 달 총지출'}</div>
             <div className="amount">{won(tab === 'WEEK' ? weekly.at(-1)?.totalExpense : monthly?.totalExpense)}</div>
             {tab === 'WEEK' ? (
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, height: 110, marginTop: 12 }}>
@@ -70,33 +69,26 @@ export function Analysis({ c }) {
           </div>
           <div className="card">
             <h2 className="h2" style={{ marginBottom: 12 }}>카테고리별 · 평소 평균 비교</h2>
-            {comparison?.dataSufficient === false && <div className="t2" style={{ marginBottom: 8 }}>비교할 과거 데이터가 아직 부족해요.</div>}
+            {comparison?.dataSufficient === false && <div className="t2" style={{ marginBottom: 8 }}>기록이 더 쌓이면 정확해져요.</div>}
             {(comparison?.items || []).filter((item) => item.amount > 0).map((item) => (
               <div key={item.category.id} style={{ marginBottom: 14 }}>
                 <div className="row">
                   <span>{iconFor(item.category.name)} {item.category.name}</span>
-                  <b style={{ color: item.isAnomaly ? 'var(--error)' : 'var(--text)' }}>{won(item.amount)}{item.isAnomaly ? ' ⚠️' : ''}</b>
+                  <b>{won(item.amount)}</b>
                 </div>
                 <div className="bar" style={{ marginTop: 6 }}>
-                  <i style={{ width: `${Math.min(100, item.averageAmount ? item.amount / Math.max(item.amount, item.averageAmount) * 100 : 100)}%`, background: item.isAnomaly ? 'var(--error)' : 'var(--primary)' }} />
+                  <i style={{ width: `${Math.min(100, item.averageAmount ? item.amount / Math.max(item.amount, item.averageAmount) * 100 : 100)}%`, background: 'var(--primary)' }} />
                 </div>
                 <div className="t2">
-                  평소 {item.averageAmount == null ? '비교 없음' : won(item.averageAmount)}
+                  {item.category.name === '월세' && item.averageAmount == null
+                    ? '비교는 월세 제외'
+                    : `평소 이맘때 ${item.averageAmount == null ? '비교 없음' : won(item.averageAmount)}`}
                   {item.growthRate != null && ` · ${percent(item.growthRate) > 0 ? '+' : ''}${percent(item.growthRate)}%`}
                 </div>
               </div>
             ))}
             {(comparison?.items || []).every((item) => item.amount === 0) && <div className="t2">이 기간의 지출이 없어요.</div>}
           </div>
-          {anomaly ? (
-            <div className="card nudge">
-              <b>이상 소비 패턴</b>
-              <div className="t2" style={{ margin: '6px 0' }}>{anomaly.category.name} 지출이 평소보다 많아요.</div>
-              <button type="button" className="btn sm" onClick={() => c.go('S005')}>홈에서 넛지 확인</button>
-            </div>
-          ) : (
-            <div className="card"><span style={{ color: 'var(--success)' }}>✅ 지금은 정상 소비 범위예요</span></div>
-          )}
         </>
       )}
       <div className="pad" />
@@ -138,7 +130,7 @@ export function NudgeDetail({ c }) {
             <h2 className="h1" style={{ margin: '12px 0 4px' }}>{iconFor(nudge.category?.name)} {nudge.category?.name}</h2>
             <div className="amount">{won(nudge.spendingAmount)}</div>
             <div className="t2">
-              평소 평균 {won(nudge.avgAmount)} 대비 <b style={{ color: 'var(--error)' }}>{percent(nudge.growthRate) > 0 ? '+' : ''}{percent(nudge.growthRate)}%</b>
+              평소 이맘때 평균 {won(nudge.avgAmount)} 대비 <b style={{ color: 'var(--error)' }}>{percent(nudge.growthRate) > 0 ? '+' : ''}{percent(nudge.growthRate)}%</b>
             </div>
             <div className="t2" style={{ marginTop: 6 }}>{rangeLabel(nudge.analysisStartDate, nudge.analysisEndDate)}</div>
           </div>

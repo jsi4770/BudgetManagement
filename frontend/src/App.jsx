@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { api, getToken, setAuthLostHandler, setToken } from './api';
+import { api, setAuthLostHandler, setToken } from './api';
 import { todayISO } from './format';
 import { Auth, Onboarding, Setup } from './screens/AuthScreens';
-import { Challenge, Coaching, Report } from './screens/CoachingScreens';
+import { Challenge } from './screens/CoachingScreens';
 import { Home } from './screens/HomeScreen';
-import { Analysis, NudgeDetail } from './screens/InsightScreens';
+import { Analysis } from './screens/InsightScreens';
 import { AiInput, Ledger, ManualEntry, ReceiptOcr } from './screens/LedgerScreens';
 import { MyPage } from './screens/MyScreen';
 
@@ -47,11 +47,9 @@ export default function App() {
     });
     let cancel = false;
     (async () => {
-      if (!getToken()) {
-        setReady(true);
-        return;
-      }
       try {
+        const restored = await api.restoreSession();
+        if (cancel || !restored) return;
         const me = await api.me();
         if (cancel) return;
         setUser(me);
@@ -81,10 +79,7 @@ export default function App() {
     S008: <AiInput c={c} />,
     S009: <ReceiptOcr c={c} />,
     S010: <Analysis c={c} />,
-    S011: <NudgeDetail c={c} />,
-    S012: <Coaching c={c} />,
     S013: <Challenge c={c} />,
-    S014: <Report c={c} />,
     S015: <MyPage c={c} />,
   }[screen];
 
@@ -112,7 +107,7 @@ export default function App() {
             {[
               ['✍️', '한 줄 입력', '말하듯 적으면 AI가 정리해요', 'S008'],
               ['📅', '캘린더 입력', '날짜를 골라 입력해요', 'S006'],
-              ['🧾', '영수증 촬영', 'OCR 연동 전이에요', 'S009'],
+              ['🧾', '영수증 촬영', '사진으로 자동 추출해요', 'S009'],
               ['🔢', '직접 입력', '금액과 카테고리를 입력해요', 'S007'],
             ].map(([icon, title, desc, target]) => (
               <button

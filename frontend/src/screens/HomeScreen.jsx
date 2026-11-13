@@ -5,7 +5,6 @@ import { greetingDate, percent, won, yearMonth } from '../format';
 
 export function Home({ c }) {
   const [monthly, setMonthly] = useState(null);
-  const [nudge, setNudge] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [challenge, setChallenge] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -15,15 +14,13 @@ export function Home({ c }) {
     let cancel = false;
     (async () => {
       try {
-        const [summary, current, page, active] = await Promise.all([
+        const [summary, page] = await Promise.all([
           api.monthly(yearMonth()),
-          api.currentNudge(),
-          api.transactions({ size: 5 }),
-          api.challenges('IN_PROGRESS'),
+          api.transactions({ size: 3 }),
         ]);
+        const active = await api.challenges('IN_PROGRESS').catch(() => []);
         if (cancel) return;
         setMonthly(summary);
-        setNudge(current);
         setTransactions(page?.items || []);
         setChallenge(active?.[0] || null);
       } catch (err) {
@@ -34,24 +31,6 @@ export function Home({ c }) {
     })();
     return () => { cancel = true; };
   }, []);
-
-  const dismiss = async () => {
-    try {
-      await api.nudgeStatus(nudge.id, 'DISMISSED');
-      setNudge(null);
-    } catch (err) {
-      c.say(err.message);
-    }
-  };
-
-  const openAnalysis = async () => {
-    try {
-      await api.nudgeStatus(nudge.id, 'VIEWED');
-    } catch {
-      /* 화면 이동은 상태 변경 실패와 따로 진행한다. */
-    }
-    c.go('S010');
-  };
 
   if (loading) return <div className="screen"><Loading /></div>;
 
@@ -84,25 +63,6 @@ export function Home({ c }) {
           <div style={{ textAlign: 'right' }}><div className="t2">총지출</div><b style={{ fontSize: 18 }}>-{won(monthly?.totalExpense)}</b></div>
         </div>
       </div>
-
-      {nudge && (
-        <div className="card nudge">
-          <div className="row">
-            <span className="chip">💡 AI 넛지</span>
-            <button type="button" className="t2" onClick={dismiss}>닫기</button>
-          </div>
-          <div onClick={() => { c.setNudgeId(nudge.id); c.go('S011'); }} style={{ cursor: 'pointer' }}>
-            <h2 className="h2" style={{ margin: '12px 0 6px' }}>{nudge.title}</h2>
-            <div className="t2" style={{ fontSize: 14, lineHeight: 1.5 }}>
-              {nudge.category?.name} {won(nudge.spendingAmount)}, 평소보다 {percent(nudge.growthRate)}% 많아요. ›
-            </div>
-          </div>
-          <div className="row" style={{ marginTop: 12 }}>
-            <button type="button" className="btn sub sm" onClick={openAnalysis}>소비 현황 확인</button>
-            <button type="button" className="btn sm" onClick={() => { c.setNudgeId(nudge.id); c.setCoachingId(null); c.go('S012'); }}>AI 코칭 시작</button>
-          </div>
-        </div>
-      )}
 
       {challenge && (
         <div className="card" onClick={() => { c.setChallengeId(challenge.id); c.go('S013'); }} style={{ cursor: 'pointer' }}>

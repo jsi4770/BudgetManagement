@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import heic2any from 'heic2any';
 import { api } from '../api';
 import { Hd, Keypad, Loading, Money } from '../components/common';
 import {
@@ -233,35 +234,21 @@ export function AiInput({ c }) {
     setError('');
     setParsed(null);
     try {
-      const result = await api.parseTransaction(text.trim());
-      setParsed({
-        amount: result.amount ? String(result.amount) : '',
-        date: result.transactionDate || todayISO(),
-        categoryId: result.category?.id || null,
-        memo: result.memo || '',
-        missing: result.missingFields || [],
-      });
+      setParsed(toParsed(await api.parseTransaction(text.trim())));
     } catch (err) {
-      setError(err.message);
+      setError(err.code === 'AI_PARSE_FAILED' || err.code === 'AI_UNAVAILABLE'
+        ? `${err.message} 직접 입력으로 기록할 수 있어요.`
+        : err.message);
     } finally {
       setBusy(false);
     }
   };
 
   const save = async () => {
-    if (!parsed?.amount || !parsed.date || !parsed.categoryId) {
-      setError('금액, 날짜, 카테고리를 채운 뒤 저장해주세요.');
-      return;
-    }
     setBusy(true);
     setError('');
     try {
-      await api.createTransaction({
-        categoryId: parsed.categoryId,
-        amount: Number(parsed.amount),
-        transactionDate: parsed.date,
-        memo: parsed.memo?.trim() || null,
-      });
+      await saveParsed(parsed);
       c.say('저장했어요');
       c.go('S005');
     } catch (err) {
@@ -289,26 +276,7 @@ export function AiInput({ c }) {
       {parsed && (
         <div className="card" style={{ marginTop: 16 }}>
           <span className="chip">AI 분석 결과 · 확인 후 수정해주세요</span>
-          {parsed.missing.length > 0 && <div className="t2" style={{ marginTop: 8 }}>비어 있는 항목: {parsed.missing.join(', ')}</div>}
-          <div className="fld" style={{ marginTop: 14 }}>
-            <label>금액(원)</label>
-            <input className="input" inputMode="numeric" value={parsed.amount} onChange={(event) => setParsed({ ...parsed, amount: event.target.value.replace(/\D/g, '') })} />
-          </div>
-          <div className="fld">
-            <label>날짜</label>
-            <input className="input" type="date" max={todayISO()} value={parsed.date} onChange={(event) => setParsed({ ...parsed, date: event.target.value })} />
-          </div>
-          <div className="fld">
-            <label>카테고리</label>
-            <select className="input" value={parsed.categoryId || ''} onChange={(event) => setParsed({ ...parsed, categoryId: Number(event.target.value) })}>
-              <option value="">선택</option>
-              {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-            </select>
-          </div>
-          <div className="fld">
-            <label>메모</label>
-            <input className="input" maxLength={255} value={parsed.memo} onChange={(event) => setParsed({ ...parsed, memo: event.target.value })} />
-          </div>
+          <ParsedFields parsed={parsed} setParsed={setParsed} categories={categories} />
           <button type="button" className="btn" disabled={busy} onClick={save}>확인하고 저장</button>
         </div>
       )}
@@ -316,17 +284,148 @@ export function AiInput({ c }) {
   );
 }
 
+const MAX_IMAGE = 10 * 1024 * 1024;
+
+async function prepareReceipt(file) {
+  const name = file.name.toLowerCase();
+  const heic = file.type === 'image/heic' || file.type === 'image/heif' || name.endsWith('.heic') || name.endsWith('.heif');
+  let image = file;
+  if (heic) {
+    const converted = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+    const blob = Array.isArray(converted) ? converted[0] : converted;
+    image = new File([blob], file.name.replace(/\.hei[cf]$/i, '.jpg'), { type: 'image/jpeg' });
+  }
+  const type = image.type;
+  const imageName = image.name.toLowerCase();
+  const allowed = type === 'image/jpeg' || type === 'image/png' || imageName.endsWith('.jpg') || imageName.endsWith('.jpeg') || imageName.endsWith('.png');
+  if (!allowed) {
+    const error = new Error('jpg 또는 png만 올릴 수 있어요.');
+    error.code = 'UNSUPPORTED_FILE_TYPE';
+    throw error;
+  }
+  if (image.size > MAX_IMAGE) {
+    const error = new Error('이미지는 10MB 이하만 올릴 수 있어요.');
+    error.code = 'FILE_TOO_LARGE';
+    throw error;
+  }
+  return image;
+}
+
+function toParsed(result) {
+  return {
+    amount: result.amount ? String(result.amount) : '',
+    date: result.transactionDate || '',
+    categoryId: result.category?.id || null,
+    memo: result.memo || '',
+    missing: result.missingFields || [],
+  };
+}
+
+function ParsedFields({ parsed, setParsed, categories }) {
+  return (
+    <>
+      {parsed.missing.length > 0 && <div className="t2" style={{ marginTop: 8 }}>비어 있는 항목: {parsed.missing.join(', ')}</div>}
+      <div className="fld" style={{ marginTop: 14 }}>
+        <label>금액(원)</label>
+        <input className="input" inputMode="numeric" value={parsed.amount} onChange={(event) => setParsed({ ...parsed, amount: event.target.value.replace(/\D/g, '') })} />
+      </div>
+      <div className="fld">
+        <label>날짜</label>
+        <input className="input" type="date" max={todayISO()} value={parsed.date} onChange={(event) => setParsed({ ...parsed, date: event.target.value })} />
+      </div>
+      <div className="fld">
+        <label>카테고리</label>
+        <select className="input" value={parsed.categoryId || ''} onChange={(event) => setParsed({ ...parsed, categoryId: Number(event.target.value) })}>
+          <option value="">선택</option>
+          {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+        </select>
+      </div>
+      <div className="fld">
+        <label>메모</label>
+        <input className="input" maxLength={255} value={parsed.memo} onChange={(event) => setParsed({ ...parsed, memo: event.target.value })} />
+      </div>
+    </>
+  );
+}
+
+async function saveParsed(parsed) {
+  if (!parsed?.amount || !parsed.date || !parsed.categoryId) {
+    throw new Error('금액, 날짜, 카테고리를 채운 뒤 저장해주세요.');
+  }
+  await api.createTransaction({
+    categoryId: parsed.categoryId,
+    amount: Number(parsed.amount),
+    transactionDate: parsed.date,
+    memo: parsed.memo?.trim() || null,
+  });
+}
+
 export function ReceiptOcr({ c }) {
+  const inputRef = useRef(null);
+  const [parsed, setParsed] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api.categories('EXPENSE').then(setCategories).catch(() => {});
+  }, []);
+
+  const upload = async (file) => {
+    if (!file) return;
+    setBusy(true);
+    setError('');
+    setParsed(null);
+    try {
+      const image = await prepareReceipt(file);
+      const result = await api.ocrReceipt(image);
+      setParsed(toParsed(result));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const save = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await saveParsed(parsed);
+      c.say('저장했어요');
+      c.go('S005');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="screen">
       <Hd title="영수증 입력" onBack={() => c.go('S005')} />
       <div className="card center">
         <div className="big">🧾</div>
-        <b>영수증 OCR은 아직 연결되지 않았어요</b>
-        <div className="t2" style={{ marginTop: 8, lineHeight: 1.5 }}>촬영 추출 API가 준비되면 이 화면에서 확인·수정 후 저장할 수 있어요. 지금은 한 줄 입력이나 직접 입력으로 기록해주세요.</div>
+        <div className="t2">jpg, png만 올릴 수 있어요. 아이폰 HEIC는 jpg로 바꾼 뒤 분석합니다.</div>
       </div>
-      <button type="button" className="btn" onClick={() => c.go('S008')}>한 줄 입력으로 기록</button>
-      <button type="button" className="btn sub" onClick={() => { c.setDraft({ type: 'EXPENSE', amount: '', date: todayISO(), memo: '' }); c.go('S007'); }}>직접 입력</button>
+      <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif" hidden onChange={(event) => upload(event.target.files?.[0])} />
+      <button type="button" className="btn" disabled={busy} onClick={() => inputRef.current?.click()}>{busy ? '영수증을 읽는 중…' : '영수증 사진 올리기'}</button>
+      {error && (
+        <div className="err">
+          {error}
+          <br />
+          <button type="button" style={{ color: 'var(--primary)', fontWeight: 700 }} onClick={() => { c.setDraft({ type: 'EXPENSE', amount: '', date: todayISO(), memo: '' }); c.go('S007'); }}>
+            직접 입력으로 이동 ›
+          </button>
+        </div>
+      )}
+      {parsed && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <span className="chip">OCR 추출 결과 · 틀린 곳은 수정해주세요</span>
+          <ParsedFields parsed={parsed} setParsed={setParsed} categories={categories} />
+          <button type="button" className="btn" disabled={busy} onClick={save}>확인하고 저장</button>
+        </div>
+      )}
     </div>
   );
 }

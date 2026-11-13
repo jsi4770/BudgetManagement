@@ -1,6 +1,6 @@
 const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api/v1';
 
-let accessToken = sessionStorage.getItem('accessToken');
+let accessToken = null;
 let onAuthLost = () => {};
 
 export function setAuthLostHandler(handler) {
@@ -13,8 +13,6 @@ export function getToken() {
 
 export function setToken(token) {
   accessToken = token || null;
-  if (accessToken) sessionStorage.setItem('accessToken', accessToken);
-  else sessionStorage.removeItem('accessToken');
 }
 
 export class ApiError extends Error {
@@ -35,7 +33,7 @@ function query(params) {
   return text ? `?${text}` : '';
 }
 
-async function request(path, { method = 'GET', body, auth = true, retry = true } = {}) {
+async function request(path, { method = 'GET', body, form, auth = true, retry = true } = {}) {
   const headers = { Accept: 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (auth && accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -46,7 +44,7 @@ async function request(path, { method = 'GET', body, auth = true, retry = true }
       method,
       headers,
       credentials: 'include',
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: form || (body !== undefined ? JSON.stringify(body) : undefined),
     });
   } catch {
     throw new ApiError('서버에 연결하지 못했습니다. 백엔드가 켜져 있는지 확인해주세요.');
@@ -54,7 +52,7 @@ async function request(path, { method = 'GET', body, auth = true, retry = true }
 
   if (response.status === 401 && auth && retry && !path.startsWith('/auth/')) {
     const refreshed = await refresh();
-    if (refreshed) return request(path, { method, body, auth, retry: false });
+    if (refreshed) return request(path, { method, body, form, auth, retry: false });
     setToken(null);
     onAuthLost();
   }
@@ -100,6 +98,11 @@ export const api = {
   updateTransaction: (id, body) => request(`/transactions/${id}`, { method: 'PATCH', body }),
   deleteTransaction: (id) => request(`/transactions/${id}`, { method: 'DELETE' }),
   parseTransaction: (text) => request('/transactions/parse', { method: 'POST', body: { text } }),
+  ocrReceipt: (file) => {
+    const form = new FormData();
+    form.append('image', file);
+    return request('/receipts/ocr', { method: 'POST', form });
+  },
   monthly: (yearMonth) => request(`/analysis/monthly${query({ yearMonth })}`),
   weekly: (weeks = 4) => request(`/analysis/weekly${query({ weeks })}`),
   categoryComparison: (period) => request(`/analysis/categories${query({ period })}`),
@@ -112,4 +115,10 @@ export const api = {
   confirmGoal: (id, body) => request(`/coachings/${id}/confirm`, { method: 'POST', body }),
   challenges: (status) => request(`/challenges${query({ status })}`),
   report: (id) => request(`/challenges/${id}/report`),
+  seed: (scenario) => request('/dev/seed', { method: 'POST', body: { scenario } }),
+  completeChallenge: (id, scenario) => request(`/dev/challenges/${id}/complete`, {
+    method: 'POST',
+    body: { scenario },
+  }),
+  restoreSession: () => refresh(),
 };

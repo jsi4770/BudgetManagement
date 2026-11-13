@@ -101,7 +101,7 @@ export function Coaching({ c }) {
       {session?.messages?.map((message) => (
         <div key={message.id} className={`bub ${message.role === 'USER' ? 'me' : 'ai'}`}>
           {message.content}
-          {message.isFallback && <div className="t2">임시 응답이에요.</div>}
+          {message.isFallback && <div className="t2">AI 연결이 원활하지 않아요.</div>}
         </div>
       ))}
       {open && session?.messages?.length === 1 && (
@@ -155,7 +155,7 @@ function spentValue(challenge) {
   return challenge.goalType === 'COUNT' ? `${challenge.spendingCount}회` : won(challenge.spendingAmount);
 }
 
-export function Challenge({ c }) {
+export function Challenge() {
   const [items, setItems] = useState(null);
   const [error, setError] = useState('');
 
@@ -167,7 +167,6 @@ export function Challenge({ c }) {
 
   const active = items?.find((item) => item.status === 'IN_PROGRESS');
   const done = (items || []).filter((item) => item.status !== 'IN_PROGRESS');
-  const rate = active ? percent(active.achievementRate) : 0;
 
   return (
     <div className="screen">
@@ -178,7 +177,6 @@ export function Challenge({ c }) {
         <div className="card center">
           <div className="big">🎯</div>
           <div className="t2" style={{ margin: '8px 0' }}>진행 중인 챌린지가 없어요</div>
-          <button type="button" className="btn sm" onClick={() => { c.setNudgeId(null); c.setCoachingId(null); c.go('S012'); }}>AI 코칭으로 챌린지 만들기</button>
         </div>
       )}
       {active && (
@@ -189,9 +187,6 @@ export function Challenge({ c }) {
             <div><div className="t2">실제 소비</div><b className="h2">{spentValue(active)}</b></div>
             <div style={{ textAlign: 'right' }}><div className="t2">목표</div><b className="h2">{goalValue(active)}</b></div>
           </div>
-          <Usage rate={rate} />
-          <div className="t2">목표 대비 {rate}% 사용</div>
-          <div className="t2" style={{ marginTop: 8 }}>기간이 끝나면 서버가 달성 여부를 계산하고 성장 리포트를 만들어요.</div>
         </div>
       )}
       {done.length > 0 && (
@@ -201,9 +196,7 @@ export function Challenge({ c }) {
             <div className="tx" key={item.id}>
               <div className="ico">{item.status === 'SUCCESS' ? '🏆' : '🌱'}</div>
               <div style={{ flex: 1 }}>{item.title}<div className="t2">실제 {spentValue(item)}</div></div>
-              <button type="button" className="chip" onClick={() => { c.setChallengeId(item.id); c.go('S014'); }}>
-                {item.status === 'SUCCESS' ? '달성' : '미달성'}
-              </button>
+              <span className="chip">{item.status === 'SUCCESS' ? '달성' : '미달성'}</span>
             </div>
           ))}
         </div>
