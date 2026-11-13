@@ -1,0 +1,31 @@
+# 환경변수 파일
+.env
+.env.*
+!.env.example
+!.env_example
+
+# 서비스 계정 키 및 자격증명
+*.json
+!package.json
+!tsconfig.json
+!composer.json
+secrets/
+
+# 가상환경
+venv/
+.venv/
+env/
+
+# Python 캐시
+__pycache__/
+*.py[cod]
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
