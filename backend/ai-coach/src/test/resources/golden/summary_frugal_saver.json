@@ -1,0 +1,126 @@
+{
+ "persona": "frugal_saver",
+ "name": "절약 중이지만 목표가 없는 직장인 이도윤",
+ "month": "2026-10",
+ "months_covered": [
+  "2026-05",
+  "2026-06",
+  "2026-07",
+  "2026-08",
+  "2026-09",
+  "2026-10"
+ ],
+ "income": 3000000,
+ "spending": 1958200,
+ "saving": 300000,
+ "fixed": 909000,
+ "variable": 1049200,
+ "fixed_ratio": 46.4,
+ "savings_rate": 34.7,
+ "subscription": null,
+ "categories": [
+  {
+   "category": "식비",
+   "amount": 305900,
+   "share": 29.2,
+   "prev_amount": 282600,
+   "mom_pct": 8.2,
+   "baseline_avg": 290540,
+   "vs_baseline_pct": 5.3,
+   "trend_per_month": 2000,
+   "count": 26
+  },
+  {
+   "category": "쇼핑",
+   "amount": 287600,
+   "share": 27.4,
+   "prev_amount": 300500,
+   "mom_pct": -4.3,
+   "baseline_avg": 330060,
+   "vs_baseline_pct": -12.9,
+   "trend_per_month": -29000,
+   "count": 3
+  },
+  {
+   "category": "외식",
+   "amount": 262400,
+   "share": 25.0,
+   "prev_amount": 242100,
+   "mom_pct": 8.4,
+   "baseline_avg": 255200,
+   "vs_baseline_pct": 2.8,
+   "trend_per_month": 800,
+   "count": 6
+  },
+  {
+   "category": "문화/여가",
+   "amount": 114400,
+   "share": 10.9,
+   "prev_amount": 130800,
+   "mom_pct": -12.5,
+   "baseline_avg": 127400,
+   "vs_baseline_pct": -10.2,
+   "trend_per_month": -4200,
+   "count": 4
+  },
+  {
+   "category": "교통",
+   "amount": 51300,
+   "share": 4.9,
+   "prev_amount": 48000,
+   "mom_pct": 6.9,
+   "baseline_avg": 48320,
+   "vs_baseline_pct": 6.2,
+   "trend_per_month": 300,
+   "count": 23
+  },
+  {
+   "category": "카페",
+   "amount": 27600,
+   "share": 2.6,
+   "prev_amount": 29200,
+   "mom_pct": -5.5,
+   "baseline_avg": 32620,
+   "vs_baseline_pct": -15.4,
+   "trend_per_month": -1200,
+   "count": 7
+  }
+ ],
+ "late_month_share": {},
+ "top_merchants": [
+  {
+   "merchant": "쿠팡",
+   "amount": 208000,
+   "count": 2
+  },
+  {
+   "merchant": "회사근처식당",
+   "amount": 144200,
+   "count": 12
+  },
+  {
+   "merchant": "이자카야",
+   "amount": 97000,
+   "count": 2
+  },
+  {
+   "merchant": "고깃집",
+   "amount": 91100,
+   "count": 2
+  },
+  {
+   "merchant": "마트",
+   "amount": 90000,
+   "count": 8
+  }
+ ],
+ "anomalies": [],
+ "monthly_totals": {
+  "2026-05": 2187800,
+  "2026-06": 2004000,
+  "2026-07": 1966600,
+  "2026-08": 2015600,
+  "2026-09": 2163300,
+  "2026-10": 1958200
+ }
+}

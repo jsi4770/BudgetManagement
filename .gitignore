@@ -9,6 +9,8 @@
 !package.json
 !tsconfig.json
 !composer.json
+# AI 코치 프로토타입의 데모·골든 데이터는 소스의 일부다 (backend/ai-coach)
+!backend/ai-coach/src/**/*.json
 secrets/
 
 # 가상환경

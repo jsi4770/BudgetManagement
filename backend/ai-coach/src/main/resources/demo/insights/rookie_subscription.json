@@ -1,0 +1,197 @@
+{
+ "summary": {
+  "persona": "rookie_subscription",
+  "name": "월말에 구독·쇼핑으로 새는 사회초년생 박서연",
+  "month": "2026-10",
+  "months_covered": [
+   "2026-05",
+   "2026-06",
+   "2026-07",
+   "2026-08",
+   "2026-09",
+   "2026-10"
+  ],
+  "income": 2800000,
+  "spending": 1792790,
+  "saving": 0,
+  "fixed": 797000,
+  "variable": 995790,
+  "fixed_ratio": 44.5,
+  "savings_rate": 36.0,
+  "subscription": {
+   "count": 7,
+   "prev_count": 6,
+   "monthly_total": 108490,
+   "new_services": [
+    "밀리의서재"
+   ]
+  },
+  "categories": [
+   {
+    "category": "쇼핑",
+    "amount": 369700,
+    "share": 37.1,
+    "prev_amount": 683100,
+    "mom_pct": -45.9,
+    "baseline_avg": 502440,
+    "vs_baseline_pct": -26.4,
+    "trend_per_month": 27100,
+    "count": 7
+   },
+   {
+    "category": "식비",
+    "amount": 249100,
+    "share": 25.0,
+    "prev_amount": 210400,
+    "mom_pct": 18.4,
+    "baseline_avg": 213280,
+    "vs_baseline_pct": 16.8,
+    "trend_per_month": 5600,
+    "count": 19
+   },
+   {
+    "category": "문화/여가",
+    "amount": 145800,
+    "share": 14.6,
+    "prev_amount": 117500,
+    "mom_pct": 24.1,
+    "baseline_avg": 130300,
+    "vs_baseline_pct": 11.9,
+    "trend_per_month": 9600,
+    "count": 3
+   },
+   {
+    "category": "구독",
+    "amount": 108490,
+    "share": 10.9,
+    "prev_amount": 98590,
+    "mom_pct": 10.0,
+    "baseline_avg": 61510,
+    "vs_baseline_pct": 76.4,
+    "trend_per_month": 15700,
+    "count": 7
+   },
+   {
+    "category": "카페",
+    "amount": 70800,
+    "share": 7.1,
+    "prev_amount": 71400,
+    "mom_pct": -0.8,
+    "baseline_avg": 73540,
+    "vs_baseline_pct": -3.7,
+    "trend_per_month": -500,
+    "count": 13
+   },
+   {
+    "category": "교통",
+    "amount": 51900,
+    "share": 5.2,
+    "prev_amount": 49700,
+    "mom_pct": 4.4,
+    "baseline_avg": 50020,
+    "vs_baseline_pct": 3.8,
+    "trend_per_month": 500,
+    "count": 23
+   }
+  ],
+  "late_month_share": {
+   "쇼핑": 64.0
+  },
+  "top_merchants": [
+   {
+    "merchant": "무신사",
+    "amount": 194800,
+    "count": 3
+   },
+   {
+    "merchant": "올리브영",
+    "amount": 121600,
+    "count": 2
+   },
+   {
+    "merchant": "편의점",
+    "amount": 119200,
+    "count": 9
+   },
+   {
+    "merchant": "회사근처식당",
+    "amount": 65300,
+    "count": 5
+   },
+   {
+    "merchant": "샐러드가게",
+    "amount": 64600,
+    "count": 5
+   }
+  ],
+  "anomalies": [
+   {
+    "kind": "category_spike",
+    "category": "구독",
+    "detail": "구독 108,490원, 이전 평균 61,510원 대비 +76.4%",
+    "value": 46980
+   }
+  ],
+  "monthly_totals": {
+   "2026-05": 1571590,
+   "2026-06": 1713990,
+   "2026-07": 1923990,
+   "2026-08": 1903190,
+   "2026-09": 2027690,
+   "2026-10": 1792790
+  }
+ },
+ "report": {
+  "headline": "구독 서비스 증가와 월말 쇼핑 집중을 점검해볼 때예요",
+  "insights": [
+   {
+    "title": "구독 서비스가 늘었어요",
+    "category": "구독",
+    "severity": "warn",
+    "message": "구독 서비스가 이전보다 늘어난 7개로 증가했고 밀리의서재가 새로 추가되었어요. 지출이 늘어난 원인이 무엇일까요?",
+    "evidence": [
+     {
+      "label": "이전 평균 대비 증가율",
+      "value": 76.4,
+      "unit": "%"
+     },
+     {
+      "label": "서비스 개수",
+      "value": 7.0,
+      "unit": "개"
+     }
+    ],
+    "action": "안 쓰는 구독 서비스 1개 해지하기"
+   },
+   {
+    "title": "쇼핑 지출이 월말에 몰렸어요",
+    "category": "쇼핑",
+    "severity": "warn",
+    "message": "쇼핑 금액이 월말에 집중되어 369,700원이 지출되었어요. 월말에 소비가 집중된 특별한 이유가 있었나요?",
+    "evidence": [
+     {
+      "label": "월말 집중 비중",
+      "value": 64.0,
+      "unit": "%"
+     }
+    ],
+    "action": "쇼핑 장바구니에 담긴 물품 3일 동안 고민해보고 결제하기"
+   },
+   {
+    "title": "목표를 설정하고 저축 여유를 살려보세요",
+    "category": "저축",
+    "severity": "info",
+    "message": "저축률이 36.0%로 잘 유지되고 있어요. 설정된 목표가 없으시다면 구체적인 저축 목표를 세워보시는 건 어떨까요?",
+    "evidence": [
+     {
+      "label": "저축률",
+      "value": 36.0,
+      "unit": "%"
+     }
+    ],
+    "action": "이번 달 달성하고 싶은 구체적인 저축 목표 하나 적어보기"
+   }
+  ]
+ },
+ "problems": []
+}

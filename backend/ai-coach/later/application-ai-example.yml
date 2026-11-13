@@ -1,0 +1,21 @@
+# ▼ 아래 내용을 기존 application.yml 에 합쳐 넣으세요. (이 파일 자체는 예시용이라 지워도 됨)
+#   ${이름:기본값} = "환경변수 이름에서 읽고, 없으면 기본값". 실제 키 값은 절대 여기 쓰지 않습니다.
+#   기존 yml 에 spring: 이 이미 있으면 servlet.multipart 부분만 그 아래에 넣으세요.
+
+gemini:
+  api-key: ${GEMINI_API_KEY:}                 # 없으면 서버는 뜨고 AI 호출 시 503
+  model: ${GEMINI_MODEL:gemini-flash-latest}
+  timeout: 15s
+  max-retries: 1
+  mock: ${GEMINI_MOCK:false}                  # true 면 가짜 응답 (키 없는 팀원·CI)
+
+ocr:
+  django-url: ${OCR_DJANGO_URL:}              # Django OCR 서버 내부 API 주소. 비어 있으면 Gemini 가 이미지 직접 읽음
+  timeout: 20s
+  gemini-fallback: true
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB                     # 영수증 10MB 제한 (초과 시 413 FILE_TOO_LARGE)
+      max-request-size: 11MB

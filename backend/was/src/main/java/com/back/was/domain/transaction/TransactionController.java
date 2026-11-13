@@ -2,6 +2,8 @@ package com.back.was.domain.transaction;
 
 import com.back.was.domain.transaction.dto.CalendarResponse;
 import com.back.was.domain.transaction.dto.CreateTransactionRequest;
+import com.back.was.domain.transaction.dto.ParseTransactionRequest;
+import com.back.was.domain.transaction.dto.ParsedTransactionResponse;
 import com.back.was.domain.transaction.dto.TransactionListItem;
 import com.back.was.domain.transaction.dto.TransactionResponse;
 import com.back.was.domain.transaction.dto.TransactionSearchRequest;
@@ -53,6 +55,29 @@ public class TransactionController {
     public ApiResponse<TransactionResponse> create(@AuthenticationPrincipal AuthUser authUser,
                                                    @RequestBody @Valid CreateTransactionRequest request) {
         return ApiResponse.ok(transactionService.create(authUser.id(), request));
+    }
+
+    /**
+     * {@code /parse} 는 리터럴이라 TX-04 의 {@code /{id}} 와 겹치지 않는다. 메서드도
+     * {@code POST} 라 더더욱 충돌하지 않는다.
+     */
+    @Operation(summary = "TX-07 자연어 분석", description = """
+            "어제 배달 18000원" 같은 한 줄을 금액·날짜·카테고리·메모로 정리합니다.
+            **저장하지 않습니다** — 프론트가 확인·수정 화면을 띄우고 최종 저장은 TX-01 로 합니다.
+
+            `missingFields` 는 추출하지 못한 **필수** 필드 목록입니다(`amount`·`transactionDate`·`category`).
+            일부만 뽑힌 것은 실패가 아니라 정상 응답입니다. `memo` 는 선택이라 목록에 넣지 않습니다.
+
+            미래 날짜가 나와도 그대로 돌려줍니다 — 거부는 저장 시점(TX-01)의 몫이라 사용자가 고칠 기회를 얻습니다.
+
+            Gemini 키가 없거나 호출에 실패하면 `503 AI_UNAVAILABLE` 입니다.
+            프론트는 이 코드를 받으면 직접 입력 화면으로 안내하세요.
+
+            **실패**: `400 VALIDATION_ERROR`, `422 AI_PARSE_FAILED`(필수 세 개를 모두 못 뽑음),
+            `503 AI_UNAVAILABLE`""")
+    @PostMapping("/parse")
+    public ApiResponse<ParsedTransactionResponse> parse(@RequestBody @Valid ParseTransactionRequest request) {
+        return ApiResponse.ok(transactionService.parse(request));
     }
 
     @Operation(summary = "TX-02 거래 목록", description = """
