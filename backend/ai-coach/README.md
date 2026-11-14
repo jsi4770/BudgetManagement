@@ -5,7 +5,8 @@
 > - **`analysis`(`AnomalyJudge` 등)는 쓰지 마세요.** 팀 명세(ANL-03)와 계산이 다릅니다 — 표본표준편차(n−1)가 아니라 모표준편차,
 >   표준편차 0 이면 판정을 생략하지 않고 무한대로 처리, 데이터 충분성을 "가입 28일"로 판정. ANL-03 은 `backend/was` 의
 >   `SpendingComparison`·`AnalysisPeriod` 가 명세대로 구현합니다.
-> - 아직 합쳐지지 않은 것: **`coach`**(월간 집계·인사이트 카드·목표 현실성 판정·도구 호출 코치 대화), `nudge`, `coaching`. 거래 데이터를
+> - 넛지 문구·코칭 첫 메시지/대화·성장 리포트 피드백도 `backend/was` 에 Gemini 구현으로 옮겨졌습니다(`domain/ai/Gemini*Generator`).
+> - 아직 합쳐지지 않은 것: **`coach`**(월간 집계·인사이트 카드·목표 현실성 판정·도구 호출 코치 대화). 거래 데이터를
 >   `DemoData`(페르소나 JSON)가 아니라 DB 로 읽도록 바꿔야 합니다.
 
 # ai-ledger-coach-java

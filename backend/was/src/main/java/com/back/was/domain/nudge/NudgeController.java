@@ -21,9 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "9. 넛지 (NDG)", description = """
         "평소보다 많이 썼어요" 카드. **서버가 거래 저장 시점에 만들고** 프론트는 조회·상태 변경만 합니다.
 
-        푸시·SSE 가 없으므로 홈 진입과 탭 재활성화 때 다시 조회하세요.
-
-        > ⚠️ **아직 구현되지 않았습니다** — 지금은 모든 엔드포인트가 `500 INTERNAL_ERROR` 를 반환합니다.""")
+        푸시·SSE 가 없으므로 홈 진입과 탭 재활성화 때 다시 조회하세요.""")
 @RestController
 @RequestMapping("/nudges")
 @RequiredArgsConstructor

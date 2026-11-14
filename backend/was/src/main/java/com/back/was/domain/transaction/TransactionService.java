@@ -7,6 +7,8 @@ import com.back.was.domain.category.Category;
 import com.back.was.domain.category.CategoryRepository;
 import com.back.was.domain.category.CategoryType;
 import com.back.was.domain.category.dto.CategoryResponse;
+import com.back.was.domain.challenge.ChallengePerformance;
+import com.back.was.domain.nudge.NudgeJudgement;
 import com.back.was.domain.transaction.dto.CalendarResponse;
 import com.back.was.domain.transaction.dto.CreateTransactionRequest;
 import com.back.was.domain.transaction.dto.TransactionListItem;
@@ -27,6 +29,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,15 +37,17 @@ import java.util.List;
 /**
  * TX-01~06 거래.
  *
- * <p><b>서버_내부_처리 1장의 후처리(2번 챌린지 실적 · 3번 넛지 판정 · 5번 넛지 AI 문구)는
- * 아직 붙어 있지 않다.</b> 소비 분석 모듈과 AI 코칭이 완성된 뒤에 할 작업이고, 붙일 자리와
- * 지켜야 할 트랜잭션 경계는 {@code docs/AI_코칭_소비분석_인수인계.md} 10장에 정리돼 있다.
+ * <p>등록·수정·삭제는 같은 트랜잭션에서 서버_내부_처리 1장의 후처리를 돌린다 —
+ * 2번 챌린지 실적 재계산, 3번 넛지 판정(5번 넛지 AI 문구는 판정이 커밋 후에 비동기로 요청한다).
+ * 그래서 응답이 나간 시점에 홈·챌린지 화면의 숫자가 이미 맞다.
  */
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
 
     private final TransactionRepository transactionRepository;
+    private final ChallengePerformance challengePerformance;
+    private final NudgeJudgement nudgeJudgement;
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
     private final TransactionTextParser transactionTextParser;
@@ -52,6 +57,12 @@ public class TransactionService {
 
     /**
      * TX-01. 거래는 항상 토큰 주인의 것으로 저장된다 — 요청에 사용자 ID 가 없다.
+     *
+     * <p>저장 뒤 <b>같은 트랜잭션에서 동기로</b> 넛지를 재판정한다(서버_내부_처리 1장
+     * 순서 3번). 커밋 전이어야 "거래는 저장됐는데 카드만 안 생긴" 상태가 생기지 않는다.
+     *
+     * <p>후처리는 명세의 순서대로 2번(챌린지 실적) → 3번(넛지 판정)이다. <b>5번(넛지 AI
+     * 문구)</b>만 커밋 후 비동기라 여기 없다.
      *
      * @throws BusinessException 404 {@code NOT_FOUND} — 없는 카테고리 (명세 TX-01 Errors)
      */
@@ -64,6 +75,9 @@ public class TransactionService {
 
         Transaction transaction = transactionRepository.save(Transaction.of(
                 user, category, request.amount(), request.transactionDate(), request.memo()));
+
+        challengePerformance.recalculate(user, category, transaction.getTransactionDate());
+        nudgeJudgement.judge(user, category);
 
         return TransactionResponse.from(transaction);
     }
@@ -150,10 +164,20 @@ public class TransactionService {
      * <p>조회를 {@code findByIdAndUserId} 로 하므로 남의 거래를 수정할 경로가 없다 —
      * 소유권 검사를 따로 하지 않는 이유다.
      *
-     * <p><b>후처리를 붙일 때</b> 이 메서드가 TX-01 보다 까다롭다 — 수정 전 (카테고리, 날짜)
-     * 와 수정 후 (카테고리, 날짜) 를 <b>둘 다</b> 넘겨야 하고, 그래서 변경을 적용하기
-     * <i>전에</i> 그 값들을 붙잡아 둬야 한다. 자세한 내용은
-     * {@code docs/AI_코칭_소비분석_인수인계.md} 10장.
+     * <p>후처리에서 TX-01 보다 까다로운 점은 <i>수정 전</i> 카테고리가 필요하다는 것이다 —
+     * 재판정 대상이 이전 카테고리와 새 카테고리 <b>둘 다</b>이고(서버_내부_처리 1장),
+     * 조건 미달이 된 {@code UNREAD} 넛지는 지워야 한다. 그래서 변경을 적용하기 <i>전에</i>
+     * 이전 카테고리를 붙잡아 둔다. 수입 카테고리로 바꾸는 것도 허용되므로 둘 중 한쪽만
+     * 판정 대상일 수 있는데, 그 판단은 {@link NudgeJudgement} 안에 있다.
+     *
+     * <p>거래 <b>날짜</b>를 바꾼 경우에도 판정은 그대로 돌아간다 — 판정 기간은 언제나
+     * 이번 주이고, 지난 주 날짜로 옮긴 거래는 표본에 들어가 평균을 바꾼다. 그래서 날짜로
+     * 거르지 않는다.
+     *
+     * <p>챌린지 실적(후처리 2번)에는 <b>수정 전 날짜</b>도 필요하다. 카테고리가 그대로여도
+     * 날짜가 기간 밖으로 나가면 이전 기간의 합계가 바뀌므로, 수정 전 (카테고리, 날짜) 와
+     * 수정 후 (카테고리, 날짜) 를 각각 한 번씩 재계산한다. 재계산은 기간 전체를 다시
+     * 집계하는 멱등 연산이라 같은 챌린지가 두 번 걸려도 결과가 같다.
      *
      * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 거래, 또는 없는 카테고리
      */
@@ -161,6 +185,11 @@ public class TransactionService {
     public TransactionResponse update(Long userId, Long id, UpdateTransactionRequest request) {
         Transaction transaction = transactionRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(BusinessException::notFound);
+
+        // 변경을 적용하기 전에 붙잡아 둔다 — 아래에서 바뀌면 되찾을 방법이 없다.
+        // 넛지는 카테고리만, 챌린지는 날짜까지 필요하다(서버_내부_처리 1장·2장).
+        Category previousCategory = transaction.getCategory();
+        LocalDate previousDate = transaction.getTransactionDate();
 
         // 유일하게 실패할 수 있는 변경(없는 카테고리 → 404)을 먼저 처리한다. 롤백이
         // 어차피 되살려 주지만, 그래야 영속성 컨텍스트에 절반만 바뀐 엔티티가 남지 않는다.
@@ -178,6 +207,13 @@ public class TransactionService {
             transaction.changeMemo(request.memo());
         }
 
+        User owner = transaction.getUser();
+
+        challengePerformance.recalculate(owner, previousCategory, previousDate);
+        challengePerformance.recalculate(owner, transaction.getCategory(), transaction.getTransactionDate());
+        // 카테고리가 그대로면 같은 값이 두 번 들어가는데, 판정이 ID 로 중복을 없앤다.
+        nudgeJudgement.judge(owner, previousCategory, transaction.getCategory());
+
         return TransactionResponse.from(transaction);
     }
 
@@ -189,11 +225,12 @@ public class TransactionService {
      * 여기서 성공을 흉내내면 "그 ID 가 있었다"를 알려주는 것과 같다. 프론트는 명세 0장 5)
      * 대로 404 를 "찾을 수 없음" 하나로 처리하면 된다.
      *
-     * <p><b>후처리를 붙일 때</b>: 삭제 전에 엔티티를 조회하는 것이 소유권 확인 때문만이
-     * 아니게 된다 — 지워진 거래의 카테고리와 날짜가 필요하고 삭제 후에는 얻을 수 없다.
-     * 그리고 후처리는 삭제 <i>후</i>에 불러야 한다(집계 JPQL 이 돌기 전에 Hibernate 가
-     * DELETE 를 auto-flush 하므로 지워진 거래가 합계에 남지 않는다).
-     * {@code docs/AI_코칭_소비분석_인수인계.md} 10장 참고.
+     * <p>삭제 전에 엔티티를 조회하는 건 소유권 확인 때문만이 아니다 — 후처리에
+     * <b>지워진 거래의 카테고리와 날짜</b>가 필요하고, 그 값은 삭제 후에는 얻을 수 없다.
+     *
+     * <p>후처리는 삭제 <i>후</i>에 부른다. 집계 쿼리가 돌기 전에 Hibernate 가 DELETE 를
+     * flush 하므로(같은 테이블을 읽는 JPQL 이라 auto-flush 대상이다) 지워진 거래가 합계에
+     * 남지 않는다 — 챌린지 실적과 넛지 표본 둘 다 그 덕을 본다.
      *
      * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 거래
      */
@@ -201,8 +238,14 @@ public class TransactionService {
     public void delete(Long userId, Long id) {
         Transaction transaction = transactionRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(BusinessException::notFound);
+        User owner = transaction.getUser();
+        Category category = transaction.getCategory();
+        LocalDate date = transaction.getTransactionDate();
 
         transactionRepository.delete(transaction);
+
+        challengePerformance.recalculate(owner, category, date);
+        nudgeJudgement.judge(owner, category);
     }
 
     /**

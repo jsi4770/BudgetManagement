@@ -23,9 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
         발표용 지표. **`role: ADMIN` 토큰만 허용**하고 일반 사용자는 `403 FORBIDDEN` 입니다 —
         이 프로젝트에서 403 이 나는 유일한 곳입니다(다른 도메인의 "남의 리소스"는 404).
 
-        관리자 계정은 시드로 만들어지고 dev 프로필 전용입니다.
-
-        > ⚠️ **아직 구현되지 않았습니다** — 지금은 모든 엔드포인트가 `500 INTERNAL_ERROR` 를 반환합니다.""")
+        관리자 계정은 시드로 만들어지고 dev 프로필 전용입니다.""")
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor

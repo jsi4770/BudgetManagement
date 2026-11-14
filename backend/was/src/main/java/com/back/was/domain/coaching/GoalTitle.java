@@ -4,7 +4,7 @@ package com.back.was.domain.coaching;
  * 절약 목표의 제목 템플릿 — {@code docs/AI_대체_문구.md} <b>6장</b>.
  *
  * <p>AI 가 제목을 주지 못했을 때 쓰는 기본값이다. 쓰이는 곳이 셋이다: 규칙 기반 제안
- * (규칙 기반 제안기 — 아직 없음), AI 가 제목만 비워 보낸 경우(COACH-03), 그리고
+ * ({@link RuleBasedGoalProposer}), AI 가 제목만 비워 보낸 경우(COACH-03), 그리고
  * 사용자가 제목을 손대지 않고 확정한 경우(COACH-04 "기본값은 AI 제안 제목, 없으면 템플릿").
  *
  * <p>{@code NudgeTitle} 과 같은 성격이다 — 템플릿은 <b>저장하지 않고</b> 필요할 때 조합한다.
