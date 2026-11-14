@@ -9,8 +9,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 import java.util.ArrayList;
@@ -30,12 +30,16 @@ public class HttpGeminiClient implements GeminiClient {
     private static final Logger log = LoggerFactory.getLogger(HttpGeminiClient.class);
 
     private final RestClient restClient;
+    /** 이미지 호출 전용 — 영수증 읽기는 텍스트보다 훨씬 오래 걸려 읽기 타임아웃이 더 길다. */
+    private final RestClient imageRestClient;
     private final GeminiProperties props;
     private final ObjectMapper objectMapper;
 
     public HttpGeminiClient(@Qualifier("geminiRestClient") RestClient restClient,
+                            @Qualifier("geminiImageRestClient") RestClient imageRestClient,
                             GeminiProperties props, ObjectMapper objectMapper) {
         this.restClient = restClient;
+        this.imageRestClient = imageRestClient;
         this.props = props;
         this.objectMapper = objectMapper;
 
@@ -69,12 +73,17 @@ public class HttpGeminiClient implements GeminiClient {
                         "data", Base64.getEncoder().encodeToString(imageBytes))),
                 Map.of("text", userText));
         List<Map<String, Object>> contents = List.of(Map.of("role", "user", "parts", parts));
-        return call(systemInstruction, contents, responseSchema, temperature);
+        return call(imageRestClient, systemInstruction, contents, responseSchema, temperature);
     }
 
     // ------------------------------------------------------------------ 내부
 
     private JsonNode call(String systemInstruction, List<Map<String, Object>> contents,
+                          Map<String, Object> responseSchema, double temperature) {
+        return call(restClient, systemInstruction, contents, responseSchema, temperature);
+    }
+
+    private JsonNode call(RestClient client, String systemInstruction, List<Map<String, Object>> contents,
                           Map<String, Object> responseSchema, double temperature) {
         if (!props.hasApiKey()) {
             throw GeminiErrors.unavailable("AI 서비스 설정이 되어 있지 않아요.");
@@ -90,7 +99,7 @@ public class HttpGeminiClient implements GeminiClient {
         body.put("contents", contents);
         body.put("generationConfig", generationConfig);
 
-        return extractJson(post(body));
+        return extractJson(post(client, body));
     }
 
     /**
@@ -98,6 +107,10 @@ public class HttpGeminiClient implements GeminiClient {
      * 429(일일 한도 초과)는 재시도해도 소용없으므로 곧바로 다음 모델로 넘어간다.
      */
     private JsonNode post(Map<String, Object> body) {
+        return post(restClient, body);
+    }
+
+    private JsonNode post(RestClient client, Map<String, Object> body) {
         List<String> models = new ArrayList<>();
         models.add(props.model());
         if (props.fallbackModel() != null) models.add(props.fallbackModel());
@@ -107,7 +120,7 @@ public class HttpGeminiClient implements GeminiClient {
             int attempts = props.maxRetries() + 1;
             for (int attempt = 1; attempt <= attempts; attempt++) {
                 try {
-                    return restClient.post()
+                    return client.post()
                             .uri("/models/{model}:generateContent", model)
                             .contentType(MediaType.APPLICATION_JSON)
                             .body(body)
@@ -121,8 +134,10 @@ public class HttpGeminiClient implements GeminiClient {
                     if (status >= 500 && attempt < attempts) { sleep(1500L * attempt); continue; }
                     if (status >= 500) break;
                     throw last;   // 400·403·404 는 설정 문제 → 예비 모델도 소용없음
-                } catch (ResourceAccessException e) {
-                    log.warn("[Gemini] {} 네트워크 오류/타임아웃 (시도 {}/{}): {}", model, attempt, attempts, e.getMessage());
+                } catch (RestClientException e) {
+                    // 연결 실패·타임아웃. 응답 본문을 읽다가 시간이 넘으면 ResourceAccessException 이 아니라
+                    // "Error while extracting response" 로 올라오므로 상위 타입으로 잡는다 — 안 잡으면 500 이 된다.
+                    log.warn("[Gemini] {} 네트워크 오류/타임아웃 (시도 {}/{}): {}", model, attempt, attempts, e.getClass().getSimpleName());
                     last = GeminiErrors.unavailable("AI 서비스에 연결하지 못했어요.", e);
                     if (attempt < attempts) sleep(1500L * attempt);
                 }

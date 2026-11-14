@@ -17,6 +17,7 @@ import com.back.was.domain.coaching.GoalType;
  * @param beforeAmount {@code {before}} — 챌린지 직전 같은 길이 기간의 <b>금액</b>.
  *                     횟수 목표라도 금액이다 (7장 각주는 {@code {gap}} 만 바꾼다)
  * @param periodDays {@code {period}} — 챌린지 기간(일)
+ * @param categoryName 챌린지 카테고리 이름. Gemini 가 엉뚱한 카테고리를 말하지 않게 하는 입력이다(템플릿은 쓰지 않는다). 없으면 {@code null}
  */
 public record GrowthFeedbackCommand(
         boolean success,
@@ -24,8 +25,15 @@ public record GrowthFeedbackCommand(
         int goal,
         int spending,
         int beforeAmount,
-        int periodDays
+        int periodDays,
+        String categoryName
 ) {
+    /** 카테고리 이름 없이 만드는 기존 형태 — 템플릿은 이름을 쓰지 않는다. */
+    public GrowthFeedbackCommand(boolean success, GoalType goalType, int goal, int spending,
+                                 int beforeAmount, int periodDays) {
+        this(success, goalType, goal, spending, beforeAmount, periodDays, null);
+    }
+
     /**
      * {@code {gap}} — 목표와 실제의 차이, <b>절댓값</b>이다
      * ({@code docs/AI_대체_문구.md} 변수 목록).

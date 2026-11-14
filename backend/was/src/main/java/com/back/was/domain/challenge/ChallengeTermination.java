@@ -126,7 +126,8 @@ public class ChallengeTermination {
                 goal,
                 spending,
                 Math.toIntExact(before.amount()),
-                (int) periodDaysOf(challenge)));
+                (int) periodDaysOf(challenge),
+                challenge.getCategory().getName()));
     }
 
 }
