@@ -16,9 +16,19 @@ public class GeminiConfig {
 
     @Bean(name = "geminiRestClient")
     public RestClient geminiRestClient(GeminiProperties props) {
+        return build(props, props.timeout());
+    }
+
+    /** 이미지 호출 전용(읽기 타임아웃만 다르다). */
+    @Bean(name = "geminiImageRestClient")
+    public RestClient geminiImageRestClient(GeminiProperties props) {
+        return build(props, props.imageTimeout());
+    }
+
+    private static RestClient build(GeminiProperties props, java.time.Duration readTimeout) {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(3_000);                               // 연결 3초
-        factory.setReadTimeout((int) props.timeout().toMillis());       // 응답 대기 (기본 15초)
+        factory.setConnectTimeout(3_000);                          // 연결 3초
+        factory.setReadTimeout((int) readTimeout.toMillis());      // 응답 대기
 
         return RestClient.builder()
                 .baseUrl(props.baseUrl())

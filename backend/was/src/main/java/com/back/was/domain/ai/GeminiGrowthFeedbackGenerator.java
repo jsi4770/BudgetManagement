@@ -54,15 +54,29 @@ public class GeminiGrowthFeedbackGenerator implements GrowthFeedbackGenerator {
                 log.warn("[CHL-03] 피드백에 입력에 없던 숫자가 있어 템플릿 문구를 쓴다");
                 return template.generate(command);
             }
+            if (mentionsOtherCategory(feedback, command.categoryName())) {
+                log.warn("[CHL-03] 피드백이 챌린지와 다른 카테고리를 말해 템플릿 문구를 쓴다");
+                return template.generate(command);
+            }
             return feedback;
         } catch (RuntimeException e) {
             return template.generate(command);
         }
     }
 
+    /** 카테고리는 ERD 4장의 고정 시드라서 이름 목록을 코드에 둔다. 챌린지의 카테고리 외 이름이 나오면 환각이다. */
+    private static final java.util.List<String> CATEGORY_NAMES =
+            java.util.List.of("식비", "배달", "카페", "교통", "월세");
+
+    static boolean mentionsOtherCategory(String feedback, String categoryName) {
+        return CATEGORY_NAMES.stream()
+                .anyMatch(name -> !name.equals(categoryName) && feedback.contains(name));
+    }
+
     private static String data(GrowthFeedbackCommand c) {
         String unit = c.goalType() == com.back.was.domain.coaching.GoalType.AMOUNT ? "원" : "회";
-        return "[결과]\n%s, 목표 %,d%s 이내, 실제 %,d%s, 목표와의 차이 %,d%s, 챌린지 직전 같은 기간 %,d원, 기간 %d일".formatted(
+        String category = c.categoryName() == null ? "" : "카테고리 " + c.categoryName() + ", ";
+        return "[결과]\n" + category + "%s, 목표 %,d%s 이내, 실제 %,d%s, 목표와의 차이 %,d%s, 챌린지 직전 같은 기간 %,d원, 기간 %d일".formatted(
                 c.success() ? "성공" : "미달성", c.goal(), unit, c.spending(), unit, c.gap(), unit,
                 c.beforeAmount(), c.periodDays());
     }

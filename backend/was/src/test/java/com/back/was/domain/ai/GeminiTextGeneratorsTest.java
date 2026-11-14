@@ -135,6 +135,34 @@ class GeminiTextGeneratorsTest {
         }
 
         @Test
+        @DisplayName("챌린지 카테고리가 프롬프트 입력에 들어간다 — 모델이 엉뚱한 카테고리를 지어내지 않게")
+        void categoryIsPartOfTheInput() {
+            ScriptedGemini gemini = new ScriptedGemini().thenReply("{\"feedback\":\"배달을 잘 줄였어요.\"}");
+
+            new GeminiGrowthFeedbackGenerator(gemini, new TemplateGrowthFeedbackGenerator())
+                    .generate(new GrowthFeedbackCommand(true, GoalType.COUNT, 3, 1, 101_000, 7, "배달"));
+
+            assertThat(gemini.conversations.get(0).get(0).text()).contains("카테고리 배달");
+        }
+
+        @Test
+        @DisplayName("실제 호출에서 나온 환각: 배달 챌린지인데 '카페'를 말하면 템플릿으로 대체한다")
+        void otherCategoryFallsBackToTemplate() {
+            GrowthFeedbackCommand deliveryChallenge =
+                    new GrowthFeedbackCommand(true, GoalType.COUNT, 3, 1, 101_000, 7, "배달");
+
+            String feedback = new GeminiGrowthFeedbackGenerator(
+                    new ScriptedGemini().thenReply("{\"feedback\":\"카페 지출을 훌륭하게 통제하셨네요!\"}"),
+                    new TemplateGrowthFeedbackGenerator()).generate(deliveryChallenge);
+
+            assertThat(feedback).doesNotContain("카페").isNotBlank();
+            // 같은 카테고리를 말하는 건 문제가 아니다
+            assertThat(new GeminiGrowthFeedbackGenerator(
+                    new ScriptedGemini().thenReply("{\"feedback\":\"배달 횟수를 잘 줄였어요!\"}"),
+                    new TemplateGrowthFeedbackGenerator()).generate(deliveryChallenge)).contains("배달");
+        }
+
+        @Test
         @DisplayName("근거 없는 숫자·빈 응답·실패는 모두 템플릿으로 대체한다")
         void fallsBackToTemplate() {
             assertThat(generator(new ScriptedGemini().thenReply("{\"feedback\":\"88,000원 아꼈어요\"}"))

@@ -301,7 +301,8 @@ public class DevSeedService {
                 past.goalType().requiredGoal(past.goalAmount(), past.goalCount()),
                 amountGoal ? past.spendingAmount() : past.spendingCount(),
                 past.beforeAmount(),
-                PROPOSAL_PERIOD_DAYS));
+                PROPOSAL_PERIOD_DAYS,
+                challenge.getCategory().getName()));
     }
 
     /**
