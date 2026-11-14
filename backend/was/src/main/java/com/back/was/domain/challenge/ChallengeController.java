@@ -25,9 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
         확정된 절약 챌린지와 종료 후 리포트. **조회 전용**입니다 —
         만드는 것은 COACH-04, 실적 갱신은 거래 등록·수정·삭제가, 종료 판정은 매일 00:05 스케줄러가 합니다.
 
-        수정·삭제·중도 포기 API 는 명세에 없습니다.
-
-        > ⚠️ **아직 구현되지 않았습니다** — 지금은 모든 엔드포인트가 `500 INTERNAL_ERROR` 를 반환합니다.""")
+        수정·삭제·중도 포기 API 는 명세에 없습니다.""")
 @RestController
 @RequestMapping("/challenges")
 @RequiredArgsConstructor

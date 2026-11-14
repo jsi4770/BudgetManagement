@@ -6,7 +6,9 @@ import com.back.was.domain.category.dto.CategoryResponse;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
@@ -66,6 +68,49 @@ public final class AiTestFixtures {
             lastImage = imageBytes;
             lastMime = mimeType;
             return reply;
+        }
+    }
+
+    /** 호출 순서대로 정해 둔 응답(JSON 문자열) 또는 예외를 돌려주고, 받은 대화를 기록한다. */
+    public static final class ScriptedGemini implements GeminiClient {
+
+        private final Deque<Object> script = new ArrayDeque<>();
+        public final List<List<GeminiMessage>> conversations = new ArrayList<>();
+        public final List<String> systemPrompts = new ArrayList<>();
+
+        public ScriptedGemini thenReply(String replyJson) {
+            script.add(json(replyJson));
+            return this;
+        }
+
+        public ScriptedGemini thenThrow(RuntimeException e) {
+            script.add(e);
+            return this;
+        }
+
+        public int calls() {
+            return conversations.size();
+        }
+
+        @Override
+        public JsonNode generateJson(String systemInstruction, List<GeminiMessage> messages,
+                                     Map<String, Object> responseSchema, double temperature) {
+            systemPrompts.add(systemInstruction);
+            conversations.add(List.copyOf(messages));
+            Object next = script.poll();
+            if (next instanceof RuntimeException e) {
+                throw e;
+            }
+            if (next == null) {
+                throw new IllegalStateException("스크립트에 남은 응답이 없다");
+            }
+            return (JsonNode) next;
+        }
+
+        @Override
+        public JsonNode generateJson(String systemInstruction, String userText, byte[] imageBytes,
+                                     String mimeType, Map<String, Object> responseSchema, double temperature) {
+            return generateJson(systemInstruction, List.of(GeminiMessage.user(userText)), responseSchema, temperature);
         }
     }
 }

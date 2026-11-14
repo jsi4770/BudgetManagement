@@ -25,7 +25,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "10. AI 코칭 (COACH)", description = """
         AI 코치와 대화하고 절약 목표를 확정합니다. 세션은 항상 토큰 주인의 것입니다.
 
-        > ⚠️ **아직 구현되지 않았습니다** — 지금은 모든 엔드포인트가 `500 INTERNAL_ERROR` 를 반환합니다.""")
+        **Gemini 가 없어도 전 과정이 동작합니다** — 첫 메시지와 목표 제안이 준비된 대체 문구·규칙으로
+        채워지므로 "넛지 → 코칭 → 챌린지 확정"을 끝까지 시험할 수 있습니다.""")
 @RestController
 @RequestMapping("/coachings")
 @RequiredArgsConstructor
@@ -89,6 +90,9 @@ public class CoachingController {
             재제안이 필요하면 메시지를 다시 보내세요.
 
             목표 ±·기간 버튼은 **프론트 상태로만** 바꾸고 COACH-04 에서 한 번에 보냅니다.
+
+            Gemini 가 실패하면(키 없음·한도·타임아웃) **에러가 아니라 200 + `isFallback: true`** 입니다.
+            그때도 규칙 기반 제안이 함께 내려가므로 챌린지 확정까지 진행할 수 있습니다.
 
             **실패**: `400 VALIDATION_ERROR`, `404 NOT_FOUND`, `409 COACHING_ALREADY_ENDED`""")
     @PostMapping("/{id}/messages")

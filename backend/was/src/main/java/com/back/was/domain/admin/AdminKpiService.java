@@ -1,23 +1,38 @@
 package com.back.was.domain.admin;
 
 import com.back.was.domain.admin.dto.KpiResponse;
+import com.back.was.domain.challenge.ChallengeRepository;
+import com.back.was.domain.challenge.ChallengeStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-/**
- * ADMIN-01 KPI — <b>아직 구현되지 않았다.</b>
- *
- * <p>비어 있는 동안 {@link UnsupportedOperationException} 을 던져 500 {@code INTERNAL_ERROR}
- * 가 된다. 집계 쿼리({@code ChallengeRepository.countOutcomes})와 응답 계산
- * ({@link KpiResponse#from})은 이미 있으므로 둘을 잇기만 하면 된다. 역할 검사는 여기 두지
- * 않는다 — {@code SecurityConfig} 의 {@code /admin/**} 가 맡는다.
- *
- * <p>규칙은 {@code docs/AI_코칭_소비분석_인수인계.md} 1장 ⑦.
- */
+/** 명세 13장 관리자 API. 지금은 ADMIN-01 하나다. */
 @Service
+@RequiredArgsConstructor
 public class AdminKpiService {
 
-    /** ADMIN-01 KPI 조회 — 프로젝트 전체 집계라 사용자 ID 를 받지 않는다. */
+    private final ChallengeRepository challengeRepository;
+
+    /**
+     * ADMIN-01 KPI 조회 (ERD 13장).
+     *
+     * <p><b>사용자 ID 를 받지 않는다.</b> 프로젝트 전체의 지표라서 집계에 사용자 범위가
+     * 없고(명세 ADMIN-01 "발표용 프로젝트 성공 지표"), 그래서 다른 챌린지 조회들과 달리
+     * {@code COACHING.USER_ID} 경유 조인이 없다.
+     *
+     * <p>권한 검사가 여기 없는 것도 의도다. {@code SecurityConfig} 가 {@code /admin/**} 을
+     * {@code hasRole("ADMIN")} 으로 막고 {@code ApiAccessDeniedHandler} 가 403
+     * {@code FORBIDDEN} 을 쓴다 — 서비스에서 역할을 다시 보면 검사가 두 군데가 되고,
+     * 소유권과 달리 관리자 권한은 URL 패턴으로 막는 것이 이 프로젝트의 규칙이다
+     * (명세 0장 5): {@code FORBIDDEN} 은 관리자 API 권한 전용).
+     *
+     * <p>집계 결과가 비어 있어도(종료된 챌린지 0건) 200 이다 — 자세한 처리는
+     * {@link KpiResponse#from}.
+     */
+    @Transactional(readOnly = true)
     public KpiResponse getKpi() {
-        throw new UnsupportedOperationException("ADMIN-01 은 아직 구현되지 않았어요.");
+        return KpiResponse.from(challengeRepository.countOutcomes(
+                ChallengeStatus.SUCCESS, ChallengeStatus.FAILED));
     }
 }

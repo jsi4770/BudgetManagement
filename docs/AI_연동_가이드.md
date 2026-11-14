@@ -1,6 +1,6 @@
 # AI 기능 연동 가이드
 
-`backend/was` 에 붙은 AI 기능(TX-07 한 줄 입력, RCPT-01 영수증)과 ANL-03 의 구성·설정·남은 일을 정리한다.
+`backend/was` 에 붙은 AI 기능(TX-07 한 줄 입력, RCPT-01 영수증, 넛지 문구·코칭·성장 리포트 피드백)의 구성·설정·남은 일을 정리한다.
 
 ## 1. 붙은 것
 
@@ -9,7 +9,14 @@
 | TX-07 | `POST /transactions/parse` | `domain/ai/GeminiTransactionTextParser` (포트 `TransactionTextParser`) | 저장하지 않음. 결과는 `TransactionService#assemble` 이 조립 |
 | RCPT-01 | `POST /receipts/ocr` | `domain/ocr/ReceiptOcrService` → 포트 `ReceiptOcrClient` | Django 또는 Gemini 직접 읽기 (아래) |
 | ANL-03 | `GET /analysis/categories` | `domain/analysis/AnalysisService#getCategoryComparison` | 제거 전 팀 구현을 그대로 복원 |
+| NDG-01~03 | `/nudges/**` | `nudge/NudgeService` + 거래 후처리 `NudgeJudgement` | 판정은 `SpendingComparison#isAnomaly` (ANL-03 과 같은 계산 함수). 문구는 `GeminiNudgeTextGenerator` |
+| COACH-01~04 | `/coachings/**` | `coaching/CoachingService` | 첫 메시지 `GeminiCoachingOpeningGenerator`, 대화 `GeminiCoachingReplyGenerator`, 실패 시 `RuleBasedGoalProposer` |
+| CHL-01~03 | `/challenges/**` | `challenge/ChallengeService`, `ChallengePerformance`, 00:05 `ChallengeTerminationJob` | 피드백 `GeminiGrowthFeedbackGenerator` |
+| ADMIN-01 | `/admin/kpi` | `admin/AdminKpiService` | 챌린지 달성률 집계 |
 | (공통) | — | `domain/ai/gemini/*` | Gemini REST 클라이언트(재시도·예비 모델·mock) |
+
+거래 등록·수정·삭제(TX-01/05/06)는 같은 트랜잭션에서 **챌린지 실적 재계산 → 넛지 판정**을 돌리고, 넛지 AI 문구는 커밋 후
+비동기로 채운다(`NudgeTextFiller`).
 
 - **포트 계약은 제거 전과 같다.** 백엔드가 지키는 건 명세의 응답 필드와 실패 코드, AI 담당이 정하는 건 프롬프트·스키마다
   (서버_내부_처리 8장). 프롬프트는 `ParsePromptBuilder`, 구조화 출력 스키마는 `ParsedTxSchema` 한 곳에 있다.
@@ -42,6 +49,20 @@
 
 사용자 입력·영수증 이미지·인식 원문은 **로그에 남기지 않는다** (SNFR-008).
 
+### AI 포트별 실패 계약
+
+| 포트 | Gemini 실패 시 | 근거 |
+|---|---|---|
+| `TransactionTextParser` (TX-07) | 503 / 422 로 **드러낸다** | 해석 못 한 문장은 저장할 값이 없다 |
+| `ReceiptOcrClient` (RCPT-01) | 502 / 503 / 422 로 **드러낸다** | 사용자가 사진을 다시 찍거나 직접 입력해야 한다 |
+| `NudgeTextGenerator` | 템플릿 문구로 **대체** (던지지 않음) | 문구가 없어도 카드는 성립한다 |
+| `CoachingOpeningGenerator` | 템플릿 문구로 **대체** | COACH-01 은 에러를 정의하지 않는다 |
+| `GrowthFeedbackGenerator` | 템플릿 문구로 **대체** | ERD 10장 "실패 시 결과별 템플릿" |
+| `CoachingReplyGenerator` (COACH-03) | **던진다** → 서비스가 200 + `isFallback: true` + 규칙 기반 제안 | 프론트가 "AI 연결이 원활하지 않아요"를 띄워야 한다 |
+
+넛지 문구·첫 메시지·피드백·코칭 답변은 **서버가 준 적 없는 숫자(환각)가 끼면 쓰지 않는다**(`NumberGuard`) — 앞의 셋은 템플릿으로
+대체하고, 코칭 답변은 한 번 다시 시킨 뒤에도 남으면 던져서 대체 응답으로 간다.
+
 ## 4. 영수증 경로
 
 ```
@@ -66,15 +87,16 @@ OCR_BASE_URL 없음  →  GeminiReceiptOcrClient  →  Gemini 가 이미지를 �
 | 데이터 충분성 | 가입 28일 이상 | 가입일 ≤ 가장 오래된 표본 구간 시작일 |
 | 응답 항목 | 거래가 있는 카테고리만 | 지출 카테고리 전부(0원 포함), ID 순 |
 
-## 6. 아직 안 붙은 것 (다음 작업)
+## 6. 남은 일
 
-제거된 모듈 중 **엔티티(테이블)가 필요한 것**은 이번 범위에서 제외했다. 백엔드(박현호)가 의도적으로 뺀 코드라서,
-되살릴지·새로 만들지 합의가 먼저 필요하다.
-
-- 넛지 (NDG-01~03): `Nudge` 엔티티, 거래 등록·수정·삭제 후처리(`TransactionService` 의 TODO), AI 문구 비동기 생성.
-  판정은 `SpendingComparison#isAnomaly` 를 그대로 써야 한다 (ANL-03 과 같은 계산 함수 — 서버_내부_처리 3장).
-- AI 코칭 (COACH-xx): `Coaching`·`CoachingMessage` 엔티티, 대화 생성(`CoachingReplyGenerator` 포트), 목표 제안.
-- 챌린지·성장 리포트·KPI: 코칭 확정이 챌린지를 만들기 때문에 같이 정해야 한다.
-- `backend/ai-coach` 의 `coach` 패키지(월간 집계·인사이트·도구 호출 코치)를 DB 거래로 읽게 바꾸기.
+- `backend/ai-coach` 의 `coach` 패키지(월간 집계·인사이트 카드·도구 호출 코치)는 아직 거래 DB 가 아니라 데모 JSON 을 읽는다.
+  쓰려면 거래 리포지토리로 바꿔야 한다.
+- 코칭 대화(COACH-03)의 Gemini 프롬프트는 대화에 나온 숫자만 근거로 삼는다(포트가 DB 를 모르는 구조). 첫 메시지에 넛지의 금액이
+  들어가므로 대화에서는 충분하지만, 더 풍부한 소비 근거(직전 4주 카테고리별 추이 등)를 주려면 `CoachingReplyCommand` 에
+  맥락 필드를 추가해야 한다.
+- 실제 Gemini 호출 검증: 키 없이는 mock·stub 으로만 확인했다. 키를 넣고 아래를 한 번씩 눌러 볼 것 —
+  TX-07, RCPT-01, 넛지 생성 후 NDG-02 의 `aiAnalysis`, COACH-01·03.
+- 넛지 문구 비동기 생성은 `AsyncConfig` 의 스레드풀을 쓴다. Gemini 지연이 길어지면(호출당 10초 + 재시도) 풀이 막힐 수 있으니
+  시연 전에 부하를 한 번 확인할 것.
 - `gemini.timeout` 은 호출당 10초(서버_내부_처리 8장)지만 5xx 재시도·예비 모델이 직렬이라 최악의 경우 합계는 더 길다.
   사용자 대기 한도가 문제되면 `GEMINI_MAX_RETRIES` 를 0 으로 낮출 것.

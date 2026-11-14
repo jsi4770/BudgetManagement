@@ -165,4 +165,41 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                                                   @Param("to") LocalDate to,
                                                   @Param("expense") CategoryType expense,
                                                   @Param("excludedCategoryId") Long excludedCategoryId);
+
+    /**
+     * 넛지 문구 템플릿의 {@code {count}}("{days}일 동안 {count}번 결제했어요").
+     *
+     * <p>NUDGE 에는 금액만 저장되고 횟수가 없어서(ERD 6장) 문구를 만들 때 한 번 센다.
+     * 양끝을 포함하는 {@code between} 이라 분석 기간의 정의와 같다.
+     */
+    long countByUserIdAndCategoryIdAndTransactionDateBetween(
+            Long userId, Long categoryId, LocalDate from, LocalDate to);
+
+    /**
+     * 챌린지 실적 재계산의 집계 — 한 카테고리·한 기간의 <b>금액 합계와 건수</b>
+     * (서버_내부_처리 2장).
+     *
+     * <p>위의 {@code count...} 와 겹쳐 보이지만 합치지 않는다. 저쪽은 넛지 문구의
+     * {@code {count}} 하나만 필요해서 건수만 세고, 이쪽은 두 값이 <b>같은 집계</b>에서
+     * 나와야 한다({@link SpendingTotal} 설명).
+     *
+     * <p>{@code coalesce} 는 "기간 안에 거래가 없음"을 0원으로 만든다 — 거래를 전부 지워
+     * 실적이 0 이 되는 것은 정상 경로이고, {@code sum()} 이 {@code null} 인 줄을 레코드
+     * 생성자에 넣으면 {@code long} 언박싱에서 NPE 가 난다.
+     *
+     * <p>카테고리 타입을 조건에 넣지 않는다. 챌린지의 카테고리는 확정 시점에 지출로
+     * 검증되므로(COACH-04) ID 가 일치하면 이미 지출이다.
+     */
+    @Query("""
+            select new com.back.was.domain.transaction.SpendingTotal(
+                coalesce(sum(t.amount), 0L), count(t))
+            from Transaction t
+            where t.user.id = :userId
+              and t.category.id = :categoryId
+              and t.transactionDate between :from and :to
+            """)
+    SpendingTotal sumCategorySpending(@Param("userId") Long userId,
+                                      @Param("categoryId") Long categoryId,
+                                      @Param("from") LocalDate from,
+                                      @Param("to") LocalDate to);
 }
