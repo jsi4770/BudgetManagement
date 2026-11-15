@@ -31,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 
@@ -49,6 +50,7 @@ public class CoachingService {
     private final CoachingOpeningGenerator coachingOpeningGenerator;
     private final CoachingReplyGenerator coachingReplyGenerator;
     private final CoachingReplyFallback coachingReplyFallback;
+    private final TransactionTemplate transactionTemplate;
 
     /**
      * COACH-01 코칭 시작. 세션과 <b>AI 첫 메시지를 한 트랜잭션에서 함께</b> 저장한다
@@ -78,24 +80,65 @@ public class CoachingService {
      * Gemini 가 없거나 죽어도 {@code docs/AI_대체_문구.md} 3장 문구가 들어온다. 그래서
      * {@code try/catch} 가 없고, 명세 COACH-01 에 에러가 정의되지 않은 것과도 맞는다.
      *
+     * <p><b>첫 메시지는 트랜잭션 밖에서 만든다</b> (위험_구간 2번, 2026-11-15) — COACH-03 과
+     * 같은 이유로, Gemini 를 기다리는 동안 DB 커넥션을 쥐지 않기 위해서다. 위 순서는 그대로
+     * 지키되 두 트랜잭션에 나뉜다:
+     *
+     * <ol>
+     *   <li>읽기만 하는 트랜잭션 — 사용자·넛지 조회(404 는 여기서), 첫 메시지 맥락 수집.</li>
+     *   <li>트랜잭션 없음 — {@link CoachingOpeningGenerator} 호출.</li>
+     *   <li>쓰기 트랜잭션 — 이전 코칭 취소, 세션과 첫 메시지 저장, 넛지 상태 변경.</li>
+     * </ol>
+     *
+     * <p>COACH-03 과 달리 <b>포기한 원자성이 없다</b>: 쓰기는 전부 3번 하나에 있으니 세션과
+     * 첫 메시지는 여전히 함께 저장된다. 1번은 읽기만 하므로 404 가 나면 아무것도 바뀌지
+     * 않는다 — "넛지를 먼저 찾는다"는 규칙이 지키려던 것이 그대로 성립한다.
+     *
+     * <p><b>2번 사이에 넛지가 지워질 수 있다</b> — 다른 탭의 TX-05/06 이 판정 조건을 깨면
+     * {@code NudgeJudgement} 가 {@code UNREAD} 카드를 삭제한다. 그때는 넛지 상태 변경만
+     * 건너뛰고 코칭은 시작한다. COACHING 은 NUDGE 를 참조하지 않으므로(FK 없음) 잃는 것이
+     * 없고, 이미 만든 첫 메시지를 버리고 404 를 내는 것보다 사용자에게 낫다.
+     *
+     * <p>메서드 자체에 {@code @Transactional} 을 붙이면 안 된다 — 아래
+     * {@link TransactionTemplate} 들이 그 안에 합류해 원래 문제로 되돌아간다.
+     *
      * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 {@code nudgeId}
      */
-    @Transactional
     public CoachingResponse start(Long userId, StartCoachingRequest request) {
+        CoachingOpeningCommand command = transactionTemplate.execute(
+                status -> openingCommand(userId, request));
+
+        String opening = coachingOpeningGenerator.generate(command);
+
+        return transactionTemplate.execute(status -> saveCoaching(userId, request, opening));
+    }
+
+    /** COACH-01 의 1번 트랜잭션. 엔티티가 아니라 값만 돌려줘서 2번에서 지연 로딩이 일어나지 않는다. */
+    private CoachingOpeningCommand openingCommand(Long userId, StartCoachingRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(BusinessException::notFound);
         Nudge nudge = findNudge(userId, request);
 
+        return openingCommand(user, nudge);
+    }
+
+    /** COACH-01 의 3번 트랜잭션. */
+    private CoachingResponse saveCoaching(Long userId, StartCoachingRequest request, String openingMessage) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(BusinessException::notFound);
+
         cancelInProgress(userId);
 
         Coaching coaching = coachingRepository.save(Coaching.start(user));
-        CoachingMessage opening = coachingMessageRepository.save(
-                CoachingMessage.ai(coaching, coachingOpeningGenerator.generate(openingCommand(user, nudge))));
+        CoachingMessage opening = coachingMessageRepository.save(CoachingMessage.ai(coaching, openingMessage));
 
-        if (nudge != null) {
+        if (request.hasNudgeId()) {
             // 되돌리는 전이가 없는 상태다(NDG-03) — 이미 COACHING_STARTED 인 카드로 다시
             // 시작해도 같은 값을 덮어쓸 뿐이라 따로 비교하지 않는다.
-            nudge.changeStatus(NudgeStatus.COACHING_STARTED);
+            nudgeRepository.findByIdAndUserId(request.nudgeId(), userId).ifPresentOrElse(
+                    nudge -> nudge.changeStatus(NudgeStatus.COACHING_STARTED),
+                    () -> log.info("넛지 {} 가 첫 메시지를 만드는 사이 지워져 상태 변경을 건너뛴다",
+                            request.nudgeId()));
         }
 
         return CoachingResponse.of(coaching, List.of(opening));
@@ -135,8 +178,35 @@ public class CoachingService {
     }
 
     /**
-     * COACH-03 메시지 전송. 사용자 메시지와 AI 응답을 <b>한 트랜잭션에서</b> 저장하고,
-     * AI 가 목표를 제안했으면 {@code PROPOSAL_} 컬럼 6개를 덮어쓴다(서버_내부_처리 6장).
+     * COACH-03 메시지 전송. 사용자 메시지와 AI 응답을 저장하고, AI 가 목표를 제안했으면
+     * {@code PROPOSAL_} 컬럼 6개를 덮어쓴다(서버_내부_처리 6장).
+     *
+     * <p><b>트랜잭션이 셋으로 나뉘어 있고, AI 호출은 그 사이 트랜잭션 밖에서 한다</b>
+     * (위험_구간 2번, 2026-11-15 해소):
+     *
+     * <ol>
+     *   <li>짧은 트랜잭션 — 코칭 확인, 사용자 메시지 저장, 포트에 넘길 맥락 수집. 커밋.</li>
+     *   <li>트랜잭션 없음 — {@link CoachingReplyGenerator} 호출 (타임아웃 최대 10초).</li>
+     *   <li>짧은 트랜잭션 — (실패했으면 대체 응답 생성) AI 메시지 저장, 제안 반영. 커밋.</li>
+     * </ol>
+     *
+     * <p>한 트랜잭션으로 묶으면 메시지 한 건이 Gemini 를 기다리는 동안 DB 커넥션을 쥐고
+     * 있어서, 동시 대화 몇 건이면 풀(Boot 기본 10개)이 말라 <b>코칭과 무관한 요청까지</b>
+     * 멈춘다. 그래서 6장의 "함께 저장" 원자성을 포기했다: 2번 도중 서버가 죽으면 사용자
+     * 메시지만 남는다(화면상 답 없는 질문 — 재전송으로 복구). {@code open-in-view} 가 꺼져
+     * 있어야 이 분리가 실제로 커넥션을 놓는다 — 켜면 요청 내내 커넥션이 묶여 이 구조가
+     * 무의미해진다. {@code CoachingTransactionBoundaryTest} 가 둘 다 고정한다.
+     *
+     * <p>메서드 자체에 {@code @Transactional} 을 붙이면 안 된다 — 바깥 트랜잭션이 생겨
+     * 아래 {@link TransactionTemplate} 들이 그 안에 합류하고, 원래 문제로 되돌아간다.
+     *
+     * <p><b>대체 응답(규칙 기반 제안)은 3번에서 만든다.</b> DB 를 읽기 때문이다
+     * ({@link CoachingReplyFallback}).
+     *
+     * <p><b>2번 사이에 코칭이 끝났으면</b>(다른 탭의 COACH-04 확정, COACH-01 새 시작으로
+     * 취소) AI 메시지는 저장하되 <b>제안은 반영하지 않는다</b>. 사용자 메시지는 이미
+     * 커밋됐으니 409 를 내면 답 없는 질문이 남고, 끝난 코칭의 {@code PROPOSAL_} 컬럼은
+     * "확정 당시의 제안" 기록이라 덮어쓰면 그 기록이 틀어진다.
      *
      * <p><b>AI 가 실패해도 200 이다.</b> 명세 0장 4) 각주와 서버_내부_처리 8장이 코칭 대화는
      * 에러 대신 대체 메시지로 응답하라고 정했다 — 그래서 포트 호출만 {@code try} 로 감싸고
@@ -157,15 +227,25 @@ public class CoachingService {
      * 묶어서 묻는 것은 {@link Coaching#isEnded()} 다 — 읽기(COACH-02)에는 걸리지 않는
      * 쓰기 전용 규칙이다.
      *
-     * <p>외부 호출이 트랜잭션 안에 있는 것은 감수한 비용이다. 서버_내부_처리 6장이 두
-     * 메시지를 함께 저장하라고 하고 응답에 둘 다 필요하므로 커밋을 미룰 수밖에 없다 —
-     * 포트 계약의 10초 타임아웃(8장)이 그 시간의 상한이다.
-     *
      * @throws BusinessException 404 {@code NOT_FOUND} — 없는/남의 코칭,
      *                           409 {@code COACHING_ALREADY_ENDED} — 종료된 코칭
      */
-    @Transactional
     public SendMessageResponse sendMessage(Long userId, Long id, SendMessageRequest request) {
+        UserTurn turn = transactionTemplate.execute(status -> saveUserTurn(userId, id, request));
+
+        CoachingReply reply = null;
+        try {
+            reply = coachingReplyGenerator.reply(turn.command());
+        } catch (RuntimeException e) {
+            log.warn("코칭 {} AI 응답 실패 — 대체 문구로 응답한다", turn.coachingId(), e);
+        }
+        CoachingReply aiReply = reply;
+
+        return transactionTemplate.execute(status -> saveAiTurn(turn, aiReply));
+    }
+
+    /** COACH-03 의 1번 트랜잭션. 여기서 던진 404·409 는 아무것도 저장하지 않는다. */
+    private UserTurn saveUserTurn(Long userId, Long id, SendMessageRequest request) {
         Coaching coaching = coachingRepository.findByIdAndUserId(id, userId)
                 .orElseThrow(BusinessException::notFound);
         if (coaching.isEnded()) {
@@ -175,21 +255,42 @@ public class CoachingService {
         CoachingMessage userMessage = coachingMessageRepository.save(
                 CoachingMessage.user(coaching, request.content()));
 
-        boolean fallback = false;
-        CoachingReply reply;
-        try {
-            reply = coachingReplyGenerator.reply(replyCommand(coaching));
-        } catch (RuntimeException e) {
-            log.warn("코칭 {} AI 응답 실패 — 대체 문구로 응답한다", coaching.getId(), e);
+        return new UserTurn(coaching.getId(), userMessage, replyCommand(coaching));
+    }
+
+    /**
+     * COACH-03 의 3번 트랜잭션.
+     *
+     * @param reply AI 응답. {@code null} 이면 포트가 실패한 것이고 대체 응답을 쓴다
+     */
+    private SendMessageResponse saveAiTurn(UserTurn turn, CoachingReply reply) {
+        Coaching coaching = coachingRepository.findById(turn.coachingId()).orElseThrow();
+
+        boolean fallback = reply == null;
+        if (fallback) {
             reply = coachingReplyFallback.of(coaching.getUser());
-            fallback = true;
         }
 
         CoachingMessage aiMessage = coachingMessageRepository.save(
                 CoachingMessage.ai(coaching, reply.message()));
-        boolean proposed = applyProposal(coaching, reply.proposal());
 
-        return SendMessageResponse.of(userMessage, aiMessage, fallback, coaching, proposed);
+        boolean proposed;
+        if (coaching.isEnded()) {
+            log.info("코칭 {} 가 AI 응답을 기다리는 사이 종료돼 제안을 반영하지 않는다", coaching.getId());
+            proposed = false;
+        } else {
+            proposed = applyProposal(coaching, reply.proposal());
+        }
+
+        // 제안 응답이 지연 로딩된 카테고리를 읽으므로 트랜잭션 안에서 만든다.
+        return SendMessageResponse.of(turn.userMessage(), aiMessage, fallback, coaching, proposed);
+    }
+
+    /**
+     * 1번 트랜잭션이 커밋한 결과. {@code command} 는 값만 담고 있어 트랜잭션 밖 AI 호출에
+     * 넘겨도 지연 로딩이 일어나지 않는다 — 일어나면 그 자리에서 커넥션을 다시 잡는다.
+     */
+    private record UserTurn(Long coachingId, CoachingMessage userMessage, CoachingReplyCommand command) {
     }
 
     /**
