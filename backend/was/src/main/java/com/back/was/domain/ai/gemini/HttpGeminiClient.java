@@ -13,6 +13,8 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
@@ -73,17 +75,17 @@ public class HttpGeminiClient implements GeminiClient {
                         "data", Base64.getEncoder().encodeToString(imageBytes))),
                 Map.of("text", userText));
         List<Map<String, Object>> contents = List.of(Map.of("role", "user", "parts", parts));
-        return call(imageRestClient, systemInstruction, contents, responseSchema, temperature);
+        return call(imageRestClient, props.imageTimeout(), systemInstruction, contents, responseSchema, temperature);
     }
 
     // ------------------------------------------------------------------ 내부
 
     private JsonNode call(String systemInstruction, List<Map<String, Object>> contents,
                           Map<String, Object> responseSchema, double temperature) {
-        return call(restClient, systemInstruction, contents, responseSchema, temperature);
+        return call(restClient, props.timeout(), systemInstruction, contents, responseSchema, temperature);
     }
 
-    private JsonNode call(RestClient client, String systemInstruction, List<Map<String, Object>> contents,
+    private JsonNode call(RestClient client, Duration limit, String systemInstruction, List<Map<String, Object>> contents,
                           Map<String, Object> responseSchema, double temperature) {
         if (!props.hasApiKey()) {
             throw GeminiErrors.unavailable("AI 서비스 설정이 되어 있지 않아요.");
@@ -99,39 +101,47 @@ public class HttpGeminiClient implements GeminiClient {
         body.put("contents", contents);
         body.put("generationConfig", generationConfig);
 
-        return extractJson(post(client, body));
+        return extractJson(post(client, body, deadlineAfter(limit)));
+    }
+
+    private static Instant deadlineAfter(Duration limit) {
+        return Instant.now().plus(limit);
     }
 
     /**
      * 모델별로 재시도하고, 계속 실패하면 예비 모델로 전환한다.
      * 429(일일 한도 초과)는 재시도해도 소용없으므로 곧바로 다음 모델로 넘어간다.
+     *
+     * <p><b>전부 {@code deadline} 안에서만 일어난다</b>({@link GeminiDeadline}). 마감이 지나면 남은 재시도와
+     * 예비 모델을 건너뛰고 마지막 실패로 503 을 낸다 — 시도 횟수가 아니라 시간이 사용자 대기의 상한이다.
      */
-    private JsonNode post(Map<String, Object> body) {
-        return post(restClient, body);
-    }
-
-    private JsonNode post(RestClient client, Map<String, Object> body) {
+    private JsonNode post(RestClient client, Map<String, Object> body, Instant deadline) {
         List<String> models = new ArrayList<>();
         models.add(props.model());
         if (props.fallbackModel() != null) models.add(props.fallbackModel());
 
         BusinessException last = null;
+        models:
         for (String model : models) {
             int attempts = props.maxRetries() + 1;
             for (int attempt = 1; attempt <= attempts; attempt++) {
+                if (!Instant.now().isBefore(deadline)) {
+                    log.warn("[Gemini] 호출 시간 상한 초과 — 남은 재시도·예비 모델을 건너뛴다");
+                    break models;
+                }
                 try {
-                    return client.post()
+                    return GeminiDeadline.within(deadline, () -> client.post()
                             .uri("/models/{model}:generateContent", model)
                             .contentType(MediaType.APPLICATION_JSON)
                             .body(body)
                             .retrieve()
-                            .body(JsonNode.class);
+                            .body(JsonNode.class));
                 } catch (RestClientResponseException e) {
                     int status = e.getStatusCode().value();
                     logHttpError(status, e.getResponseBodyAsString());
                     last = GeminiErrors.unavailable("AI 서비스를 일시적으로 사용할 수 없어요.", e);
                     if (status == 429) break;
-                    if (status >= 500 && attempt < attempts) { sleep(1500L * attempt); continue; }
+                    if (status >= 500 && attempt < attempts && backOff(attempt, deadline)) continue;
                     if (status >= 500) break;
                     throw last;   // 400·403·404 는 설정 문제 → 예비 모델도 소용없음
                 } catch (RestClientException e) {
@@ -139,12 +149,22 @@ public class HttpGeminiClient implements GeminiClient {
                     // "Error while extracting response" 로 올라오므로 상위 타입으로 잡는다 — 안 잡으면 500 이 된다.
                     log.warn("[Gemini] {} 네트워크 오류/타임아웃 (시도 {}/{}): {}", model, attempt, attempts, e.getClass().getSimpleName());
                     last = GeminiErrors.unavailable("AI 서비스에 연결하지 못했어요.", e);
-                    if (attempt < attempts) sleep(1500L * attempt);
+                    if (attempt < attempts && !backOff(attempt, deadline)) break;
                 }
             }
             log.warn("[Gemini] {} 응답 불가 → 예비 모델 확인", model);
         }
         throw last != null ? last : GeminiErrors.unavailable("AI 서비스를 일시적으로 사용할 수 없어요.");
+    }
+
+    /** 재시도 전 대기. 대기만으로 마감을 넘기면 기다리지 않고 {@code false} — 재시도할 시간이 없다. */
+    private static boolean backOff(int attempt, Instant deadline) {
+        long waitMillis = 1500L * attempt;
+        if (!Instant.now().plusMillis(waitMillis).isBefore(deadline)) {
+            return false;
+        }
+        sleep(waitMillis);
+        return true;
     }
 
     // ------------------------------------------------------------------ 도구 호출 대화
@@ -172,6 +192,8 @@ public class HttpGeminiClient implements GeminiClient {
             contents.add(Map.of("role", m.role(), "parts", List.of(Map.of("text", m.text()))));
         }
 
+        // 왕복 전체에 상한 하나 — 라운드마다 새로 주면 최악이 라운드 수만큼 곱해진다
+        Instant deadline = deadlineAfter(props.timeout());
         for (int round = 0; round < MAX_TOOL_ROUNDS; round++) {
             Map<String, Object> body = new LinkedHashMap<>();
             body.put("systemInstruction", Map.of("parts", List.of(Map.of("text", systemInstruction))));
@@ -179,7 +201,7 @@ public class HttpGeminiClient implements GeminiClient {
             body.put("tools", List.of(Map.of("functionDeclarations", decls)));
             body.put("generationConfig", Map.of("temperature", temperature));
 
-            JsonNode candidate = post(body).path("candidates").path(0);
+            JsonNode candidate = post(restClient, body, deadline).path("candidates").path(0);
             JsonNode parts = candidate.path("content").path("parts");
 
             List<Map<String, Object>> responses = new ArrayList<>();

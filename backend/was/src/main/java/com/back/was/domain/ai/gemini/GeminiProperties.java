@@ -11,8 +11,9 @@ import java.time.Duration;
  * @param apiKey     Gemini API 키
  * @param model      모델명. 기본 gemini-flash-latest (최신 Flash 자동 연결 별칭)
  * @param baseUrl    Gemini REST 주소
- * @param timeout    텍스트 호출의 응답 대기 최대 시간 (기본 10초 — 서버_내부_처리 8장)
- * @param imageTimeout 이미지(영수증) 호출의 응답 대기 최대 시간 (기본 30초 — 이미지 읽기는 10초를 넘기기도 한다)
+ * @param timeout    텍스트 호출 한 번의 최대 시간 (기본 10초 — 서버_내부_처리 8장). <b>재시도·예비 모델 전환을
+ *                   포함한 전체 상한</b>이다({@link GeminiDeadline})
+ * @param imageTimeout 이미지(영수증) 호출 한 번의 최대 시간, 같은 의미 (기본 30초 — 이미지 읽기는 10초를 넘기기도 한다)
  * @param maxRetries 429(한도 초과)·5xx(장애)·타임아웃 때 재시도 횟수
  * @param mock       true 면 실제 호출 없이 가짜 응답 (키 없는 팀원·CI 용)
  */

@@ -1,0 +1,19 @@
+# 가상환경·캐시 — 컨테이너 안에서 다시 설치합니다
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# 비밀값 — 이미지에 굽지 않습니다.
+# .env 는 compose 가 env_file 로 넘기고, GCP 키는 compose 가 secrets/ 를 마운트합니다.
+.env
+.env.*
+*.json
+secrets/
+
+# 로컬 개발 DB — 이 서버는 아무것도 저장하지 않습니다
+db.sqlite3
+
+.git/
+.idea/
+.vscode/
