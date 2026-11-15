@@ -238,9 +238,18 @@ public class Challenge {
             throw new IllegalStateException(
                     "이미 종료된 챌린지는 다시 판정하지 않아요 (status=%s).".formatted(status));
         }
+        this.status = verdict();
+    }
+
+    /**
+     * 지금 실적으로 판정하면 나올 결과 — 상태는 바꾸지 않는다. {@link #finish()} 가 쓰는 규칙과
+     * 같은 한 곳이고, 종료 판정이 리포트 문구를 <b>판정 전에</b>(트랜잭션 밖 AI 호출) 준비할 때
+     * 쓴다({@code ChallengeTermination}).
+     */
+    public ChallengeStatus verdict() {
         int goal = goalType.requiredGoal(goalAmount, goalCount);
         int spending = goalType == GoalType.AMOUNT ? spendingAmount : spendingCount;
-        this.status = spending <= goal ? ChallengeStatus.SUCCESS : ChallengeStatus.FAILED;
+        return spending <= goal ? ChallengeStatus.SUCCESS : ChallengeStatus.FAILED;
     }
 
     /** 판정이 끝나 얼어붙은 상태인지. 후처리 2번이 건너뛰는 조건이다(서버_내부_처리 1장). */

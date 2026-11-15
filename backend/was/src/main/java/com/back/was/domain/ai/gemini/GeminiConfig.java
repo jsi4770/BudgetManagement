@@ -26,7 +26,9 @@ public class GeminiConfig {
     }
 
     private static RestClient build(GeminiProperties props, java.time.Duration readTimeout) {
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        // 시도 하나의 상한. 호출 전체(재시도·예비 모델 포함)의 상한은 HttpGeminiClient 가 GeminiDeadline 으로
+        // 걸고, 이 팩토리가 시도마다 남은 시간으로 다시 줄인다.
+        SimpleClientHttpRequestFactory factory = new GeminiDeadline.RequestFactory();
         factory.setConnectTimeout(3_000);                          // 연결 3초
         factory.setReadTimeout((int) readTimeout.toMillis());      // 응답 대기
 

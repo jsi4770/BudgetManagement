@@ -8,10 +8,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+import org.springframework.transaction.support.TransactionTemplate;
+
+import java.util.function.Supplier;
 
 /**
  * 거래 변경 후처리 <b>5번</b>: 넛지 AI 문구 생성 (서버_내부_처리 1장 · 8장).
@@ -21,12 +24,16 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * 상태를 "AI가 분석 중이에요"로 보여 준다).
  *
  * <p>그래서 {@code @TransactionalEventListener(AFTER_COMMIT)} + {@code @Async} 조합이다
- * (8장이 지정한 그대로). {@code @Transactional} 을 다시 붙이는 건 이 메서드가 커밋 후
- * <b>다른 스레드</b>에서 시작되어 활성 트랜잭션이 없기 때문이고, <b>전파가
- * {@code REQUIRES_NEW} 여야 한다</b> — Spring 은 {@code AFTER_COMMIT} 리스너에 기본 전파
- * ({@code REQUIRED}) 의 {@code @Transactional} 이 붙어 있으면 <b>기동 시점에</b>
- * {@code IllegalStateException} 을 던진다. 이미 끝난 트랜잭션에 참여하려 드는 설정이라
- * 쓰기가 조용히 버려지기 때문이다.
+ * (8장이 지정한 그대로). 이 메서드는 커밋 후 <b>다른 스레드</b>에서 시작되어 활성
+ * 트랜잭션이 없으므로 DB 작업은 새 트랜잭션에서 한다. <b>전파는 {@code REQUIRES_NEW} 여야
+ * 한다</b> — {@code AFTER_COMMIT} 시점에는 끝난 트랜잭션의 자원이 아직 묶여 있을 수 있어서
+ * ({@code @Async} 가 꺼진 테스트처럼 같은 스레드에서 돌 때) {@code REQUIRED} 로는 거기 참여해
+ * 쓰기가 조용히 버려진다. Spring 이 이 리스너의 {@code @Transactional(REQUIRED)} 를 기동
+ * 시점에 거부하는 것도 같은 이유다.
+ *
+ * <p><b>메서드에 {@code @Transactional} 을 두지 않고 트랜잭션을 둘로 나눈다</b> (2026-11-15):
+ * 읽기 → 트랜잭션 밖 Gemini 호출 → 쓰기. 한 트랜잭션이면 비동기 스레드마다(기본 8개) DB
+ * 커넥션을 쥐고 Gemini 를 기다려서, 거래 등록이 몰릴 때 커넥션 풀(기본 10개)이 말랐다.
  *
  * <p>금액이 갱신되면 판정이 이벤트를 다시 쏘므로 문구도 다시 생성된다. 새 문구가 저장될
  * 때까지는 이전 문구가 남는다 — {@code Nudge.fillAiText} 가 덮어쓰기만 하기 때문이다
@@ -40,6 +47,7 @@ public class NudgeTextFiller {
     private final NudgeRepository nudgeRepository;
     private final TransactionRepository transactionRepository;
     private final NudgeTextGenerator nudgeTextGenerator;
+    private final PlatformTransactionManager transactionManager;
 
     /**
      * <p>넛지가 이미 사라졌으면 아무것도 하지 않는다. 커밋과 이 호출 사이에 사용자가 거래를
@@ -49,16 +57,41 @@ public class NudgeTextFiller {
      * <p>예외를 삼키지 않지만 비동기라 호출자에게 전파되지도 않는다. 문구가 없는 카드는
      * 유효한 상태이므로 로그만 남기고 끝낸다 — 재시도 큐를 두는 건 과하다(다음 거래 변경
      * 때 어차피 다시 판정·생성된다).
+     *
+     * <p><b>저장 직전에 입력값을 다시 만들어 비교한다.</b> Gemini 를 기다리는 사이 거래가 또
+     * 바뀌어 넛지 금액이 갱신됐으면, 그 갱신이 쏜 이벤트가 새 문구를 만들고 있다 — 여기서 옛
+     * 숫자로 만든 문구를 저장하면 (늦게 끝난 쪽이 이기므로) 카드 숫자와 문구가 어긋날 수 있다.
+     * 그래서 다르면 저장하지 않는다. 넛지가 지워졌어도 마찬가지다.
      */
     @Async
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void fill(NudgeJudgedEvent event) {
-        nudgeRepository.findById(event.nudgeId()).ifPresent(nudge -> {
-            NudgeText text = nudgeTextGenerator.generate(commandOf(nudge));
-            nudge.fillAiText(text.analysis(), text.recommendation());
-            log.debug("넛지 {} 문구 생성", nudge.getId());
+        Long nudgeId = event.nudgeId();
+        NudgeTextCommand command = inNewTransaction(() ->
+                nudgeRepository.findById(nudgeId).map(this::commandOf).orElse(null));
+        if (command == null) {
+            return;
+        }
+
+        NudgeText text = nudgeTextGenerator.generate(command);
+
+        inNewTransaction(() -> {
+            nudgeRepository.findById(nudgeId).ifPresent(nudge -> {
+                if (!commandOf(nudge).equals(command)) {
+                    log.debug("넛지 {} 가 문구를 만드는 사이 갱신돼 이 문구는 버린다", nudgeId);
+                    return;
+                }
+                nudge.fillAiText(text.analysis(), text.recommendation());
+                log.debug("넛지 {} 문구 생성", nudgeId);
+            });
+            return null;
         });
+    }
+
+    private <T> T inNewTransaction(Supplier<T> work) {
+        TransactionTemplate template = new TransactionTemplate(transactionManager);
+        template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return template.execute(status -> work.get());
     }
 
     /**
