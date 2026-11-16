@@ -1,15 +1,14 @@
 # 영수증 OCR 서버 (Django)
 
-Google Cloud Vertex AI의 Gemini 멀티모달 모델(`gemini-3.5-flash-lite`)을 활용하여 영수증 이미지에서 결제 정보(금액, 일자, 카테고리, 상호명)를 추출하는 마이크로서비스입니다.
+Claude 멀티모달 모델(기본 `claude-opus-5-5`)을 활용하여 영수증 이미지에서 결제 정보(금액, 일자, 카테고리, 상호명)를 추출하는 마이크로서비스입니다.
 
 ---
 
 ## 1. 사전 준비
 
-### (1) Google Cloud Service Account 키 준비
-* 팀 공유 채널에서 전달받은 GCP Service Account JSON 키 파일을 `backend/ocr/` 디렉터리에 복사합니다.
-* 파일명을 **`service-account.json`**으로 설정합니다.
-> **보안 주의:** 키 파일은 `.gitignore`에 등록되어 있어 Git에 커밋되지 않습니다. 절대 Git 레포지토리에 푸시하지 마세요.
+### (1) Claude API 키 준비
+* [platform.claude.com](https://platform.claude.com) 에서 API 키를 발급받아 아래 `.env` 의 `ANTHROPIC_API_KEY` 에 넣습니다.
+> **보안 주의:** `.env` 는 `.gitignore`에 등록되어 있어 Git에 커밋되지 않습니다. 키를 코드나 레포지토리에 두지 마세요.
 
 ---
 
@@ -38,7 +37,7 @@ pip install -r requirements.txt
 
 ### (3) 환경변수 설정 (`.env`)
 
-`.env.example` 파일을 복사하여 `.env` 파일을 생성합니다
+`.env.example` 파일을 복사하여 `.env` 파일을 생성하고 `ANTHROPIC_API_KEY` 를 채웁니다
 
 ### (4) 서버 실행
 
@@ -53,7 +52,7 @@ python manage.py runserver 8000
 ## 3. 테스트 방법
 
 ### 단위 테스트 실행
-Mock 기반의 단위 테스트(6개 케이스)를 실행하여 유효성 검사 및 에러 응답 처리를 검증합니다:
+Mock 기반의 단위 테스트(8개 케이스)를 실행하여 유효성 검사 및 에러 응답 처리를 검증합니다:
 
 ```bash
 python manage.py test receipt

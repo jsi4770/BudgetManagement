@@ -116,14 +116,10 @@ REST_FRAMEWORK = {
     ],
 }
 
-# Google Cloud Vertex AI & Gemini 설정
-GCP_PROJECT_ID = os.getenv('GCP_PROJECT_ID')
-GCP_LOCATION = os.getenv('GCP_LOCATION', 'global')
-GEMINI_MODEL = os.getenv('GEMINI_MODEL', 'gemini-3.5-flash-lite')
-GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-
-if GOOGLE_APPLICATION_CREDENTIALS:
-    cred_path = Path(GOOGLE_APPLICATION_CREDENTIALS)
-    if not cred_path.is_absolute():
-        cred_path = (BASE_DIR / cred_path).resolve()
-    os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = str(cred_path)
+# Claude 설정 — API 키는 ANTHROPIC_API_KEY 환경변수로만 받는다 (SDK 가 직접 읽는다)
+CLAUDE_MODEL = os.getenv('CLAUDE_MODEL', 'claude-opus-5-5')
+# 생각 깊이 low|medium|high|xhigh|max. WAS 가 20초 안에 답을 기다리므로 기본 low
+CLAUDE_EFFORT = os.getenv('CLAUDE_EFFORT', 'low')
+# 호출 시간 상한(초). WAS 의 OCR_TIMEOUT(기본 20초)보다 짧아야 WAS 가 먼저 끊지 않는다
+CLAUDE_TIMEOUT_SECONDS = float(os.getenv('CLAUDE_TIMEOUT_SECONDS', '15'))
+CLAUDE_MAX_RETRIES = int(os.getenv('CLAUDE_MAX_RETRIES', '0'))

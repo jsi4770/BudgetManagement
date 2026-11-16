@@ -16,9 +16,9 @@
 # | ocr       | http://localhost:8000/receipts/ocr    |                                        |
 #
 # **비밀값은 각 폴더의 .env 에서 읽습니다** — 이 파일에는 값을 적지 않습니다.
-#   - was/.env      → GEMINI_API_KEY 등 (was/.env_example 참고)
+#   - was/.env      → ANTHROPIC_API_KEY 등 (was/.env.example 참고)
 #   - ai-coach/.env → GEMINI_API_KEY 등 (ai-coach/.env.example)
-#   - ocr/.env      → DJANGO_*, GCP_* (ocr/.env.example)
+#   - ocr/.env      → DJANGO_*, ANTHROPIC_API_KEY, CLAUDE_* (ocr/.env.example)
 # .env 가 없어도 전부 뜹니다. AI 기능만 503/대체 문구로 동작합니다.
 
 # 프로젝트 이름을 was/compose.yaml 과 같게 둡니다. 그래야 `was/` 에서 DB 만 띄우던 컨테이너와
@@ -58,19 +58,12 @@ services:
       # was 컨테이너가 http://ocr:8000 으로 부르면 Host 헤더가 "ocr" 이라, 목록에 없으면
       # Django 가 400 으로 거절합니다. ocr/.env 의 값보다 이쪽이 우선합니다.
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,ocr
-      # GCP 서비스 계정 키는 이미지에 굽지 않고 아래 볼륨으로 넣습니다.
-      GOOGLE_APPLICATION_CREDENTIALS: /app/secrets/service-account.json
-    volumes:
-      # 키 파일을 **backend/ocr/secrets/service-account.json** 에 두세요 (secrets/ 는 gitignore 대상).
-      # 파일이 아니라 폴더를 마운트하는 이유: 키가 없는 팀원도 스택이 떠야 하는데, 없는 파일을
-      # 마운트하면 Docker 가 그 자리에 빈 폴더를 만들거나 기동이 실패합니다. 키가 없으면 서버는
-      # 뜨고 분석 요청만 실패합니다.
-      - ./ocr/secrets:/app/secrets:ro
+      # Claude 키(ANTHROPIC_API_KEY)는 ocr/.env 에서 들어옵니다. 키가 없으면 서버는 뜨고 분석 요청만 503 입니다.
     ports:
       - "8000:8000"
     restart: unless-stopped
 
-# was 가 영수증을 ocr 서버로 보내게 하려면(기본은 Gemini 가 직접 읽음) was/.env 에
+# was 가 영수증을 ocr 서버로 보내게 하려면(기본은 Claude 가 직접 읽음) was/.env 에
 #   OCR_BASE_URL=http://ocr:8000
 # 을 넣고 `docker compose up -d app` 으로 was 만 다시 띄우세요. 컨테이너끼리는 서비스 이름으로
 # 찾습니다 — localhost 는 각 컨테이너 자기 자신입니다.

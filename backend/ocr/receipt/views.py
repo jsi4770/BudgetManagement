@@ -93,7 +93,7 @@ class ReceiptOcrView(APIView):
             except Exception as e:
                 logger.warning("카테고리 파싱 실패, 기본 카테고리 적용: %s", e)
 
-        # 5. Gemini 멀티모달 분석 실행
+        # 5. Claude 멀티모달 분석 실행
         try:
             image_bytes = image_file.read()
             result = analyze_receipt(

@@ -43,18 +43,19 @@ class ReceiptOcrApiTest(TestCase):
         self.assertFalse(data["success"])
         self.assertEqual(data["error"]["code"], "FILE_TOO_LARGE")
 
-    @patch("receipt.services.get_genai_client")
+    @patch("receipt.services.get_claude_client")
     def test_successful_ocr_analysis(self, mock_get_client):
         """정상적인 영수증 이미지 분석 성공 시 200 OK 및 명세 규격에 맞는 데이터를 반환한다."""
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.parsed = ReceiptData(
+        mock_response.stop_reason = "end_turn"
+        mock_response.parsed_output = ReceiptData(
             amount=23500,
             transactionDate="2026-11-04",
             category=Category(id=2, name="배달", type="EXPENSE"),
             memo="배달의민족 주문",
         )
-        mock_client.models.generate_content.return_value = mock_response
+        mock_client.messages.parse.return_value = mock_response
         mock_get_client.return_value = mock_client
 
         dummy_img = SimpleUploadedFile("receipt.jpg", b"dummy image bytes", content_type="image/jpeg")
@@ -71,18 +72,19 @@ class ReceiptOcrApiTest(TestCase):
         self.assertEqual(data["data"]["memo"], "배달의민족 주문")
         self.assertEqual(data["data"]["missingFields"], [])
 
-    @patch("receipt.services.get_genai_client")
+    @patch("receipt.services.get_claude_client")
     def test_partial_fields_identifies_missing_fields(self, mock_get_client):
         """금액이나 일자를 식별하지 못한 경우 missingFields에 누락된 필드가 담긴다."""
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.parsed = ReceiptData(
+        mock_response.stop_reason = "end_turn"
+        mock_response.parsed_output = ReceiptData(
             amount=None,
             transactionDate="2026-11-04",
             category=Category(id=1, name="식비", type="EXPENSE"),
             memo=None,
         )
-        mock_client.models.generate_content.return_value = mock_response
+        mock_client.messages.parse.return_value = mock_response
         mock_get_client.return_value = mock_client
 
         dummy_img = SimpleUploadedFile("receipt.png", b"dummy image bytes", content_type="image/png")
@@ -98,11 +100,11 @@ class ReceiptOcrApiTest(TestCase):
         self.assertNotIn("transactionDate", data["data"]["missingFields"])
         self.assertNotIn("category", data["data"]["missingFields"])
 
-    @patch("receipt.services.get_genai_client")
+    @patch("receipt.services.get_claude_client")
     def test_ai_unavailable_returns_503(self, mock_get_client):
-        """Gemini API 호출 실패 시 503 AI_UNAVAILABLE을 반환한다."""
+        """Claude API 호출 실패 시 503 AI_UNAVAILABLE을 반환한다."""
         mock_client = MagicMock()
-        mock_client.models.generate_content.side_effect = Exception("Vertex AI connection failed")
+        mock_client.messages.parse.side_effect = Exception("Claude API connection failed")
         mock_get_client.return_value = mock_client
 
         dummy_img = SimpleUploadedFile("receipt.jpg", b"dummy image bytes", content_type="image/jpeg")
@@ -112,3 +114,40 @@ class ReceiptOcrApiTest(TestCase):
         data = response.json()
         self.assertFalse(data["success"])
         self.assertEqual(data["error"]["code"], "AI_UNAVAILABLE")
+
+    @patch("receipt.services.get_claude_client")
+    def test_refusal_returns_503(self, mock_get_client):
+        """모델이 거절(refusal)하면 스키마를 믿을 수 없으므로 503 AI_UNAVAILABLE을 반환한다."""
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.stop_reason = "refusal"
+        mock_response.parsed_output = None
+        mock_client.messages.parse.return_value = mock_response
+        mock_get_client.return_value = mock_client
+
+        dummy_img = SimpleUploadedFile("receipt.jpg", b"dummy image bytes", content_type="image/jpeg")
+        response = self.client.post(self.url, {"image": dummy_img}, format="multipart")
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertEqual(response.json()["error"]["code"], "AI_UNAVAILABLE")
+
+    @patch("receipt.services.get_claude_client")
+    def test_request_sends_image_block_and_schema(self, mock_get_client):
+        """이미지는 base64 image 블록으로, 응답 모양은 ReceiptData 스키마로 요청한다. temperature 는 보내지 않는다."""
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.stop_reason = "end_turn"
+        mock_response.parsed_output = ReceiptData()
+        mock_client.messages.parse.return_value = mock_response
+        mock_get_client.return_value = mock_client
+
+        dummy_img = SimpleUploadedFile("receipt.png", b"abc", content_type="image/png")
+        self.client.post(self.url, {"image": dummy_img}, format="multipart")
+
+        kwargs = mock_client.messages.parse.call_args.kwargs
+        self.assertIs(kwargs["output_format"], ReceiptData)
+        self.assertNotIn("temperature", kwargs)
+        image = kwargs["messages"][0]["content"][0]
+        self.assertEqual(image["type"], "image")
+        self.assertEqual(image["source"]["media_type"], "image/png")
+        self.assertEqual(image["source"]["data"], "YWJj")

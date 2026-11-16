@@ -5,7 +5,7 @@ __pycache__/
 *.py[cod]
 
 # 비밀값 — 이미지에 굽지 않습니다.
-# .env 는 compose 가 env_file 로 넘기고, GCP 키는 compose 가 secrets/ 를 마운트합니다.
+# .env 는 compose 가 env_file 로 넘깁니다.
 .env
 .env.*
 *.json

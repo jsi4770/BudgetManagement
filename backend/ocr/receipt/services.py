@@ -1,12 +1,12 @@
+import base64
 import json
 import logging
 from datetime import date
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
 
+import anthropic
 from django.conf import settings
-from google import genai
-from google.genai import types
 
 logger = logging.getLogger(__name__)
 
@@ -34,18 +34,19 @@ class ReceiptData(BaseModel):
     memo: Optional[str] = Field(None, description="상호명 또는 간단한 결제 요약 (20자 이내). 불가시 null")
 
 
-_genai_client = None
+_claude_client = None
 
 
-def get_genai_client() -> genai.Client:
-    global _genai_client
-    if _genai_client is None:
-        _genai_client = genai.Client(
-            vertexai=True,
-            project=settings.GCP_PROJECT_ID,
-            location=settings.GCP_LOCATION,
+def get_claude_client() -> anthropic.Anthropic:
+    global _claude_client
+    if _claude_client is None:
+        # API 키는 ANTHROPIC_API_KEY 환경변수에서 읽는다. 시간 상한은 WAS 쪽 ocr.timeout(20초)보다 짧게 둬서,
+        # WAS 가 먼저 끊어 502 가 되는 대신 여기서 503 으로 끝나게 한다.
+        _claude_client = anthropic.Anthropic(
+            timeout=settings.CLAUDE_TIMEOUT_SECONDS,
+            max_retries=settings.CLAUDE_MAX_RETRIES,
         )
-    return _genai_client
+    return _claude_client
 
 
 def analyze_receipt(
@@ -54,14 +55,12 @@ def analyze_receipt(
     categories: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """
-    Gemini 멀티모달 모델을 호출하여 영수증 이미지에서 결제 정보를 추출합니다.
+    Claude 멀티모달 모델을 호출하여 영수증 이미지에서 결제 정보를 추출합니다.
     """
     if categories is None:
         categories = DEFAULT_CATEGORIES
 
-    client = get_genai_client()
-
-    image_part = types.Part.from_bytes(data=image_bytes, mime_type=mime_type)
+    client = get_claude_client()
 
     today_str = date.today().isoformat()
     prompt = (
@@ -72,16 +71,34 @@ def analyze_receipt(
         f"{json.dumps(categories, ensure_ascii=False)}"
     )
 
-    response = client.models.generate_content(
-        model=settings.GEMINI_MODEL,
-        contents=[image_part, prompt],
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=ReceiptData,
-        ),
+    # temperature 는 보내지 않는다 — 현재 Claude 모델은 sampling 파라미터를 400 으로 거절한다.
+    # output_format 이 ReceiptData 의 JSON 스키마로 응답 모양을 강제한다(구조화 출력).
+    response = client.messages.parse(
+        model=settings.CLAUDE_MODEL,
+        max_tokens=16000,
+        output_config={"effort": settings.CLAUDE_EFFORT},
+        output_format=ReceiptData,
+        messages=[{
+            "role": "user",
+            "content": [
+                {
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": mime_type,
+                        "data": base64.standard_b64encode(image_bytes).decode("utf-8"),
+                    },
+                },
+                {"type": "text", "text": prompt},
+            ],
+        }],
     )
 
-    parsed: ReceiptData = response.parsed
+    if response.stop_reason in ("refusal", "max_tokens") or response.parsed_output is None:
+        # 거절이면 스키마를 지키지 않을 수 있고, 토큰 상한이면 JSON 이 잘려 있다 → 뷰가 503 으로 바꾼다
+        raise RuntimeError(f"영수증 분석 응답을 쓸 수 없습니다 (stop_reason={response.stop_reason})")
+
+    parsed: ReceiptData = response.parsed_output
     data = parsed.model_dump()
 
     required_fields = ["amount", "transactionDate", "category", "memo"]
