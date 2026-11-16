@@ -29,6 +29,8 @@ dependencies {
     implementation 'io.jsonwebtoken:jjwt-api:0.13.0'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.13.0'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.13.0'
+    // Claude API 공식 SDK. jjwt 와 마찬가지로 Jackson 2 를 끌어온다 — 위 주의 사항 그대로.
+    implementation 'com.anthropic:anthropic-java:3.2.0'
     compileOnly 'org.projectlombok:lombok'
     runtimeOnly 'org.postgresql:postgresql'
     annotationProcessor 'org.projectlombok:lombok'

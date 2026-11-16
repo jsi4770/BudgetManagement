@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 실제 빈 연결 확인(목 없이): Gemini mock 모드 + OCR 서버 미설정.
  * TX-07 은 {@link GeminiTransactionTextParser}, RCPT-01 은 {@link GeminiReceiptOcrClient} 로 흐른다.
  */
-@SpringBootTest(properties = {"gemini.mock=true", "ocr.base-url="})
+@SpringBootTest(properties = {"claude.mock=true", "ocr.base-url="})
 @AutoConfigureMockMvc
 @Transactional
 class AiMockModeApiTest {

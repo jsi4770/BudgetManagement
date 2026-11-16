@@ -7,8 +7,8 @@ import java.util.Map;
 
 /**
  * Gemini 호출 창구. 파싱·OCR 정리·넛지 문구·코칭은 모두 이 인터페이스만 쓴다.
- * - HttpGeminiClient : 실제 호출 (gemini.mock=false, 기본)
- * - MockGeminiClient : 가짜 응답 (gemini.mock=true)
+ * - ClaudeClient : 실제 호출 (claude.mock=false, 기본) — 이름과 달리 지금은 Claude 를 부른다
+ * - MockGeminiClient : 가짜 응답 (claude.mock=true)
  *
  * 실패 시: AiUnavailableException(503) / AiParseFailedException(422)
  */

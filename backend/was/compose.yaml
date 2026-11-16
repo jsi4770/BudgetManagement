@@ -101,7 +101,7 @@ services:
       # (DEV-01) 비밀번호가 문서에 적힌 관리자 계정이 생깁니다.
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
 
-    # 나머지(JWT_SECRET · FRONT_URL · GEMINI_* · OCR_*)는 was/.env 를 통째로 넣습니다.
+    # 나머지(JWT_SECRET · FRONT_URL · ANTHROPIC_API_KEY · CLAUDE_* · OCR_*)는 was/.env 를 통째로 넣습니다.
     # 예전처럼 environment 에 `JWT_SECRET:` 처럼 값 없는 키로 두면 `was/` 에서 띄울 때만
     # 전달되고, `backend/` 에서 띄우면(루트 compose 의 include) 비어 버렸습니다.
     # .env 에 없는 변수는 설정되지 않으므로 application.properties 의 기본값이 쓰입니다.

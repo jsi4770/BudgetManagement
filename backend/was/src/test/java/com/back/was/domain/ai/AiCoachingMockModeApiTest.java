@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 정상 응답이면 {@code isFallback} 이 {@code false} 다. (키 없음 → {@code true} 는 기존
  * {@code CoachingMessageApiTest} 가 본다.)
  */
-@SpringBootTest(properties = {"gemini.mock=true", "ocr.base-url="})
+@SpringBootTest(properties = {"claude.mock=true", "ocr.base-url="})
 @AutoConfigureMockMvc
 @Transactional
 class AiCoachingMockModeApiTest {
