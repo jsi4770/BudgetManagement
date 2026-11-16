@@ -33,6 +33,10 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * TX-01~06 거래.
@@ -56,30 +60,59 @@ public class TransactionService {
     private static final int REQUIRED_PARSED_FIELD_COUNT = 3;
 
     /**
-     * TX-01. 거래는 항상 토큰 주인의 것으로 저장된다 — 요청에 사용자 ID 가 없다.
+     * TX-01. 거래 여러 건을 <b>한 트랜잭션으로</b> 저장한다 — 전부 저장되거나 하나도 저장되지 않는다(명세 TX-01).
+     * 거래는 항상 토큰 주인의 것으로 저장된다 — 요청에 사용자 ID 가 없다.
      *
-     * <p>저장 뒤 <b>같은 트랜잭션에서 동기로</b> 넛지를 재판정한다(서버_내부_처리 1장
-     * 순서 3번). 커밋 전이어야 "거래는 저장됐는데 카드만 안 생긴" 상태가 생기지 않는다.
+     * <p>카테고리를 <b>저장보다 먼저</b> 전부 확인한다. 하나라도 없으면 아무것도 쓰지 않고 404 다
+     * (롤백이 되돌리긴 하지만, 반쯤 쓴 영속성 컨텍스트를 만들지 않는 쪽이 {@link #update} 와 같은 판단이다).
      *
-     * <p>후처리는 명세의 순서대로 2번(챌린지 실적) → 3번(넛지 판정)이다. <b>5번(넛지 AI
-     * 문구)</b>만 커밋 후 비동기라 여기 없다.
+     * <p>후처리는 모든 거래를 저장한 <b>뒤</b>, 건수만큼이 아니라 중복을 없앤 대상에 한 번씩 돈다
+     * (서버_내부_처리 1장 순서 그대로 2번 → 3번, 같은 트랜잭션·동기). 거래마다 돌리면 느리고, 넛지가
+     * 중간 상태로 생겼다 바뀐다 — DEV-01 이 판정을 마지막에 한 번만 하는 것과 같은 이유다.
+     * <ul>
+     *   <li>2번 챌린지 실적: 서로 다른 <b>(카테고리, 날짜)</b>마다. 재계산은 고른 챌린지의 기간 전체를
+     *       다시 집계하므로 같은 챌린지가 두 번 불려도 결과는 같다</li>
+     *   <li>3번 넛지 판정: 서로 다른 카테고리를 모아 <b>한 번</b>. {@link NudgeJudgement#judge} 가
+     *       여러 카테고리를 한 번의 표본 조회로 판정한다</li>
+     * </ul>
+     * <b>5번(넛지 AI 문구)</b>만 커밋 후 비동기라 여기 없다.
      *
-     * @throws BusinessException 404 {@code NOT_FOUND} — 없는 카테고리 (명세 TX-01 Errors)
+     * @return 저장된 거래. <b>요청 순서 그대로</b>
+     * @throws BusinessException 404 {@code NOT_FOUND} — 없는 카테고리가 하나라도 있을 때 (명세 TX-01 Errors)
      */
     @Transactional
-    public TransactionResponse create(Long userId, CreateTransactionRequest request) {
+    public List<TransactionResponse> create(Long userId, List<CreateTransactionRequest> requests) {
         User user = userRepository.findById(userId)
                 .orElseThrow(BusinessException::notFound);
-        Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow(BusinessException::notFound);
 
-        Transaction transaction = transactionRepository.save(Transaction.of(
-                user, category, request.amount(), request.transactionDate(), request.memo()));
+        Set<Long> categoryIds = requests.stream()
+                .map(CreateTransactionRequest::categoryId)
+                .collect(Collectors.toSet());
+        Map<Long, Category> categories = categoryRepository.findAllById(categoryIds).stream()
+                .collect(Collectors.toMap(Category::getId, Function.identity()));
+        if (categories.size() != categoryIds.size()) {
+            throw BusinessException.notFound();
+        }
 
-        challengePerformance.recalculate(user, category, transaction.getTransactionDate());
-        nudgeJudgement.judge(user, category);
+        List<Transaction> transactions = transactionRepository.saveAll(requests.stream()
+                .map(request -> Transaction.of(user, categories.get(request.categoryId()),
+                        request.amount(), request.transactionDate(), request.memo()))
+                .toList());
 
-        return TransactionResponse.from(transaction);
+        transactions.stream()
+                .map(transaction -> new CategoryDate(transaction.getCategory(), transaction.getTransactionDate()))
+                .distinct()
+                .forEach(target -> challengePerformance.recalculate(user, target.category(), target.date()));
+        nudgeJudgement.judge(user, transactions.stream()
+                .map(Transaction::getCategory)
+                .distinct()
+                .toArray(Category[]::new));
+
+        return transactions.stream().map(TransactionResponse::from).toList();
+    }
+
+    /** 챌린지 실적 재계산의 중복 제거 단위. {@code Category} 는 엔티티라 같은 요청 안에서 인스턴스가 하나다. */
+    private record CategoryDate(Category category, LocalDate date) {
     }
 
     /**

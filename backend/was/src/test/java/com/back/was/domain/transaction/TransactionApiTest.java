@@ -5,6 +5,7 @@ import com.jayway.jsonpath.JsonPath;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,13 +17,14 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** TX-01 거래 등록. */
+/** TX-01 거래 등록. 한 건 규칙은 {@link #createTransaction} 이 한 건을 배열로 감싸 확인하고, 여러 건 규칙은 {@link Multiple}. */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
@@ -63,7 +65,7 @@ class TransactionApiTest {
         return post("/transactions")
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(json);
+                .content("{\"transactions\": [" + json + "]}");
     }
 
     @Test
@@ -74,14 +76,14 @@ class TransactionApiTest {
                         """.formatted(TODAY)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.id").isNumber())
-                .andExpect(jsonPath("$.data.category.id").value(2))
-                .andExpect(jsonPath("$.data.category.name").value("배달"))
-                .andExpect(jsonPath("$.data.category.type").value("EXPENSE"))
-                .andExpect(jsonPath("$.data.amount").value(24000))
-                .andExpect(jsonPath("$.data.transactionDate").value(TODAY.toString()))
-                .andExpect(jsonPath("$.data.memo").value("치킨"))
-                .andExpect(jsonPath("$.data.createdAt").isNotEmpty());
+                .andExpect(jsonPath("$.data[0].id").isNumber())
+                .andExpect(jsonPath("$.data[0].category.id").value(2))
+                .andExpect(jsonPath("$.data[0].category.name").value("배달"))
+                .andExpect(jsonPath("$.data[0].category.type").value("EXPENSE"))
+                .andExpect(jsonPath("$.data[0].amount").value(24000))
+                .andExpect(jsonPath("$.data[0].transactionDate").value(TODAY.toString()))
+                .andExpect(jsonPath("$.data[0].memo").value("치킨"))
+                .andExpect(jsonPath("$.data[0].createdAt").isNotEmpty());
 
         assertThat(transactionRepository.findAll()).hasSize(1);
         Transaction saved = transactionRepository.findAll().getFirst();
@@ -97,9 +99,9 @@ class TransactionApiTest {
                         {"categoryId": 2, "amount": 24000, "transactionDate": "%s"}
                         """.formatted(TODAY)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.createdAt",
+                .andExpect(jsonPath("$.data[0].createdAt",
                         Matchers.matchesPattern("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?\\+09:00$")))
-                .andExpect(jsonPath("$.data.transactionDate",
+                .andExpect(jsonPath("$.data[0].transactionDate",
                         Matchers.matchesPattern("^\\d{4}-\\d{2}-\\d{2}$")));
     }
 
@@ -110,9 +112,9 @@ class TransactionApiTest {
                         {"categoryId": 7, "amount": 2500000, "transactionDate": "%s", "memo": "월급"}
                         """.formatted(TODAY)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.category.name").value("급여"))
-                .andExpect(jsonPath("$.data.category.type").value("INCOME"))
-                .andExpect(jsonPath("$.data.amount").value(2500000));
+                .andExpect(jsonPath("$.data[0].category.name").value("급여"))
+                .andExpect(jsonPath("$.data[0].category.type").value("INCOME"))
+                .andExpect(jsonPath("$.data[0].amount").value(2500000));
 
         assertThat(transactionRepository.findAll().getFirst().getCategory().getId()).isEqualTo(SALARY);
     }
@@ -124,13 +126,13 @@ class TransactionApiTest {
                         {"categoryId": 2, "amount": 24000, "transactionDate": "%s"}
                         """.formatted(TODAY)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.memo").value(Matchers.nullValue()));
+                .andExpect(jsonPath("$.data[0].memo").value(Matchers.nullValue()));
 
         mockMvc.perform(createTransaction("""
                         {"categoryId": 2, "amount": 24000, "transactionDate": "%s", "memo": "   "}
                         """.formatted(TODAY)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.memo").value(Matchers.nullValue()));
+                .andExpect(jsonPath("$.data[0].memo").value(Matchers.nullValue()));
 
         assertThat(transactionRepository.findAll())
                 .allSatisfy(transaction -> assertThat(transaction.getMemo()).isNull());
@@ -154,7 +156,7 @@ class TransactionApiTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.error.details[?(@.field == 'transactionDate')].reason")
+                .andExpect(jsonPath("$.error.details[?(@.field == 'transactions[0].transactionDate')].reason")
                         .value(Matchers.hasItem("FUTURE_DATE")));
 
         assertThat(transactionRepository.findAll()).isEmpty();
@@ -167,7 +169,7 @@ class TransactionApiTest {
                         {"categoryId": 2, "amount": 24000, "transactionDate": "%s"}
                         """.formatted(TODAY.minusDays(30))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.transactionDate").value(TODAY.minusDays(30).toString()));
+                .andExpect(jsonPath("$.data[0].transactionDate").value(TODAY.minusDays(30).toString()));
     }
 
     @Test
@@ -188,11 +190,11 @@ class TransactionApiTest {
         mockMvc.perform(createTransaction("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.error.details[?(@.field == 'categoryId')].reason")
+                .andExpect(jsonPath("$.error.details[?(@.field == 'transactions[0].categoryId')].reason")
                         .value(Matchers.hasItem("REQUIRED")))
-                .andExpect(jsonPath("$.error.details[?(@.field == 'amount')].reason")
+                .andExpect(jsonPath("$.error.details[?(@.field == 'transactions[0].amount')].reason")
                         .value(Matchers.hasItem("REQUIRED")))
-                .andExpect(jsonPath("$.error.details[?(@.field == 'transactionDate')].reason")
+                .andExpect(jsonPath("$.error.details[?(@.field == 'transactions[0].transactionDate')].reason")
                         .value(Matchers.hasItem("REQUIRED")));
     }
 
@@ -215,7 +217,7 @@ class TransactionApiTest {
                         {"categoryId": 2, "amount": 24000, "transactionDate": "%s", "memo": "%s"}
                         """.formatted(TODAY, "가".repeat(256))))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error.details[?(@.field == 'memo')]").exists());
+                .andExpect(jsonPath("$.error.details[?(@.field == 'transactions[0].memo')]").exists());
     }
 
     @Test
@@ -236,7 +238,7 @@ class TransactionApiTest {
                         """.formatted(TODAY)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        long firstUserTxId = ((Number) JsonPath.read(body, "$.data.id")).longValue();
+        long firstUserTxId = ((Number) JsonPath.read(body, "$.data[0].id")).longValue();
 
         String firstUserId = String.valueOf(
                 transactionRepository.findById(firstUserTxId).orElseThrow().getUser().getId());
@@ -247,12 +249,108 @@ class TransactionApiTest {
                         """.formatted(TODAY)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        long otherTxId = ((Number) JsonPath.read(otherBody, "$.data.id")).longValue();
+        long otherTxId = ((Number) JsonPath.read(otherBody, "$.data[0].id")).longValue();
 
         String otherUserId = String.valueOf(
                 transactionRepository.findById(otherTxId).orElseThrow().getUser().getId());
 
         assertThat(otherUserId).isNotEqualTo(firstUserId);
+    }
+
+    /** 본문을 그대로 보낸다 — {@link #createTransaction} 처럼 한 건을 배열로 감싸지 않는다. */
+    private MockHttpServletRequestBuilder createTransactions(String body) {
+        return post("/transactions")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body);
+    }
+
+    private static String item(long categoryId, int amount, LocalDate date) {
+        return """
+                {"categoryId": %d, "amount": %d, "transactionDate": "%s"}""".formatted(categoryId, amount, date);
+    }
+
+    @Nested
+    @DisplayName("TX-01 여러 건")
+    class Multiple {
+
+        @Test
+        @DisplayName("여러 건을 한 번에 저장하고, 응답은 요청 순서 그대로다")
+        void savesAllInRequestOrder() throws Exception {
+            mockMvc.perform(createTransactions("""
+                            {"transactions": [%s, %s, %s]}
+                            """.formatted(item(DELIVERY, 24000, TODAY), item(SALARY, 2500000, TODAY.minusDays(3)),
+                            item(DELIVERY, 4500, TODAY.minusDays(1)))))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.data.length()").value(3))
+                    .andExpect(jsonPath("$.data[0].amount").value(24000))
+                    .andExpect(jsonPath("$.data[1].amount").value(2500000))
+                    .andExpect(jsonPath("$.data[1].category.type").value("INCOME"))
+                    .andExpect(jsonPath("$.data[2].amount").value(4500))
+                    .andExpect(jsonPath("$.data[*].id").value(Matchers.everyItem(Matchers.notNullValue())));
+
+            assertThat(transactionRepository.findAll()).hasSize(3);
+        }
+
+        @Test
+        @DisplayName("한 건이라도 규칙을 어기면 400 이고 아무것도 저장하지 않는다 — field 에 몇 번째인지 담긴다")
+        void oneInvalidRejectsAll() throws Exception {
+            mockMvc.perform(createTransactions("""
+                            {"transactions": [%s, %s]}
+                            """.formatted(item(DELIVERY, 24000, TODAY), item(DELIVERY, 1000, TODAY.plusDays(1)))))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
+                    .andExpect(jsonPath("$.error.details[?(@.field == 'transactions[1].transactionDate')].reason")
+                            .value(Matchers.hasItem("FUTURE_DATE")));
+
+            assertThat(transactionRepository.findAll()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("없는 카테고리가 하나라도 있으면 404 이고 앞의 거래도 저장하지 않는다")
+        void oneMissingCategoryRejectsAll() throws Exception {
+            mockMvc.perform(createTransactions("""
+                            {"transactions": [%s, %s]}
+                            """.formatted(item(DELIVERY, 24000, TODAY), item(999L, 1000, TODAY))))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error.code").value("NOT_FOUND"));
+
+            assertThat(transactionRepository.findAll()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("빈 배열·transactions 누락·null 원소는 400")
+        void emptyOrMissingIsBadRequest() throws Exception {
+            for (String body : new String[]{"{\"transactions\": []}", "{}", "{\"transactions\": [null]}"}) {
+                mockMvc.perform(createTransactions(body))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+            }
+        }
+
+        @Test
+        @DisplayName("50건까지는 받고 51건은 400")
+        void atMostFifty() throws Exception {
+            String one = item(DELIVERY, 1000, TODAY);
+
+            mockMvc.perform(createTransactions("{\"transactions\": [" + String.join(",", Collections.nCopies(51, one)) + "]}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.details[?(@.field == 'transactions')]").exists());
+            assertThat(transactionRepository.findAll()).isEmpty();
+
+            mockMvc.perform(createTransactions("{\"transactions\": [" + String.join(",", Collections.nCopies(50, one)) + "]}"))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.data.length()").value(50));
+        }
+
+        @Test
+        @DisplayName("예전처럼 거래 객체 하나를 그대로 보내면 400 — transactions 가 없다")
+        void bareObjectIsRejected() throws Exception {
+            mockMvc.perform(createTransactions(item(DELIVERY, 24000, TODAY)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.details[?(@.field == 'transactions')].reason")
+                            .value(Matchers.hasItem("REQUIRED")));
+        }
     }
 
     @Test

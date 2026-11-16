@@ -117,17 +117,40 @@ class TransactionChallengeApiTest {
         return givenChallenge(user, DELIVERY, TODAY, TODAY.plusDays(6));
     }
 
+    @Test
+    @DisplayName("TX-01 여러 건: 같은 카테고리 거래 둘을 한 요청으로 넣으면 실적에 둘 다 들어가고, 기간 밖 날짜는 빠진다")
+    void multipleTransactionsInOneRequest() throws Exception {
+        Challenge challenge = givenDeliveryChallenge();
+
+        mockMvc.perform(authed(post("/transactions"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"transactions": [
+                                  {"categoryId": %d, "amount": 24000, "transactionDate": "%s"},
+                                  {"categoryId": %d, "amount": 11000, "transactionDate": "%s"},
+                                  {"categoryId": %d, "amount": 9000, "transactionDate": "%s"},
+                                  {"categoryId": %d, "amount": 5000, "transactionDate": "%s"}
+                                ]}
+                                """.formatted(DELIVERY, TODAY, DELIVERY, TODAY, DELIVERY, TODAY.minusDays(1),
+                                FOOD, TODAY)))
+                .andExpect(status().isCreated());
+
+        Challenge reloaded = reload(challenge);
+        assertThat(reloaded.getSpendingAmount()).isEqualTo(35_000);
+        assertThat(reloaded.getSpendingCount()).isEqualTo(2);
+    }
+
     /** TX-01 로 거래를 등록하고 ID 를 돌려준다 — 후처리가 도는 경로가 이쪽이다. */
     private long createTransaction(long categoryId, int amount, LocalDate date) throws Exception {
         String body = mockMvc.perform(authed(post("/transactions"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"categoryId": %d, "amount": %d, "transactionDate": "%s"}
+                                {"transactions": [{"categoryId": %d, "amount": %d, "transactionDate": "%s"}]}
                                 """.formatted(categoryId, amount, date)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
 
-        return ((Number) JsonPath.read(body, "$.data.id")).longValue();
+        return ((Number) JsonPath.read(body, "$.data[0].id")).longValue();
     }
 
     private Challenge reload(Challenge challenge) {

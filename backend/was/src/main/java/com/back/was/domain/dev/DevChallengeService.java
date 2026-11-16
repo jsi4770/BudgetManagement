@@ -16,6 +16,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * DEV-02 챌린지 강제 종료 (명세 DEV-02 · 서버_내부_처리 12장).
  *
@@ -164,10 +166,10 @@ public class DevChallengeService {
      * DEV-01 로 초기화하기 전에 어떤 거래가 버튼으로 들어온 것인지 알 수 있다.
      */
     private void addTransaction(Long userId, Challenge challenge, int amount) {
-        transactionService.create(userId, new CreateTransactionRequest(
+        transactionService.create(userId, List.of(new CreateTransactionRequest(
                 challenge.getCategory().getId(),
                 amount,
                 KstTime.today(),
-                "시연용 자동 기록 (DEV-02)"));
+                "시연용 자동 기록 (DEV-02)")));
     }
 }

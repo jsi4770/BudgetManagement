@@ -361,25 +361,25 @@ class FullApiJourneyIntegrationTest {
     @DisplayName("TX-01 거래 등록 — 201, 카테고리 객체가 함께 나오고 미래 날짜는 400 FUTURE_DATE")
     void createTransaction() throws Exception {
         MvcResult result = mockMvc.perform(authed(json(post("/transactions"), """
-                        {"categoryId": %d, "amount": 12000, "transactionDate": "%s", "memo": "점심"}
+                        {"transactions": [{"categoryId": %d, "amount": 12000, "transactionDate": "%s", "memo": "점심"}]}
                         """.formatted(FOOD, TODAY))))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.id").isNumber())
-                .andExpect(jsonPath("$.data.amount").value(12_000))
-                .andExpect(jsonPath("$.data.transactionDate").value(TODAY.toString()))
-                .andExpect(jsonPath("$.data.memo").value("점심"))
-                .andExpect(jsonPath("$.data.category.id").value(FOOD))
-                .andExpect(jsonPath("$.data.category.type").value("EXPENSE"))
+                .andExpect(jsonPath("$.data[0].id").isNumber())
+                .andExpect(jsonPath("$.data[0].amount").value(12_000))
+                .andExpect(jsonPath("$.data[0].transactionDate").value(TODAY.toString()))
+                .andExpect(jsonPath("$.data[0].memo").value("점심"))
+                .andExpect(jsonPath("$.data[0].category.id").value(FOOD))
+                .andExpect(jsonPath("$.data[0].category.type").value("EXPENSE"))
                 .andReturn();
 
-        transactionId = longAt(bodyOf(result), "$.data.id");
+        transactionId = longAt(bodyOf(result), "$.data[0].id");
 
         mockMvc.perform(authed(json(post("/transactions"), """
-                        {"categoryId": %d, "amount": 1000, "transactionDate": "%s"}
+                        {"transactions": [{"categoryId": %d, "amount": 1000, "transactionDate": "%s"}]}
                         """.formatted(FOOD, TODAY.plusDays(1)))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"))
-                .andExpect(jsonPath("$.error.details[?(@.field == 'transactionDate')].reason")
+                .andExpect(jsonPath("$.error.details[?(@.field == 'transactions[0].transactionDate')].reason")
                         .value(Matchers.hasItem("FUTURE_DATE")));
     }
 

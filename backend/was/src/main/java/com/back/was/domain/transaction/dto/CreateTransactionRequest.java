@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 /**
- * TX-01 요청. 규칙은 명세 TX-01 표를 그대로 옮겼다.
+ * TX-01 요청의 거래 한 건 ({@link CreateTransactionsRequest#transactions()} 의 원소). 규칙은 명세 TX-01 표를 그대로 옮겼다.
  *
  * <p>직접 입력·한 줄 입력(TX-07)·영수증(RCPT-01)이 모두 이 DTO 로 모인다 — 입력 수단은
  * 저장 형태에 남지 않는다(ERD 5장).
