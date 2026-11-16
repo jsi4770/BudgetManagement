@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /** 인사이트 생성(첫 시도 통과율·재시도 횟수), 목표 의도 파싱 정확도, 코치 대화의 숫자 검증 통과율을 실제 Gemini 로 잰다 */
 @SpringBootTest
-@org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "GEMINI_API_KEY", matches = ".+")
+@org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "ANTHROPIC_API_KEY", matches = ".+")
 class CoachLiveEval extends LiveEvalBase {
 
     @Autowired GeminiClient gemini;

@@ -1,11 +1,13 @@
-gemini:
-  api-key: ${GEMINI_API_KEY:}
-  model: ${GEMINI_MODEL:gemini-3.5-flash-lite}
-  fallback-model: ${GEMINI_FALLBACK_MODEL:gemini-2.5-flash}
-  timeout: 30s
+claude:
+  api-key: ${ANTHROPIC_API_KEY:}
+  model: ${CLAUDE_MODEL:claude-opus-5-5}
+  fallback-model: ${CLAUDE_FALLBACK_MODEL:}   # 429·장애 때 넘어갈 예비 모델. 비우면 사용 안 함
+  effort: ${CLAUDE_EFFORT:low}                # 생각 깊이 low|medium|high|xhigh|max
+  timeout: 30s                                # 재시도·예비 모델·도구 왕복까지 포함한 호출 전체 상한
+  image-timeout: 30s
   max-retries: 1
-  mock: ${GEMINI_MOCK:false}
-  mock-delay-ms: ${GEMINI_MOCK_DELAY_MS:0}   # 성능 테스트용: mock 응답에 인위적 지연
+  mock: ${CLAUDE_MOCK:false}
+  mock-delay-ms: ${CLAUDE_MOCK_DELAY_MS:0}   # 성능 테스트용: mock 응답에 인위적 지연
 
 ocr:
   django-url: ${OCR_DJANGO_URL:}

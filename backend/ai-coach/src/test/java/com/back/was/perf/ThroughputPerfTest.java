@@ -15,7 +15,7 @@ import java.util.List;
  * 서버 자체의 오버헤드 측정 (Gemini mock, 지연 0). AI 호출 시간을 뺀 "우리 코드"의 속도다.
  * 실행: ./gradlew perf
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {"gemini.mock=true"})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {"claude.mock=true"})
 class ThroughputPerfTest {
 
     @LocalServerPort int port;

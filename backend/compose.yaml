@@ -17,7 +17,7 @@
 #
 # **비밀값은 각 폴더의 .env 에서 읽습니다** — 이 파일에는 값을 적지 않습니다.
 #   - was/.env      → ANTHROPIC_API_KEY 등 (was/.env.example 참고)
-#   - ai-coach/.env → GEMINI_API_KEY 등 (ai-coach/.env.example)
+#   - ai-coach/.env → ANTHROPIC_API_KEY 등 (ai-coach/.env.example)
 #   - ocr/.env      → DJANGO_*, ANTHROPIC_API_KEY, CLAUDE_* (ocr/.env.example)
 # .env 가 없어도 전부 뜹니다. AI 기능만 503/대체 문구로 동작합니다.
 

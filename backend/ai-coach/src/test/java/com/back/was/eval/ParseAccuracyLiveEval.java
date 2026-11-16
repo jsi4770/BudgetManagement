@@ -14,7 +14,7 @@ import java.util.List;
 
 /** 한 줄 입력 파싱 정확도(금액·카테고리·날짜) + 지연. 작성일은 2026-11-10(화)로 고정 */
 @SpringBootTest
-@org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "GEMINI_API_KEY", matches = ".+")
+@org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "ANTHROPIC_API_KEY", matches = ".+")
 class ParseAccuracyLiveEval extends LiveEvalBase {
 
     record Case(String text, Long amount, String category, String date, boolean notTx) {

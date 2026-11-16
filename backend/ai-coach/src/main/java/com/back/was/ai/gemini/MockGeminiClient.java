@@ -1,5 +1,6 @@
 package com.back.was.ai.gemini;
 
+import com.back.was.ai.claude.ClaudeProperties;
 import com.back.was.common.AiParseFailedException;
 import com.back.was.common.AiUnavailableException;
 import tools.jackson.databind.JsonNode;
@@ -14,24 +15,24 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 가짜 Gemini. 실제 호출 없이 스키마 모양대로 기본값을 채워 돌려준다.
- * gemini.mock=true (환경변수 GEMINI_MOCK=true) 일 때만 빈으로 등록된다.
+ * 가짜 AI 클라이언트. 실제 호출 없이 스키마 모양대로 기본값을 채워 돌려준다.
+ * claude.mock=true (환경변수 CLAUDE_MOCK=true) 일 때만 빈으로 등록된다.
  *
  * 쓰는 곳: API 키 없는 팀원의 개발, GitHub Actions 테스트 (키·요금 필요 없음)
  * 실패 흉내: 입력에 "FAIL_422" → 422, "FAIL_503" → 503 (계획표 테스트 항목용)
  */
 @Component
-@ConditionalOnProperty(prefix = "gemini", name = "mock", havingValue = "true")
+@ConditionalOnProperty(prefix = "claude", name = "mock", havingValue = "true")
 public class MockGeminiClient implements GeminiClient {
 
     private static final Logger log = LoggerFactory.getLogger(MockGeminiClient.class);
     private final ObjectMapper objectMapper;
-    private final GeminiProperties props;
+    private final ClaudeProperties props;
 
-    public MockGeminiClient(ObjectMapper objectMapper, GeminiProperties props) {
+    public MockGeminiClient(ObjectMapper objectMapper, ClaudeProperties props) {
         this.objectMapper = objectMapper;
         this.props = props;
-        log.warn("[Gemini] MOCK 모드입니다. 실제 AI 를 호출하지 않습니다.");
+        log.warn("[AI] MOCK 모드입니다. 실제 AI 를 호출하지 않습니다.");
     }
 
     @Override
@@ -57,7 +58,7 @@ public class MockGeminiClient implements GeminiClient {
         return "(mock) 도구 " + tools.size() + "개를 쓸 수 있는 코치 응답이에요.";
     }
 
-    /** 성능 테스트용 인위적 지연 (gemini.mock-delay-ms) */
+    /** 성능 테스트용 인위적 지연 (claude.mock-delay-ms) */
     private void delay() {
         if (props.mockDelayMs() > 0) {
             try { Thread.sleep(props.mockDelayMs()); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }

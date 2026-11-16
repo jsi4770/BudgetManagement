@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Gemini 호출 창구. 파싱·OCR 정리·넛지 문구·코칭은 모두 이 인터페이스만 쓴다.
- * - HttpGeminiClient : 실제 호출 (gemini.mock=false, 기본)
- * - MockGeminiClient : 가짜 응답 (gemini.mock=true)
+ * AI 호출 창구 (이름은 Gemini 시절 그대로, 지금 구현은 Claude). 파싱·OCR 정리·넛지 문구·코칭은 모두 이 인터페이스만 쓴다.
+ * - ClaudeClient     : 실제 호출 (claude.mock=false, 기본)
+ * - MockGeminiClient : 가짜 응답 (claude.mock=true)
  *
  * 실패 시: AiUnavailableException(503) / AiParseFailedException(422)
  */
@@ -20,7 +20,7 @@ public interface GeminiClient {
      * @param systemInstruction 시스템 프롬프트 (역할·규칙·예시)
      * @param messages          user/model 번갈아 가며, 마지막은 user
      * @param responseSchema    응답 JSON 모양 (GeminiSchema 로 생성)
-     * @param temperature       0.0(항상 같은 답, 파싱용) ~ 1.0(다양한 답, 코칭 문구용)
+     * @param temperature       Claude 구현은 무시한다(현재 모델이 sampling 파라미터를 거절). 대신 claude.effort
      */
     JsonNode generateJson(String systemInstruction, List<GeminiMessage> messages,
                           Map<String, Object> responseSchema, double temperature);
