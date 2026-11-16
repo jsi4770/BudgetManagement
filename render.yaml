@@ -1,0 +1,77 @@
+# Render Blueprint — was(API) · ai-coach · ocr · PostgreSQL 을 무료 플랜으로 올립니다.
+# 프론트는 Vercel 에서 /api/v1 을 was 로 중계합니다(frontend/vercel.json) — 같은 사이트라 refresh 쿠키가 Lax 로 동작합니다.
+#
+# 무료 플랜 제약
+#  - 웹 서비스: 15분 유휴 시 잠들고 첫 요청에 30~60초 걸립니다. 메모리 512MB.
+#  - PostgreSQL: 생성 후 30일이 지나면 만료됩니다. 시연 후에는 새로 만들거나 유료로 올리세요.
+#
+# sync:false 값은 대시보드에서 직접 넣습니다(저장소에 비밀값을 두지 않습니다).
+
+databases:
+  - name: budget-db
+    plan: free
+    databaseName: budget
+    user: budget
+
+services:
+  - type: web
+    name: budget-was
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/was/Dockerfile
+    dockerContext: ./backend/was
+    healthCheckPath: /api/v1/v3/api-docs
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: JWT_SECRET
+        generateValue: true
+      # Render 는 값을 이어 붙이는 문법이 없어서 JDBC URL 은 한 번 직접 넣습니다.
+      # 형식: jdbc:postgresql://<budget-db 의 Internal Hostname>:5432/budget
+      - key: DB_URL
+        sync: false
+      - key: DB_USERNAME
+        fromDatabase:
+          name: budget-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: budget-db
+          property: password
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MOCK
+        value: "false"
+      # CORS 허용 프론트 주소 (쉼표로 여러 개)
+      - key: FRONT_URL
+        value: https://budget-management-silk-two.vercel.app,http://localhost:5173
+      - key: COOKIE_SAME_SITE
+        value: Lax
+
+  - type: web
+    name: budget-ai-coach
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/ai-coach/Dockerfile
+    dockerContext: ./backend/ai-coach
+    envVars:
+      - key: PORT
+        value: "8080"
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: web
+    name: budget-ocr
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/ocr/Dockerfile
+    dockerContext: ./backend/ocr
+    envVars:
+      - key: PORT
+        value: "8000"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: "*"
