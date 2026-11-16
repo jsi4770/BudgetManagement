@@ -79,11 +79,19 @@ services:
         condition: service_healthy
 
     environment:
-      # 컨테이너 안에서는 localhost 가 아니라 **서비스 이름**으로 DB 를 찾습니다.
-      # 이 한 줄이 bootRun 과 컨테이너 실행의 유일한 차이입니다.
-      DB_URL: jdbc:postgresql://postgres:5432/budget
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
+      # 기본값은 위 postgres 서비스입니다 — 컨테이너 안에서는 localhost 가 아니라
+      # **서비스 이름**으로 DB 를 찾습니다. 이 한 줄이 bootRun 과 컨테이너 실행의 유일한 차이입니다.
+      #
+      # 외부 DB 를 쓰려면 호스트 환경 변수나 .env 에 DB_URL·DB_USERNAME·DB_PASSWORD 를 넣으세요.
+      # 관리형 DB 는 보통 `?sslmode=require` 가 필요하고, 호스트 PC 의 DB 는
+      # `host.docker.internal` 로 가리킵니다. 이때도 위 depends_on 때문에 로컬 postgres
+      # 컨테이너는 같이 뜹니다(쓰이지는 않음) — 안 띄우려면 `docker compose up -d --no-deps app`.
+      #
+      # JWT_SECRET 과 달리 `:-기본값` 형태라 빈 문자열 문제는 없습니다 — 변수가 비어 있으면
+      # 기본값이 들어갑니다.
+      DB_URL: ${DB_URL:-jdbc:postgresql://postgres:5432/budget}
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
 
       # 시연용 API(`/dev/**`)와 관리자 시드 계정이 이 프로필에서만 등록됩니다.
       # 로컬·시연 환경을 전제로 기본값을 dev 로 두었습니다. 호스트에서
