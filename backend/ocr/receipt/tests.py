@@ -5,7 +5,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from receipt.services import ReceiptData, Category
+from receipt.services import BankStatementData, TransactionItem, Category
 
 
 class ReceiptOcrApiTest(TestCase):
@@ -48,11 +48,15 @@ class ReceiptOcrApiTest(TestCase):
         """정상적인 영수증 이미지 분석 성공 시 200 OK 및 명세 규격에 맞는 데이터를 반환한다."""
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.parsed = ReceiptData(
-            amount=23500,
-            transactionDate="2026-11-04",
-            category=Category(id=2, name="배달", type="EXPENSE"),
-            memo="배달의민족 주문",
+        mock_response.parsed = BankStatementData(
+            items=[
+                TransactionItem(
+                    amount=23500,
+                    transactionDate="2026-11-04",
+                    category=Category(id=2, name="배달", type="EXPENSE"),
+                    memo="배달의민족 주문",
+                )
+            ]
         )
         mock_client.models.generate_content.return_value = mock_response
         mock_get_client.return_value = mock_client
@@ -63,24 +67,77 @@ class ReceiptOcrApiTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertTrue(data["success"])
-        self.assertEqual(data["data"]["amount"], 23500)
-        self.assertEqual(data["data"]["transactionDate"], "2026-11-04")
-        self.assertEqual(data["data"]["category"]["id"], 2)
-        self.assertEqual(data["data"]["category"]["name"], "배달")
-        self.assertEqual(data["data"]["category"]["type"], "EXPENSE")
-        self.assertEqual(data["data"]["memo"], "배달의민족 주문")
-        self.assertEqual(data["data"]["missingFields"], [])
+        self.assertEqual(len(data["data"]["items"]), 1)
+        item = data["data"]["items"][0]
+        self.assertEqual(item["amount"], 23500)
+        self.assertEqual(item["transactionDate"], "2026-11-04")
+        self.assertEqual(item["category"]["id"], 2)
+        self.assertEqual(item["category"]["name"], "배달")
+        self.assertEqual(item["category"]["type"], "EXPENSE")
+        self.assertEqual(item["memo"], "배달의민족 주문")
+        self.assertEqual(item["missingFields"], [])
+
+    @patch("receipt.services.get_genai_client")
+    def test_bank_statement_multiple_transactions(self, mock_get_client):
+        """금융 앱 거래내역 캡처 시 입금(INCOME)과 출금(EXPENSE) 다건을 반환한다."""
+        mock_client = MagicMock()
+        mock_response = MagicMock()
+        mock_response.parsed = BankStatementData(
+            items=[
+                TransactionItem(
+                    amount=500000,
+                    transactionDate="2026-11-18",
+                    category=Category(id=8, name="용돈", type="INCOME"),
+                    memo="부모님 송금",
+                ),
+                TransactionItem(
+                    amount=4500,
+                    transactionDate="2026-11-18",
+                    category=Category(id=3, name="카페", type="EXPENSE"),
+                    memo="스타벅스",
+                ),
+            ]
+        )
+        mock_client.models.generate_content.return_value = mock_response
+        mock_get_client.return_value = mock_client
+
+        dummy_img = SimpleUploadedFile("statement.png", b"dummy image bytes", content_type="image/png")
+        response = self.client.post(self.url, {"image": dummy_img}, format="multipart")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertTrue(data["success"])
+        items = data["data"]["items"]
+        self.assertEqual(len(items), 2)
+
+        # 1번째: 입금 (INCOME)
+        self.assertEqual(items[0]["amount"], 500000)
+        self.assertEqual(items[0]["category"]["type"], "INCOME")
+        self.assertEqual(items[0]["category"]["name"], "용돈")
+        self.assertEqual(items[0]["memo"], "부모님 송금")
+        self.assertEqual(items[0]["missingFields"], [])
+
+        # 2번째: 출금 (EXPENSE)
+        self.assertEqual(items[1]["amount"], 4500)
+        self.assertEqual(items[1]["category"]["type"], "EXPENSE")
+        self.assertEqual(items[1]["category"]["name"], "카페")
+        self.assertEqual(items[1]["memo"], "스타벅스")
+        self.assertEqual(items[1]["missingFields"], [])
 
     @patch("receipt.services.get_genai_client")
     def test_partial_fields_identifies_missing_fields(self, mock_get_client):
         """금액이나 일자를 식별하지 못한 경우 missingFields에 누락된 필드가 담긴다."""
         mock_client = MagicMock()
         mock_response = MagicMock()
-        mock_response.parsed = ReceiptData(
-            amount=None,
-            transactionDate="2026-11-04",
-            category=Category(id=1, name="식비", type="EXPENSE"),
-            memo=None,
+        mock_response.parsed = BankStatementData(
+            items=[
+                TransactionItem(
+                    amount=None,
+                    transactionDate="2026-11-04",
+                    category=Category(id=1, name="식비", type="EXPENSE"),
+                    memo=None,
+                )
+            ]
         )
         mock_client.models.generate_content.return_value = mock_response
         mock_get_client.return_value = mock_client
@@ -91,12 +148,13 @@ class ReceiptOcrApiTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertTrue(data["success"])
-        self.assertIsNone(data["data"]["amount"])
-        self.assertIsNone(data["data"]["memo"])
-        self.assertIn("amount", data["data"]["missingFields"])
-        self.assertIn("memo", data["data"]["missingFields"])
-        self.assertNotIn("transactionDate", data["data"]["missingFields"])
-        self.assertNotIn("category", data["data"]["missingFields"])
+        item = data["data"]["items"][0]
+        self.assertIsNone(item["amount"])
+        self.assertIsNone(item["memo"])
+        self.assertIn("amount", item["missingFields"])
+        self.assertIn("memo", item["missingFields"])
+        self.assertNotIn("transactionDate", item["missingFields"])
+        self.assertNotIn("category", item["missingFields"])
 
     @patch("receipt.services.get_genai_client")
     def test_ai_unavailable_returns_503(self, mock_get_client):
