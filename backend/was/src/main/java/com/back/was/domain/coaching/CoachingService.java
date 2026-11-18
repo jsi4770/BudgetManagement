@@ -6,6 +6,8 @@ import com.back.was.domain.ai.CoachingReply;
 import com.back.was.domain.ai.CoachingReplyCommand;
 import com.back.was.domain.ai.CoachingReplyGenerator;
 import com.back.was.domain.ai.CoachingTurn;
+import com.back.was.domain.ai.MerchantCandidate;
+import com.back.was.domain.ai.SpendingFact;
 import com.back.was.domain.ai.ProposedGoal;
 import com.back.was.domain.challenge.Challenge;
 import com.back.was.domain.challenge.ChallengeRepository;
@@ -20,6 +22,14 @@ import com.back.was.domain.coaching.dto.ConfirmGoalResponse;
 import com.back.was.domain.coaching.dto.SendMessageRequest;
 import com.back.was.domain.coaching.dto.SendMessageResponse;
 import com.back.was.domain.coaching.dto.StartCoachingRequest;
+import com.back.was.domain.merchant.MerchantRecommender;
+import com.back.was.domain.merchant.SupportedRegion;
+import com.back.was.domain.merchant.dto.MerchantResponse;
+import com.back.was.domain.category.RentCategory;
+import com.back.was.domain.transaction.CategoryAmountSum;
+import com.back.was.domain.transaction.SpendingTotal;
+import com.back.was.domain.transaction.TransactionRepository;
+import com.back.was.global.support.KstTime;
 import com.back.was.domain.nudge.Nudge;
 import com.back.was.domain.nudge.NudgeRepository;
 import com.back.was.domain.nudge.NudgeStatus;
@@ -50,6 +60,8 @@ public class CoachingService {
     private final CoachingOpeningGenerator coachingOpeningGenerator;
     private final CoachingReplyGenerator coachingReplyGenerator;
     private final CoachingReplyFallback coachingReplyFallback;
+    private final TransactionRepository transactionRepository;
+    private final MerchantRecommender merchantRecommender;
     private final TransactionTemplate transactionTemplate;
 
     /**
@@ -283,7 +295,10 @@ public class CoachingService {
         }
 
         // 제안 응답이 지연 로딩된 카테고리를 읽으므로 트랜잭션 안에서 만든다.
-        return SendMessageResponse.of(turn.userMessage(), aiMessage, fallback, coaching, proposed);
+        // AI 가 고른 가맹점 ID 는 서비스가 준 후보 안에 있는 것만 남긴다. 대체 응답에는 추천이 없다.
+        List<MerchantResponse> merchants = merchantRecommender.resolve(
+                reply.recommendedMerchantIds(), turn.command().merchants());
+        return SendMessageResponse.of(turn.userMessage(), aiMessage, fallback, coaching, proposed, merchants);
     }
 
     /**
@@ -411,7 +426,29 @@ public class CoachingService {
                 .map(CategoryResponse::from)
                 .toList();
 
-        return new CoachingReplyCommand(coaching.getUser().getUsername(), conversation, categories);
+        User user = coaching.getUser();
+        List<SpendingFact> spending = recentTopSpending(user.getId());
+        List<MerchantCandidate> merchants = merchantRecommender.candidates(user.getRegionCode(), spending);
+        String regionName = SupportedRegion.fromCode(user.getRegionCode()).map(SupportedRegion::displayName).orElse(null);
+
+        return new CoachingReplyCommand(user.getUsername(), conversation, categories, regionName,
+                merchants.isEmpty() ? List.of() : spending, merchants);
+    }
+
+    /** 최근 30일 지출 상위 카테고리(월세 제외, 금액 큰 순). 숫자는 여기서 코드가 계산한다. */
+    private List<SpendingFact> recentTopSpending(Long userId) {
+        var to = KstTime.today();
+        var from = to.minusDays(29);
+        return transactionRepository.sumExpensesByCategory(userId, from, to, CategoryType.EXPENSE, RentCategory.ID)
+                .stream()
+                .filter(c -> c.amount() > 0)
+                .sorted(java.util.Comparator.comparingLong(CategoryAmountSum::amount).reversed())
+                .limit(3)
+                .map(c -> {
+                    SpendingTotal t = transactionRepository.sumCategorySpending(userId, c.categoryId(), from, to);
+                    return new SpendingFact(c.categoryName(), t.amount(), t.count());
+                })
+                .toList();
     }
 
     /**
