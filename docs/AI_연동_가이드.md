@@ -33,6 +33,8 @@
 | `GEMINI_MOCK` | `false` | `true` 면 실제 호출 없이 가짜 응답 (CI·키 없는 팀원) |
 | `OCR_BASE_URL` | (없음) | Django OCR 서버 주소. **없으면 Gemini 가 이미지를 직접 읽는다** |
 | `OCR_TIMEOUT` | `20s` | OCR 서버 응답 대기 |
+| `MERCHANT_API_KEY` | (없음) | 공공데이터포털 서비스키(한국조폐공사 통합 가맹점기본정보). 없어도 서버는 뜬다. 가맹점 동기화만 건너뜀 |
+| `MERCHANT_API_BASE_URL` | `https://apis.data.go.kr/B190001/localFranchisesV3` | 가맹점 API 주소 |
 
 `.env.example` 참고. 키는 코드·저장소에 두지 않는다.
 
@@ -100,3 +102,61 @@ OCR_BASE_URL 없음  →  GeminiReceiptOcrClient  →  Gemini 가 이미지를 �
   시연 전에 부하를 한 번 확인할 것.
 - `gemini.timeout` 은 호출당 10초(서버_내부_처리 8장)지만 5xx 재시도·예비 모델이 직렬이라 최악의 경우 합계는 더 길다.
   사용자 대기 한도가 문제되면 `GEMINI_MAX_RETRIES` 를 0 으로 낮출 것.
+
+## 7. 지역 가맹점 (천안·아산)
+
+한국조폐공사 통합 가맹점기본정보(공공데이터포털)를 `local_merchants` 에 적재해 두고 목록·검색을 서비스한다.
+코드는 `backend/was/.../domain/merchant/`.
+
+| 구분 | 내용 |
+|---|---|
+| 지역 설정 | `PATCH /users/me` 의 `regionCode` (`44130` 천안 · `44200` 아산). `GET /users/me` 가 `regionCode`·`regionName` 을 돌려준다 |
+| 목록 | `GET /local-merchants?group=&q=&page=&size=&regionCode=` — 기본은 내 지역, 상호순. `group` 은 `FOOD` `CAFE` `GROCERY` `SHOPPING` `TRANSPORT` `HEALTH` `EDU` `LEISURE` `LIFE` `ETC` |
+| 지역 목록 | `GET /local-merchants/regions` |
+| 동기화 | `POST /admin/local-merchants/sync?regionCode=` (ADMIN, 비동기) 또는 `MERCHANT_SYNC_ON_START=true` (부팅 때 빈 지역만, 별도 스레드) |
+
+**왜 API 를 실시간으로 부르지 않고 적재하나** — 개발계정 일 10,000건 한도, 1,000건에 약 9초, 그리고 API 가
+가맹점명 **완전 일치** 검색만 지원해서 이름 검색을 만들 수 없다. 천안 약 1만 건·아산 약 3.8만 건(영업 중)이라
+한 번 적재하면 된다.
+
+**데이터 품질**
+- 폐업·휴업 가맹점이 많이 섞여 있어(천안 표본의 약 40%) 요청에 `cond[bzmn_stts::EQ]=01`(계속사업자)을 건다. 이 조건은
+  포털 문서의 요청변수 표에 없지만 동작을 확인했다. 등록구분이 `해지` 인 행도 건너뛰고, 이번 동기화에서 안 보인 행은 지운다
+  (끝까지 읽은 경우에만).
+- **기준일이 2023-11 이다.** 화면에 `baseDate` 를 밝히는 게 좋다.
+- 업종은 3자리 KSIC 만 와서 카페와 술집(562)을 코드로 가를 수 없다 → 상호 키워드로 가른다(`MerchantClassifier`).
+- 가계부 지출 카테고리에는 쇼핑·병원이 없다. `MerchantGroup#appCategoryName` 으로 식비/카페/교통/기타에 이어진다.
+
+**주의** — 서비스키가 URL 쿼리에 들어가므로 URL 을 로그·예외에 남기지 않는다(`MerchantApiClient` 가 상태 코드만 남긴
+예외로 바꿔 던진다). 실제 API 확인은 `MERCHANT_API_KEY=… ./gradlew test --tests '*MerchantApiLiveTest'`
+(키가 없으면 건너뛴다).
+
+### 7-1. 데이터 출처 변경 — 지자체 공개 파일 우선
+
+공공 API(통합 가맹점정보)는 기준일이 2023-11 이라, 더 최신인 지자체 공개 파일을 쓴다.
+
+| 지역 | 원본 | 기준일 |
+|---|---|---|
+| 아산 | 아산페이 일반상품권 사용처 목록(xlsx, 13,174건) | 2026-10-06 |
+| 천안 | 천안사랑카드 가맹점(xlsx, 10,009건) − 2026-07-01 시행 등록취소 명단(PDF) 중 일치 17곳 | 2024-12-19 (신규 등록은 반영 못 함) |
+
+- 변환: `backend/was/tools/merchant-data/convert.py <아산.xlsx> <천안.xlsx> <천안취소.pdf>` → `src/main/resources/merchants/*.csv` (저장소에 포함)
+- 적재: `POST /admin/local-merchants/import` 또는 `MERCHANT_SYNC_ON_START=true`(부팅 때 빈 지역만). 외부 호출·키 불필요.
+- 새 파일을 받으면 convert.py 를 다시 돌리고 `MerchantFileImportService` 의 기준일을 바꾼다.
+- 파일에는 좌표가 없다(거리순 정렬 불가). 천안 파일은 식품·편의점 위주라 카페·쇼핑·병원 가맹점이 거의 없다.
+- API 동기화는 `POST /admin/local-merchants/sync-api` 로 남겨 두었다(보조용).
+
+### 7-2. 온보딩(가입 직후) — 지역·나이·성별
+
+- `GET /regions` — 충남 15개 시·군. `selectable: true`(천안·아산)만 선택 가능, 나머지는 비활성으로 표시.
+- `PUT /users/me/onboarding` `{regionCode, age, gender}` — 모두 필수. `gender`: `MALE`/`FEMALE`/`NONE`(선택 안 함). 나이는 출생연도로 저장.
+- `GET /users/me` 의 `onboardingCompleted` 가 `false` 면 로그인 후 이 화면으로 보낸다. `age`·`gender` 도 함께 내려간다.
+- 프론트 참고용 화면: `frontend/src/pages/Onboarding.tsx` (React).
+
+### 7-3. 청년정책 (온통청년) — 홈 상단 롤링
+
+- 원본: `https://www.youthcenter.go.kr/go/ythip/getPlcy` (`apiKeyNm`, `zipCd`, `pageNum`, `pageSize`≤100, `rtnType=json`). 키: `.env` 의 `YOUTH_POLICY_API_KEY`.
+- 천안(44130)·아산(44200)이 대상인 정책만 `youth_policies` 에 적재(정책번호로 중복 제거). 적재: `POST /admin/youth-policies/sync` 또는 `YOUTH_POLICY_SYNC_ON_START=true`(부팅 때 빈 테이블이면 한 번).
+- `GET /youth-policies/home?limit=10` — 내 **지역·나이**에 맞고 **지금 신청 가능**한 정책. 순서: 지역 맞춤 → 마감 임박 → 상시. 카드 필드: `name, summary, category, keywords, support, ageText, applyPeriod, dDay, applyUrl, regionSpecific`.
+- 빈 배열이면 롤링 영역을 숨긴다. 지역 미설정은 400(온보딩 먼저).
+- 나이 제한은 최소/최대 연령 숫자로만 판단한다(API 의 연령제한여부 플래그는 의미가 일관되지 않아 쓰지 않음).

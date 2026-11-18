@@ -31,3 +31,7 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+
+# OMC 작업 상태
+.omc/
+**/.omc/
