@@ -21,6 +21,9 @@ import java.util.List;
  *
  * <p>영수증은 날짜를 오늘로 채우면 오히려 틀릴 수 있어서 못 읽으면 {@code null}
  * ({@code missingFields} 로 알린다). 이미지는 메모리에서만 쓰고 저장하지 않는다.
+ *
+ * <p>보내기 전에 {@link ReceiptImageScaler} 로 줄이고 회전을 바로잡는다. 깨진 파일은 AI 를 부르기 전에
+ * 415 {@code UNSUPPORTED_FILE_TYPE} 이 된다.
  */
 @Component
 @ConditionalOnExpression(OcrConfig.DJANGO_NOT_CONFIGURED)
@@ -39,12 +42,14 @@ public class GeminiReceiptOcrClient implements ReceiptOcrClient {
     @Override
     public ParsedTransaction analyze(ReceiptImage image, List<CategoryResponse> categories) {
         log.info("[RCPT-01] OCR 서버 미설정 → Gemini 가 이미지를 직접 읽습니다.");
+        ReceiptImage fitted = ReceiptImageScaler.fitForAi(image);   // 읽을 수 없는 파일이면 여기서 415
+        log.debug("[RCPT-01] 이미지 {} → {} bytes", image.bytes().length, fitted.bytes().length);
         LocalDate today = KstTime.today();
 
         JsonNode r = gemini.generateJson(
                 promptBuilder.build(today, categories),
                 "위 영수증 이미지에서 거래 정보를 추출해.",
-                image.bytes(), image.contentType(),
+                fitted.bytes(), fitted.contentType(),
                 ParsedTxSchema.SCHEMA, 0.0);
 
         return ParsedTxMapper.toParsed(r, today, false, categories);

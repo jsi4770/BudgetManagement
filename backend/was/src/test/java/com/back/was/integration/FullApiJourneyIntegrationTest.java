@@ -1,6 +1,7 @@
 package com.back.was.integration;
 
 import com.back.was.domain.admin.AdminSeeder;
+import com.back.was.domain.ocr.TestImages;
 import com.back.was.global.support.KstTime;
 import com.back.was.global.support.Weeks;
 import com.jayway.jsonpath.JsonPath;
@@ -506,7 +507,7 @@ class FullApiJourneyIntegrationTest {
     @DisplayName("RCPT-01 영수증 OCR — OCR 서버도 Gemini 키도 없어 503 AI_UNAVAILABLE (유일한 multipart API)")
     void analyzeReceipt() throws Exception {
         MockMultipartFile image = new MockMultipartFile(
-                "image", "receipt.jpg", MediaType.IMAGE_JPEG_VALUE, "fake-jpeg-bytes".getBytes());
+                "image", "receipt.jpg", MediaType.IMAGE_JPEG_VALUE, TestImages.jpeg(400, 600));
 
         // multipart 빌더는 MockHttpServletRequestBuilder 계열이 아니라 authed() 를 못 쓴다
         mockMvc.perform(multipart("/receipts/ocr").file(image)

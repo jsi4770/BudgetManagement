@@ -54,7 +54,7 @@ public class ReceiptOcrController {
             AI(Gemini) 한도·장애·키 없음은 `503 AI_UNAVAILABLE` 입니다.
 
             **실패**: `400 VALIDATION_ERROR`(`image` 파트 없음), `413 FILE_TOO_LARGE`,
-            `415 UNSUPPORTED_FILE_TYPE`(jpg·png 아님, 빈 파일), `502 OCR_FAILED`,
+            `415 UNSUPPORTED_FILE_TYPE`(jpg·png 아님, 빈 파일, AI 가 직접 읽는 경로에서 이미지를 읽을 수 없음), `502 OCR_FAILED`,
             `503 AI_UNAVAILABLE`, `422 AI_PARSE_FAILED`""")
     @PostMapping(path = "/ocr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ApiResponse<ParsedTransactionResponse> analyze(@RequestPart("image") MultipartFile image) {

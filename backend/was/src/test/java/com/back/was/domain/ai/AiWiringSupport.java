@@ -1,5 +1,6 @@
 package com.back.was.domain.ai;
 
+import com.back.was.domain.ocr.TestImages;
 import com.jayway.jsonpath.JsonPath;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -39,7 +40,7 @@ final class AiWiringSupport {
 
     static ResultActions receipt(MockMvc mockMvc, String token) throws Exception {
         return mockMvc.perform(multipart("/receipts/ocr")
-                .file(new MockMultipartFile("image", "receipt.jpg", "image/jpeg", "fake-jpeg".getBytes()))
+                .file(new MockMultipartFile("image", "receipt.jpg", "image/jpeg", TestImages.jpeg(400, 600)))
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + token));
     }
 }
