@@ -1,6 +1,6 @@
 package com.back.was.eval;
 
-import com.back.was.ai.gemini.GeminiClient;
+import com.back.was.ai.llm.LlmClient;
 import com.back.was.coach.*;
 import com.back.was.common.BusinessException;
 import org.junit.jupiter.api.Test;
@@ -13,12 +13,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-/** 인사이트 생성(첫 시도 통과율·재시도 횟수), 목표 의도 파싱 정확도, 코치 대화의 숫자 검증 통과율을 실제 Gemini 로 잰다 */
+/** 인사이트 생성(첫 시도 통과율·재시도 횟수), 목표 의도 파싱 정확도, 코치 대화의 숫자 검증 통과율을 실제 Claude 로 잰다 */
 @SpringBootTest
-@org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "GEMINI_API_KEY", matches = ".+")
+@org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "ANTHROPIC_API_KEY", matches = ".+")
 class CoachLiveEval extends LiveEvalBase {
 
-    @Autowired GeminiClient gemini;
+    @Autowired LlmClient llm;
     @Autowired Aggregator aggregator;
     @Autowired InsightValidator validator;
     @Autowired CoachStore store;
@@ -30,14 +30,14 @@ class CoachLiveEval extends LiveEvalBase {
     @Test
     void insights() throws Exception {
         AtomicInteger calls = new AtomicInteger();
-        GeminiClient counting = new GeminiClient() {
-            public JsonNode generateJson(String s, List<com.back.was.ai.gemini.GeminiMessage> m, java.util.Map<String, Object> sc, double t) {
+        LlmClient counting = new LlmClient() {
+            public JsonNode generateJson(String s, List<com.back.was.ai.llm.LlmMessage> m, java.util.Map<String, Object> sc) {
                 calls.incrementAndGet();
-                return gemini.generateJson(s, m, sc, t);
+                return llm.generateJson(s, m, sc);
             }
-            public JsonNode generateJson(String s, String u, byte[] i, String mt, java.util.Map<String, Object> sc, double t) {
+            public JsonNode generateJson(String s, String u, byte[] i, String mt, java.util.Map<String, Object> sc) {
                 calls.incrementAndGet();
-                return gemini.generateJson(s, u, i, mt, sc, t);
+                return llm.generateJson(s, u, i, mt, sc);
             }
         };
         InsightService svc = new InsightService(counting, aggregator, validator, store, om);
@@ -60,7 +60,7 @@ class CoachLiveEval extends LiveEvalBase {
             }
         }
         long[] nanos = lat.stream().mapToLong(Long::longValue).toArray();
-        EvalReport.write("insight-quality.md", "# 인사이트 생성 품질 (실제 Gemini)\n\n"
+        EvalReport.write("insight-quality.md", "# 인사이트 생성 품질 (실제 Claude)\n\n"
                 + String.format("- 첫 시도 검증 통과: **%d/%d**\n- 재시도 후 최종 통과: **%d/%d**\n- AI 호출 실패(제외): %d\n- 지연: p50 %.1fs, p95 %.1fs\n\n",
                 firstTry, runs, finalPass, runs, unavailable, EvalReport.pct(nanos, 0.5) / 1000, EvalReport.pct(nanos, 0.95) / 1000)
                 + "| 페르소나 | LLM 호출 | 결과 | 소요 |\n|---|---|---|---|\n" + String.join("\n", rows) + "\n");
@@ -96,7 +96,7 @@ class CoachLiveEval extends LiveEvalBase {
                 if (good) ok++; else misses.add("`" + c.text() + "` → " + i);
             } catch (BusinessException e) { unavailable++; }
         }
-        EvalReport.write("goal-intent.md", String.format("# 목표 문장 해석 정확도 (실제 Gemini)\n\n- 정확: **%d/%d**\n- AI 호출 실패(제외): %d\n\n%s",
+        EvalReport.write("goal-intent.md", String.format("# 목표 문장 해석 정확도 (실제 Claude)\n\n- 정확: **%d/%d**\n- AI 호출 실패(제외): %d\n\n%s",
                 ok, total, unavailable, misses.isEmpty() ? "틀린 케이스 없음\n" : "## 틀린 케이스\n" + misses.stream().map(s -> "- " + s + "\n").reduce("", String::concat)));
     }
 
@@ -120,7 +120,7 @@ class CoachLiveEval extends LiveEvalBase {
             }
         }
         long[] nanos = lat.stream().mapToLong(Long::longValue).toArray();
-        EvalReport.write("coach-chat.md", String.format("# 코치 대화 숫자 검증 (실제 Gemini)\n\n- 숫자 검증 통과: **%d/%d**\n- AI 호출 실패(제외): %d\n- 턴 지연: p50 %.1fs, p95 %.1fs\n\n| 질문 | 검증 | 답변 앞부분 |\n|---|---|---|\n%s\n",
+        EvalReport.write("coach-chat.md", String.format("# 코치 대화 숫자 검증 (실제 Claude)\n\n- 숫자 검증 통과: **%d/%d**\n- AI 호출 실패(제외): %d\n- 턴 지연: p50 %.1fs, p95 %.1fs\n\n| 질문 | 검증 | 답변 앞부분 |\n|---|---|---|\n%s\n",
                 verified, total, unavailable, EvalReport.pct(nanos, 0.5) / 1000, EvalReport.pct(nanos, 0.95) / 1000, String.join("\n", rows)));
     }
 }

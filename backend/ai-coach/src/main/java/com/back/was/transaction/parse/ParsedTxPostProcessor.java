@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Gemini 결과 → 명세 응답(ParseResult). 모델 출력을 그대로 믿지 않고 서버 규칙으로 한 번 더 검증한다.
+ * LLM 결과 → 명세 응답(ParseResult). 모델 출력을 그대로 믿지 않고 서버 규칙으로 한 번 더 검증한다.
  * - 금액: 1 이상 정수만 (TX-01 규칙)
  * - 날짜: 형식만 검증. 미래 날짜는 그대로 (저장 시 TX-01 이 FUTURE_DATE 로 거부)
  * - 카테고리: 목록에 없는 id·null → "기타"

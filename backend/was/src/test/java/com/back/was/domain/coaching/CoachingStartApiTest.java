@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * COACH-01 코칭 시작.
  *
- * <p>첫 메시지는 Gemini 가 없으므로 {@code TemplateCoachingOpeningGenerator} 가 만든다 —
+ * <p>첫 메시지는 AI 가 없으므로 {@code TemplateCoachingOpeningGenerator} 가 만든다 —
  * 문구 자체는 {@code TemplateCoachingOpeningGeneratorTest} 가 검증하고, 여기서는 <b>어느
  * 갈래의 문구가 쓰였는지</b>(넛지 맥락 포함 여부)만 본다. 넛지 숫자는 docs/시연_데이터.md
  * 6-1 의 배달 판정(101,000 vs 평균 60,000)과 같은 값이 되도록

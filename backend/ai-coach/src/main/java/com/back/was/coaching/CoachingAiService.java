@@ -1,8 +1,8 @@
 package com.back.was.coaching;
 
-import com.back.was.ai.gemini.GeminiClient;
-import com.back.was.ai.gemini.GeminiMessage;
-import com.back.was.ai.gemini.GeminiSchema;
+import com.back.was.ai.llm.LlmClient;
+import com.back.was.ai.llm.LlmMessage;
+import com.back.was.ai.llm.LlmSchema;
 import com.back.was.analysis.CategoryComparison;
 import com.back.was.analysis.MonthlySummaryService.MonthlySummary;
 import com.back.was.category.CategoryInfo;
@@ -30,7 +30,7 @@ import java.util.Optional;
  *   CoachReply r = coachingAi.reply(ctx, 이전대화들, 사용자메시지);              // COACH-03
  *   // r.proposedGoal() 은 COACH-04 확정 전까지 저장하지 않음
  *
- * Gemini 가 실패해도 예외 대신 대체 메시지(fallback=true)를 돌려준다 → 명세 "코칭은 실패 시에도 200"
+ * AI 가 실패해도 예외 대신 대체 메시지(fallback=true)를 돌려준다 → 명세 "코칭은 실패 시에도 200"
  */
 @Service
 public class CoachingAiService {
@@ -43,26 +43,26 @@ public class CoachingAiService {
 
     static {
         Map<String, Map<String, Object>> goal = new LinkedHashMap<>();
-        goal.put("categoryId", GeminiSchema.integer("목표 대상 지출 카테고리 id"));
-        goal.put("targetAmount", GeminiSchema.integer("기간 동안 쓸 최대 금액(원). 1,000원 단위"));
-        goal.put("periodDays", GeminiSchema.integer("챌린지 기간(일). 7 또는 14 권장"));
-        goal.put("reason", GeminiSchema.string("이 금액을 제안한 근거 한 문장 (데이터의 평균·이번 주 금액 인용)"));
+        goal.put("categoryId", LlmSchema.integer("목표 대상 지출 카테고리 id"));
+        goal.put("targetAmount", LlmSchema.integer("기간 동안 쓸 최대 금액(원). 1,000원 단위"));
+        goal.put("periodDays", LlmSchema.integer("챌린지 기간(일). 7 또는 14 권장"));
+        goal.put("reason", LlmSchema.string("이 금액을 제안한 근거 한 문장 (데이터의 평균·이번 주 금액 인용)"));
 
         Map<String, Map<String, Object>> p = new LinkedHashMap<>();
-        p.put("reply", GeminiSchema.string("사용자에게 보낼 답변. 3~5문장"));
-        p.put("proposedGoal", GeminiSchema.nullable(GeminiSchema.object(goal)));
-        REPLY_SCHEMA = GeminiSchema.object(p);
+        p.put("reply", LlmSchema.string("사용자에게 보낼 답변. 3~5문장"));
+        p.put("proposedGoal", LlmSchema.nullable(LlmSchema.object(goal)));
+        REPLY_SCHEMA = LlmSchema.object(p);
 
         Map<String, Map<String, Object>> f = new LinkedHashMap<>();
-        f.put("feedback", GeminiSchema.string("챌린지 결과 피드백. 3문장 이내"));
-        FEEDBACK_SCHEMA = GeminiSchema.object(f);
+        f.put("feedback", LlmSchema.string("챌린지 결과 피드백. 3문장 이내"));
+        FEEDBACK_SCHEMA = LlmSchema.object(f);
     }
 
-    private final GeminiClient gemini;
+    private final LlmClient llm;
     private final CategoryProvider categories;
 
-    public CoachingAiService(GeminiClient gemini, CategoryProvider categories) {
-        this.gemini = gemini;
+    public CoachingAiService(LlmClient llm, CategoryProvider categories) {
+        this.llm = llm;
         this.categories = categories;
     }
 
@@ -108,24 +108,24 @@ public class CoachingAiService {
      * @param history     이전 대화 (user/model 번갈아, 오래된 순). 첫 메시지는 빈 리스트
      * @param userMessage 이번 사용자 메시지
      */
-    public CoachReply reply(String context, List<GeminiMessage> history, String userMessage) {
-        List<GeminiMessage> messages = new ArrayList<>();
+    public CoachReply reply(String context, List<LlmMessage> history, String userMessage) {
+        List<LlmMessage> messages = new ArrayList<>();
         // 데이터는 대화 맨 앞에 한 번 넣고, AI 가 확인했다는 턴을 붙여 user/model 순서를 맞춤
-        messages.add(GeminiMessage.user("[소비 데이터]\n" + context));
-        messages.add(GeminiMessage.model("{\"reply\": \"확인했어요.\", \"proposedGoal\": null}"));
+        messages.add(LlmMessage.user("[소비 데이터]\n" + context));
+        messages.add(LlmMessage.assistant("{\"reply\": \"확인했어요.\", \"proposedGoal\": null}"));
         int from = Math.max(0, history.size() - HISTORY_LIMIT);
         messages.addAll(history.subList(from, history.size()));
-        messages.add(GeminiMessage.user(userMessage));
+        messages.add(LlmMessage.user(userMessage));
 
         try {
-            JsonNode r = gemini.generateJson(CoachingPrompts.COACH_SYSTEM, messages, REPLY_SCHEMA, 0.7);
+            JsonNode r = llm.generateJson(CoachingPrompts.COACH_SYSTEM, messages, REPLY_SCHEMA);
             String reply = r.path("reply").asString("").strip();
             if (reply.isEmpty()) {
                 return new CoachReply(CoachingPrompts.COACH_FALLBACK, null, true);
             }
             return new CoachReply(reply, validateGoal(r.path("proposedGoal")), false);
         } catch (Exception e) {
-            log.warn("[COACH] Gemini 실패 → 대체 메시지: {}", e.getMessage());
+            log.warn("[COACH] AI 실패 → 대체 메시지: {}", e.getMessage());
             return new CoachReply(CoachingPrompts.COACH_FALLBACK, null, true);
         }
     }
@@ -164,11 +164,11 @@ public class CoachingAiService {
                 f.beforeWeeklyAvg() == null ? "-" : String.format("%,d원", f.beforeWeeklyAvg()),
                 f.duringWeeklyAvg() == null ? "-" : String.format("%,d원", f.duringWeeklyAvg()));
         try {
-            JsonNode r = gemini.generateJson(CoachingPrompts.FEEDBACK_SYSTEM, data, FEEDBACK_SCHEMA, 0.6);
+            JsonNode r = llm.generateJson(CoachingPrompts.FEEDBACK_SYSTEM, data, FEEDBACK_SCHEMA);
             String text = r.path("feedback").asString("").strip();
             if (!text.isEmpty()) return text;
         } catch (Exception e) {
-            log.warn("[REPORT] Gemini 실패 → 대체 문구: {}", e.getMessage());
+            log.warn("[REPORT] AI 실패 → 대체 문구: {}", e.getMessage());
         }
         return f.achieved()
                 ? String.format("%s 목표를 지켜냈어요! 이번에 만든 습관을 다음 주에도 이어가 봐요.", f.categoryName())

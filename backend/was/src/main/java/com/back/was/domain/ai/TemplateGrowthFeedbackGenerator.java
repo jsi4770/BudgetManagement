@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * {@code docs/AI_대체_문구.md} 7장 템플릿으로 성장 리포트 피드백을 만든다 — <b>Gemini 없이도
+ * {@code docs/AI_대체_문구.md} 7장 템플릿으로 성장 리포트 피드백을 만든다 — <b>AI 없이도
  * CHL-03 이 완결되는 이유</b>다.
  *
- * <p>Gemini 어댑터가 생기면 이 클래스는 <b>남는다</b>({@link GrowthFeedbackGenerator} 의
+ * <p>LLM 어댑터가 생기면 이 클래스는 <b>남는다</b>({@link GrowthFeedbackGenerator} 의
  * 설명 참고). {@code TemplateNudgeTextGenerator} ·
  * {@code TemplateCoachingOpeningGenerator} 와 같은 성격·같은 규칙이다: 상황별 문구가 여러
  * 개면 <b>무작위로 하나</b>, 금액에는 천 단위 쉼표.

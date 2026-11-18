@@ -1,9 +1,9 @@
 package com.back.was.coach;
 
-import com.back.was.ai.gemini.GeminiClient;
-import com.back.was.ai.gemini.GeminiMessage;
-import com.back.was.ai.gemini.GeminiSchema;
-import com.back.was.ai.gemini.GeminiTool;
+import com.back.was.ai.llm.LlmClient;
+import com.back.was.ai.llm.LlmMessage;
+import com.back.was.ai.llm.LlmSchema;
+import com.back.was.ai.llm.LlmTool;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 
@@ -16,7 +16,7 @@ public class CoachChatService {
 
     private static final String SYSTEM = Prompts.load("chat-system.txt");
 
-    private final GeminiClient gemini;
+    private final LlmClient llm;
     private final Aggregator aggregator;
     private final DemoData data;
     private final GoalService goals;
@@ -24,9 +24,9 @@ public class CoachChatService {
     private final NumberCheck numbers;
     private final Map<String, Session> sessions = new ConcurrentHashMap<>();
 
-    public CoachChatService(GeminiClient gemini, Aggregator aggregator, DemoData data, GoalService goals,
+    public CoachChatService(LlmClient llm, Aggregator aggregator, DemoData data, GoalService goals,
                             CoachStore store, NumberCheck numbers) {
-        this.gemini = gemini;
+        this.llm = llm;
         this.aggregator = aggregator;
         this.data = data;
         this.goals = goals;
@@ -51,9 +51,9 @@ public class CoachChatService {
     final class Session {
         private final String persona;
         private final List<Object> seen = new ArrayList<>();      // 도구가 돌려준 값 (답변 숫자 검증용)
-        private final List<GeminiMessage> history = new ArrayList<>();
+        private final List<LlmMessage> history = new ArrayList<>();
         private final List<String> userTexts = new ArrayList<>();
-        private final List<GeminiTool> tools;
+        private final List<LlmTool> tools;
         private final String system;
 
         Session(String persona) {
@@ -65,18 +65,18 @@ public class CoachChatService {
 
         synchronized Answer ask(String text) {
             userTexts.add(text);
-            history.add(GeminiMessage.user(text));
-            String answer = gemini.chatWithTools(system, history, tools, 0.3);
+            history.add(LlmMessage.user(text));
+            String answer = llm.chatWithTools(system, history, tools);
             List<String> problems = check(answer);
             if (!problems.isEmpty()) {
                 String fix = "방금 답변의 다음 숫자는 도구 결과에 없는 값이야:\n- " + String.join("\n- ", problems)
                         + "\n도구가 준 값만 사용해서 다시 답해줘. 필요하면 도구를 다시 호출해.";
-                history.add(GeminiMessage.model(answer));
-                history.add(GeminiMessage.user(fix));
-                answer = gemini.chatWithTools(system, history, tools, 0.3);
+                history.add(LlmMessage.assistant(answer));
+                history.add(LlmMessage.user(fix));
+                answer = llm.chatWithTools(system, history, tools);
                 problems = check(answer);
             }
-            history.add(GeminiMessage.model(answer));
+            history.add(LlmMessage.assistant(answer));
             return new Answer(answer, problems);
         }
 
@@ -90,35 +90,35 @@ public class CoachChatService {
             return numbers.unknownNumbers(List.of(answer), allowed);
         }
 
-        private GeminiTool tool(String name, String desc, Map<String, Object> params,
+        private LlmTool tool(String name, String desc, Map<String, Object> params,
                                 java.util.function.Function<JsonNode, Object> fn) {
-            return new GeminiTool(name, desc, params, args -> {
+            return new LlmTool(name, desc, params, args -> {
                 Object out = fn.apply(args);
                 synchronized (seen) { seen.add(out); }
                 return out;
             });
         }
 
-        private List<GeminiTool> buildTools() {
+        private List<LlmTool> buildTools() {
             List<Tx> raw = data.get(persona).txs();
             List<String> months = raw.stream().map(Tx::month).distinct().sorted().toList();
             String latest = months.get(months.size() - 1);
 
             Map<String, Map<String, Object>> monthOnly = new LinkedHashMap<>();
-            monthOnly.put("month", GeminiSchema.string("'YYYY-MM'. 비우면 가장 최근 달"));
+            monthOnly.put("month", LlmSchema.string("'YYYY-MM'. 비우면 가장 최근 달"));
             Map<String, Map<String, Object>> catOnly = new LinkedHashMap<>();
-            catOnly.put("category", GeminiSchema.string("예: '배달', '카페'"));
+            catOnly.put("category", LlmSchema.string("예: '배달', '카페'"));
             Map<String, Map<String, Object>> list = new LinkedHashMap<>();
-            list.put("category", GeminiSchema.string("비우면 전체"));
-            list.put("month", GeminiSchema.string("'YYYY-MM'. 비우면 전체"));
-            list.put("limit", GeminiSchema.integer("가져올 개수 (기본 8, 최대 20)"));
+            list.put("category", LlmSchema.string("비우면 전체"));
+            list.put("month", LlmSchema.string("'YYYY-MM'. 비우면 전체"));
+            list.put("limit", LlmSchema.integer("가져올 개수 (기본 8, 최대 20)"));
             Map<String, Map<String, Object>> sim = new LinkedHashMap<>();
-            sim.put("category", GeminiSchema.string(null));
-            sim.put("cut_pct", GeminiSchema.integer("줄일 비율(%)"));
+            sim.put("category", LlmSchema.string(null));
+            sim.put("cut_pct", LlmSchema.integer("줄일 비율(%)"));
 
             return List.of(
                 tool("get_month_summary", "한 달의 소비 요약(소득, 지출, 저축률, 카테고리별 금액·전월 대비·추세, 월말 집중, 이상 징후)을 가져온다.",
-                    GeminiSchema.object(monthOnly, List.of()), args -> {
+                    LlmSchema.object(monthOnly, List.of()), args -> {
                         String month = args.path("month").asString("");
                         if (!month.isEmpty() && !months.contains(month)) {
                             return Map.of("error", "데이터가 있는 달: " + months.get(0) + " ~ " + latest);
@@ -126,7 +126,7 @@ public class CoachChatService {
                         return aggregator.summarize(persona, month.isEmpty() ? null : month);
                     }),
                 tool("get_category_history", "특정 카테고리의 월별 지출 금액과 건수 추이를 가져온다. 예: '배달', '카페'.",
-                    GeminiSchema.object(catOnly), args -> {
+                    LlmSchema.object(catOnly), args -> {
                         String cat = args.path("category").asString("");
                         Map<String, long[]> byM = new TreeMap<>();
                         for (Tx t : raw) {
@@ -145,7 +145,7 @@ public class CoachChatService {
                         return Map.of("category", cat, "monthly", monthly);
                     }),
                 tool("list_transactions", "거래 내역을 금액 큰 순으로 가져온다. category, month('YYYY-MM')로 필터. 가장 비싼 지출을 물을 때 쓴다.",
-                    GeminiSchema.object(list, List.of()), args -> {
+                    LlmSchema.object(list, List.of()), args -> {
                         String cat = args.path("category").asString(""), month = args.path("month").asString("");
                         int limit = Math.max(1, Math.min(args.path("limit").asInt(8), 20));
                         List<Tx> rows = raw.stream().filter(t -> t.isExpense()
@@ -160,7 +160,7 @@ public class CoachChatService {
                         return Map.of("count", rows.size(), "transactions", out);
                     }),
                 tool("simulate_cut", "카테고리 지출을 cut_pct(%) 줄이면 월·연 절약액과 새 저축률이 어떻게 되는지 계산한다. '반으로 줄이면?' 같은 질문에 쓴다.",
-                    GeminiSchema.object(sim), args -> {
+                    LlmSchema.object(sim), args -> {
                         String cat = args.path("category").asString("");
                         Summary s = aggregator.summarize(persona);
                         Summary.CategoryStat c = s.categories().stream().filter(x -> x.category().equals(cat)).findFirst().orElse(null);

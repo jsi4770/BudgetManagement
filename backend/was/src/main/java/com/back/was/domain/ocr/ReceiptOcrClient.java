@@ -13,7 +13,7 @@ import java.util.List;
  * <ul>
  *   <li>{@link DjangoReceiptOcrClient} — {@code ocr.base-url} 이 있을 때. 별도 OCR 서비스
  *       ({@code backend/ocr}, Vertex AI 멀티모달)가 이미지에서 금액·날짜·카테고리·메모를 직접 뽑아 준다.</li>
- *   <li>{@link GeminiReceiptOcrClient} — {@code ocr.base-url} 이 없을 때. Gemini 가 이미지를 직접
+ *   <li>{@link LlmReceiptOcrClient} — {@code ocr.base-url} 이 없을 때. Claude 가 이미지를 직접
  *       읽는 대체 경로(개발·시연용).</li>
  * </ul>
  *

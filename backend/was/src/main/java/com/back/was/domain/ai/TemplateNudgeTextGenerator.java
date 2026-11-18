@@ -8,10 +8,10 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * {@code docs/AI_대체_문구.md} 1·2장 템플릿으로 넛지 문구를 만든다 — <b>Gemini 없이도
+ * {@code docs/AI_대체_문구.md} 1·2장 템플릿으로 넛지 문구를 만든다 — <b>AI 없이도
  * 후처리 5번이 완결되는 이유</b>다(서버_내부_처리 8장 "넛지 AI 문구: 템플릿 문구로 채움").
  *
- * <p>{@link GeminiNudgeTextGenerator} 가 실패·타임아웃 때 이 구현에 위임한다 — 그게 명세가
+ * <p>{@link LlmNudgeTextGenerator} 가 실패·타임아웃 때 이 구현에 위임한다 — 그게 명세가
  * 요구하는 대체 경로라 이 클래스는 <b>지우지 않는다</b>.
  *
  * <p>문구는 상황별로 세 개씩이고 <b>무작위로 하나</b>를 고른다(AI_대체_문구 머리말: 매번

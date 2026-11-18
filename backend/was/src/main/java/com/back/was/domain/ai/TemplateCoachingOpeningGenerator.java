@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
- * {@code docs/AI_대체_문구.md} 3장 템플릿으로 코칭 첫 메시지를 만든다 — <b>Gemini 없이도
+ * {@code docs/AI_대체_문구.md} 3장 템플릿으로 코칭 첫 메시지를 만든다 — <b>AI 없이도
  * COACH-01 이 완결되는 이유</b>다.
  *
- * <p>Gemini 어댑터가 생기면 이 클래스는 <b>남는다</b>({@link CoachingOpeningGenerator} 의
+ * <p>LLM 어댑터가 생기면 이 클래스는 <b>남는다</b>({@link CoachingOpeningGenerator} 의
  * 설명 참고). {@code TemplateNudgeTextGenerator} 와 같은 성격·같은 규칙이다: 상황별 문구가
  * 여러 개면 <b>무작위로 하나</b>를 고르고(매번 같은 문장이면 사용자가 고장으로 느낀다),
  * 금액에는 천 단위 쉼표를 붙인다.

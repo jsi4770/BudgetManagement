@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** 후처리·날짜표 테스트 (Gemini 호출 없이) */
+/** 후처리·날짜표 테스트 (LLM 호출 없이) */
 class ParseTest {
 
     private final ObjectMapper om = new ObjectMapper();

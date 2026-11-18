@@ -89,7 +89,7 @@ public class NudgeJudgeService {
                         .orElseGet(() -> store.save(new NudgeRecord(null, userId, catId, weekStart, today,
                                 it.amount(), avg, it.growthRate(), NudgeRecord.UNREAD)));
 
-                // 닫은 넛지는 어차피 안 보이니 문구 생성 생략 (Gemini 한도 절약)
+                // 닫은 넛지는 어차피 안 보이니 문구 생성 생략 (AI 호출 절약)
                 if (!NudgeRecord.DISMISSED.equals(saved.status())) {
                     events.publishEvent(new NudgeCopyRequested(saved.id(),
                             facts(userId, catId, weekStart, today, it.amount(), avg, it.growthRate())));

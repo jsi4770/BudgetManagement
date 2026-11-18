@@ -9,7 +9,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/** Gemini 가 영수증 이미지를 직접 읽을 때의 시스템 프롬프트 (영수증 → 거래 하나). */
+/** Claude 가 영수증 이미지를 직접 읽을 때의 시스템 프롬프트 (영수증 → 거래 하나). */
 @Component
 public class ReceiptPromptBuilder {
 

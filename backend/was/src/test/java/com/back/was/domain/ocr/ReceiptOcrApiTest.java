@@ -40,8 +40,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * RCPT-01 영수증 OCR 분석.
  *
  * <p>분석기({@link ReceiptOcrClient})를 목으로 바꿔서 <b>백엔드 책임만</b> 검증한다 — 이미지 검사,
- * 카테고리 목록 전달, TX-07 과 같은 응답 조립, 실패 코드. 실제 Django·Gemini 호출은
- * {@code DjangoReceiptOcrClientTest}·{@code GeminiReceiptOcrClientTest} 가 본다.
+ * 카테고리 목록 전달, TX-07 과 같은 응답 조립, 실패 코드. 실제 Django·Claude 호출은
+ * {@code DjangoReceiptOcrClientTest}·{@code LlmReceiptOcrClientTest} 가 본다.
  *
  * <p>기대값은 명세 RCPT-01 응답 예시다: 23,500원 / 2026-11-04 / 배달 / "배달의민족 주문".
  */
@@ -89,7 +89,7 @@ class ReceiptOcrApiTest {
         return new MockMultipartFile("image", "receipt.jpg", "image/jpeg", "fake-jpeg-bytes".getBytes());
     }
 
-    // --- 정상 흐름 (OCR·Gemini 가 붙었을 때) --------------------------------
+    // --- 정상 흐름 (OCR·Claude 가 붙었을 때) --------------------------------
 
     @Test
     @DisplayName("명세 RCPT-01: 이미지 → OCR → 정리 결과를 TX-07 과 같은 형식으로 준다")

@@ -61,8 +61,8 @@ public class OpenApiConfig {
             날짜는 `YYYY-MM-DD`, 시각은 KST 오프셋을 포함한 `2026-11-04T19:30:00+09:00`,
             금액은 원 단위 정수, 비율은 소수점 2자리입니다.
 
-            ### AI(Gemini) 호출이 안 될 때
-            `GEMINI_API_KEY` 가 없거나 한도를 넘거나 장애이면:
+            ### AI(Claude) 호출이 안 될 때
+            `ANTHROPIC_API_KEY` 가 없거나 한도를 넘거나 장애이면:
             - **TX-07 자연어 분석**·**RCPT-01 영수증 OCR**: `503 AI_UNAVAILABLE` — 프론트는 직접 입력 화면으로 안내하세요.
               (OCR 서버(Django)가 따로 죽은 경우는 `502 OCR_FAILED` 로 구분됩니다.)
             - 넛지 문구·코칭 첫 메시지·성장 리포트 피드백: **템플릿 문구로 정상 동작**합니다.

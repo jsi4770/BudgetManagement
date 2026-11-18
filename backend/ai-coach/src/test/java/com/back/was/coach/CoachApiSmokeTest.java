@@ -11,8 +11,8 @@ import java.net.http.HttpResponse;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-/** 서버를 실제로 띄워(Gemini mock) 주요 경로가 응답하는지 확인 */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "gemini.mock=true")
+/** 서버를 실제로 띄워(LLM mock) 주요 경로가 응답하는지 확인 */
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = "claude.mock=true")
 class CoachApiSmokeTest {
 
     @LocalServerPort int port;

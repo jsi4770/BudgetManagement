@@ -1,7 +1,7 @@
 package com.back.was.nudge;
 
-import com.back.was.ai.gemini.GeminiClient;
-import com.back.was.ai.gemini.GeminiSchema;
+import com.back.was.ai.llm.LlmClient;
+import com.back.was.ai.llm.LlmSchema;
 import tools.jackson.databind.JsonNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +15,7 @@ import java.util.Map;
 /**
  * NDG-02 aiAnalysis / aiRecommendation 비동기 생성 (SFR-019).
  * - 넛지 저장 트랜잭션이 커밋된 뒤에 실행 (커밋 전이면 아직 행이 없어서)
- * - Gemini 실패 시 미리 준비한 템플릿 문구로 대체 (SRS 7.3-4)
+ * - AI 실패 시 미리 준비한 템플릿 문구로 대체 (SRS 7.3-4)
  * 생성 중에는 두 필드가 null → 프론트 "AI가 분석 중이에요" 표시 후 재조회 (명세)
  */
 @Service
@@ -29,16 +29,16 @@ public class NudgeAiCopyService {
 
     static {
         Map<String, Map<String, Object>> p = new LinkedHashMap<>();
-        p.put("aiAnalysis", GeminiSchema.string("이번 주 소비 현황과 늘어난 원인. 1~2문장"));
-        p.put("aiRecommendation", GeminiSchema.string("이번 주 안에 해볼 수 있는 구체적 행동 하나. 1~2문장"));
-        SCHEMA = GeminiSchema.object(p);
+        p.put("aiAnalysis", LlmSchema.string("이번 주 소비 현황과 늘어난 원인. 1~2문장"));
+        p.put("aiRecommendation", LlmSchema.string("이번 주 안에 해볼 수 있는 구체적 행동 하나. 1~2문장"));
+        SCHEMA = LlmSchema.object(p);
     }
 
-    private final GeminiClient gemini;
+    private final LlmClient llm;
     private final NudgeStorePort store;
 
-    public NudgeAiCopyService(GeminiClient gemini, NudgeStorePort store) {
-        this.gemini = gemini;
+    public NudgeAiCopyService(LlmClient llm, NudgeStorePort store) {
+        this.llm = llm;
         this.store = store;
     }
 
@@ -57,13 +57,13 @@ public class NudgeAiCopyService {
     /** 실패해도 예외를 던지지 않고 대체 문구를 돌려준다 */
     public NudgeCopy generate(NudgeFacts f) {
         try {
-            JsonNode r = gemini.generateJson(NudgePrompts.COPY_SYSTEM, NudgePrompts.data(f), SCHEMA, 0.6);
+            JsonNode r = llm.generateJson(NudgePrompts.COPY_SYSTEM, NudgePrompts.data(f), SCHEMA);
             String analysis = r.path("aiAnalysis").asString("").strip();
             String recommendation = r.path("aiRecommendation").asString("").strip();
             if (analysis.isEmpty() || recommendation.isEmpty()) return fallback(f);
             return new NudgeCopy(analysis, recommendation);
         } catch (Exception e) {
-            log.warn("[NDG-02] Gemini 실패 → 대체 문구 사용: {}", e.getMessage());
+            log.warn("[NDG-02] AI 실패 → 대체 문구 사용: {}", e.getMessage());
             return fallback(f);
         }
     }

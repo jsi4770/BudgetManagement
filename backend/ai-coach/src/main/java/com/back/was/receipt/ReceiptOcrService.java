@@ -1,6 +1,6 @@
 package com.back.was.receipt;
 
-import com.back.was.ai.gemini.GeminiClient;
+import com.back.was.ai.llm.LlmClient;
 import com.back.was.common.InvalidInputException;
 import com.back.was.common.OcrFailedException;
 import com.back.was.common.TimeUtil;
@@ -22,9 +22,10 @@ import java.time.LocalDate;
  * 처리 순서 (명세)
  *  1. 이미지 검증 (jpg/png, 10MB)
  *  2. Django OCR 서버 → CLOVA OCR 로 텍스트 추출
- *  3. 금액·날짜·카테고리 정리 (Gemini)
+ *  3. 금액·날짜·카테고리 정리 (Claude)
  *  4. 결과 반환, 이미지는 메모리에서만 쓰고 버림
- * Django 주소가 아직 없으면(ocr.django-url 비어 있음) Gemini 가 이미지를 직접 읽는 대체 경로 사용.
+ * Django 주소가 아직 없으면(ocr.django-url 비어 있음) Claude 가 이미지를 직접 읽는 대체 경로 사용.
+ * 그 경로는 먼저 {@link ReceiptImageScaler} 로 줄이고 회전을 바로잡는다 — 깨진 파일은 AI 를 부르기 전에 415.
  */
 @Service
 public class ReceiptOcrService {
@@ -33,15 +34,15 @@ public class ReceiptOcrService {
 
     private final OcrTextClient ocrClient;
     private final OcrProperties props;
-    private final GeminiClient gemini;
+    private final LlmClient llm;
     private final ReceiptPromptBuilder promptBuilder;
     private final ParsedTxPostProcessor postProcessor;
 
-    public ReceiptOcrService(OcrTextClient ocrClient, OcrProperties props, GeminiClient gemini,
+    public ReceiptOcrService(OcrTextClient ocrClient, OcrProperties props, LlmClient llm,
                              ReceiptPromptBuilder promptBuilder, ParsedTxPostProcessor postProcessor) {
         this.ocrClient = ocrClient;
         this.props = props;
-        this.gemini = gemini;
+        this.llm = llm;
         this.promptBuilder = promptBuilder;
         this.postProcessor = postProcessor;
     }
@@ -66,11 +67,13 @@ public class ReceiptOcrService {
         if (ocrClient.isConfigured()) {
             String text = ocrClient.extractText(bytes, mime);           // 502 OCR_FAILED
             log.debug("[RCPT-01] OCR 텍스트 {}자", text.length());
-            r = gemini.generateJson(system, "영수증 OCR 텍스트:\n" + text, ParsedTxSchema.SCHEMA, 0.0);
-        } else if (props.geminiFallback()) {
-            log.info("[RCPT-01] OCR 서버 미설정 → Gemini 가 이미지를 직접 읽습니다.");
-            r = gemini.generateJson(system, "위 영수증 이미지에서 거래 정보를 추출해.",
-                    bytes, mime, ParsedTxSchema.SCHEMA, 0.0);
+            r = llm.generateJson(system, "영수증 OCR 텍스트:\n" + text, ParsedTxSchema.SCHEMA);
+        } else if (props.llmFallback()) {
+            log.info("[RCPT-01] OCR 서버 미설정 → Claude 가 이미지를 직접 읽습니다.");
+            ReceiptImageScaler.Fitted fitted = ReceiptImageScaler.fitForAi(bytes, mime);   // 읽을 수 없으면 415
+            log.debug("[RCPT-01] 이미지 {} → {} bytes", bytes.length, fitted.bytes().length);
+            r = llm.generateJson(system, "위 영수증 이미지에서 거래 정보를 추출해.",
+                    fitted.bytes(), fitted.contentType(), ParsedTxSchema.SCHEMA);
         } else {
             throw new OcrFailedException("OCR 서버 설정이 없어요.");
         }

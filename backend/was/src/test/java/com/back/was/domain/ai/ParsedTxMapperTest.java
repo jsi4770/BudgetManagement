@@ -12,7 +12,7 @@ import static com.back.was.domain.ai.AiTestFixtures.json;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Gemini JSON → {@link ParsedTransaction} 정규화. 포트 계약: 못 뽑은 필드는 null, 미래 날짜는 그대로. */
+/** LLM JSON → {@link ParsedTransaction} 정규화. 포트 계약: 못 뽑은 필드는 null, 미래 날짜는 그대로. */
 class ParsedTxMapperTest {
 
     private static final LocalDate BASE = LocalDate.of(2026, 11, 10);   // 화요일

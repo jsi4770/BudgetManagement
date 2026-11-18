@@ -78,7 +78,7 @@ public class TransactionController {
 
             미래 날짜가 나와도 그대로 돌려줍니다 — 거부는 저장 시점(TX-01)의 몫이라 사용자가 고칠 기회를 얻습니다.
 
-            Gemini 키가 없거나 호출에 실패하면 `503 AI_UNAVAILABLE` 입니다.
+            Claude 키가 없거나 호출에 실패하면 `503 AI_UNAVAILABLE` 입니다.
             프론트는 이 코드를 받으면 직접 입력 화면으로 안내하세요.
 
             **실패**: `400 VALIDATION_ERROR`, `422 AI_PARSE_FAILED`(필수 세 개를 모두 못 뽑음),

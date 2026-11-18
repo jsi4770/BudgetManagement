@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * TX-07 자연어 분석.
  *
- * <p>실제 Gemini 호출 없이 {@link TransactionTextParser} 포트를 대체해 백엔드 책임만
+ * <p>실제 Claude 호출 없이 {@link TransactionTextParser} 포트를 대체해 백엔드 책임만
  * 검증한다 — 프롬프트·스키마는 서버_내부_처리 8장대로 AI 담당 몫이고, 여기서 고정해야
  * 하는 건 명세 TX-07 의 응답 계약과 실패 코드다.
  */

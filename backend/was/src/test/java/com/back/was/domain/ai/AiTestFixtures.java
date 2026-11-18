@@ -1,7 +1,7 @@
 package com.back.was.domain.ai;
 
-import com.back.was.domain.ai.gemini.GeminiClient;
-import com.back.was.domain.ai.gemini.GeminiMessage;
+import com.back.was.domain.ai.llm.LlmClient;
+import com.back.was.domain.ai.llm.LlmMessage;
 import com.back.was.domain.category.dto.CategoryResponse;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -12,7 +12,7 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
-/** AI 어댑터 단위 테스트 공용 — DB·네트워크 없이 시드와 같은 카테고리 목록과 가짜 Gemini 를 만든다. */
+/** AI 어댑터 단위 테스트 공용 — DB·네트워크 없이 시드와 같은 카테고리 목록과 가짜 LLM 를 만든다. */
 public final class AiTestFixtures {
 
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -36,8 +36,8 @@ public final class AiTestFixtures {
         return JSON.readTree(text);
     }
 
-    /** 정해 둔 JSON 을 돌려주고, 받은 프롬프트·입력·이미지를 기록하는 가짜 Gemini. */
-    public static final class FakeGemini implements GeminiClient {
+    /** 정해 둔 JSON 을 돌려주고, 받은 프롬프트·입력·이미지를 기록하는 가짜 LLM. */
+    public static final class FakeLlm implements LlmClient {
 
         private final JsonNode reply;
         public final List<String> systemPrompts = new ArrayList<>();
@@ -46,13 +46,13 @@ public final class AiTestFixtures {
         public String lastMime;
         public int calls;
 
-        public FakeGemini(String replyJson) {
+        public FakeLlm(String replyJson) {
             this.reply = json(replyJson);
         }
 
         @Override
-        public JsonNode generateJson(String systemInstruction, List<GeminiMessage> messages,
-                                     Map<String, Object> responseSchema, double temperature) {
+        public JsonNode generateJson(String systemInstruction, List<LlmMessage> messages,
+                                     Map<String, Object> responseSchema) {
             calls++;
             systemPrompts.add(systemInstruction);
             userTexts.add(messages.get(messages.size() - 1).text());
@@ -61,7 +61,7 @@ public final class AiTestFixtures {
 
         @Override
         public JsonNode generateJson(String systemInstruction, String userText, byte[] imageBytes,
-                                     String mimeType, Map<String, Object> responseSchema, double temperature) {
+                                     String mimeType, Map<String, Object> responseSchema) {
             calls++;
             systemPrompts.add(systemInstruction);
             userTexts.add(userText);
@@ -72,18 +72,18 @@ public final class AiTestFixtures {
     }
 
     /** 호출 순서대로 정해 둔 응답(JSON 문자열) 또는 예외를 돌려주고, 받은 대화를 기록한다. */
-    public static final class ScriptedGemini implements GeminiClient {
+    public static final class ScriptedLlm implements LlmClient {
 
         private final Deque<Object> script = new ArrayDeque<>();
-        public final List<List<GeminiMessage>> conversations = new ArrayList<>();
+        public final List<List<LlmMessage>> conversations = new ArrayList<>();
         public final List<String> systemPrompts = new ArrayList<>();
 
-        public ScriptedGemini thenReply(String replyJson) {
+        public ScriptedLlm thenReply(String replyJson) {
             script.add(json(replyJson));
             return this;
         }
 
-        public ScriptedGemini thenThrow(RuntimeException e) {
+        public ScriptedLlm thenThrow(RuntimeException e) {
             script.add(e);
             return this;
         }
@@ -93,8 +93,8 @@ public final class AiTestFixtures {
         }
 
         @Override
-        public JsonNode generateJson(String systemInstruction, List<GeminiMessage> messages,
-                                     Map<String, Object> responseSchema, double temperature) {
+        public JsonNode generateJson(String systemInstruction, List<LlmMessage> messages,
+                                     Map<String, Object> responseSchema) {
             systemPrompts.add(systemInstruction);
             conversations.add(List.copyOf(messages));
             Object next = script.poll();
@@ -109,8 +109,8 @@ public final class AiTestFixtures {
 
         @Override
         public JsonNode generateJson(String systemInstruction, String userText, byte[] imageBytes,
-                                     String mimeType, Map<String, Object> responseSchema, double temperature) {
-            return generateJson(systemInstruction, List.of(GeminiMessage.user(userText)), responseSchema, temperature);
+                                     String mimeType, Map<String, Object> responseSchema) {
+            return generateJson(systemInstruction, List.of(LlmMessage.user(userText)), responseSchema);
         }
     }
 }

@@ -55,7 +55,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * 볼 수 없는 이유다. 대신
  * 실제로 커밋하므로 {@link #cleanUp()} 이 자기 사용자의 행만 지운다.
  *
- * <p>포트는 {@code @MockitoBean} 으로 바꾼다. Gemini 는 프로세스 밖이고, 필요한 것은 "호출
+ * <p>포트는 {@code @MockitoBean} 으로 바꾼다. AI 는 프로세스 밖이고, 필요한 것은 "호출
  * 순간의 상태"를 들여다볼 자리다.
  */
 @SpringBootTest
