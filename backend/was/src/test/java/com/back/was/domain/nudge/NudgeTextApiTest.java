@@ -136,7 +136,7 @@ class NudgeTextApiTest {
         mockMvc.perform(authed(post("/transactions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"categoryId": %d, "amount": %d, "transactionDate": "%s"}
+                                {"transactions": [{"categoryId": %d, "amount": %d, "transactionDate": "%s"}]}
                                 """.formatted(DELIVERY, amount, TODAY))))
                 .andExpect(status().isCreated());
     }

@@ -13,9 +13,9 @@ package com.back.was.domain.ai;
  * 출력(제안)까지 다루므로 계약 자체가 다르다. 첫 메시지는 알릴 상대가 없다 — 사용자는
  * 아직 아무 말도 하지 않았고, "AI 연결이 원활하지 않아요" 안내를 띄울 자리도 없다.
  *
- * <p>현재 유일한 구현은 {@link TemplateCoachingOpeningGenerator} 다. <b>Gemini 어댑터가
- * 들어올 때도 지우지 말고</b> 실패 시 위임하게 해야 한다 — TX-07 의
- * {@code UnavailableTransactionTextParser}("실제 어댑터가 오면 삭제")와 반대 성격이다.
+ * <p>구현은 {@link GeminiCoachingOpeningGenerator}({@code @Primary})이고, 실패하면
+ * {@link TemplateCoachingOpeningGenerator} 에 위임한다. <b>템플릿 쪽을 지우지 말 것</b> —
+ * 실패를 503 으로 드러내는 TX-07 의 {@code TransactionTextParser} 와 반대 성격이다.
  */
 public interface CoachingOpeningGenerator {
 

@@ -32,7 +32,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * TX-01~06 거래.
@@ -56,30 +62,69 @@ public class TransactionService {
     private static final int REQUIRED_PARSED_FIELD_COUNT = 3;
 
     /**
-     * TX-01. 거래는 항상 토큰 주인의 것으로 저장된다 — 요청에 사용자 ID 가 없다.
+     * TX-01. 여러 건을 한 번에 저장하고, 응답은 <b>요청 순서 그대로</b>다. 거래는 항상
+     * 토큰 주인의 것으로 저장된다 — 요청에 사용자 ID 가 없다.
      *
-     * <p>저장 뒤 <b>같은 트랜잭션에서 동기로</b> 넛지를 재판정한다(서버_내부_처리 1장
-     * 순서 3번). 커밋 전이어야 "거래는 저장됐는데 카드만 안 생긴" 상태가 생기지 않는다.
+     * <p><b>전부 저장되거나 하나도 저장되지 않는다</b>(명세 TX-01). 카테고리를 저장 전에 한
+     * 번에 조회해 하나라도 없으면 404 로 끝내므로, 실패한 요청이 INSERT 를 남기지 않는다 —
+     * 롤백이 어차피 되돌려 주지만 그 전에 막는 쪽이 읽기 쉽다.
      *
-     * <p>후처리는 명세의 순서대로 2번(챌린지 실적) → 3번(넛지 판정)이다. <b>5번(넛지 AI
-     * 문구)</b>만 커밋 후 비동기라 여기 없다.
+     * <p>저장 뒤 <b>같은 트랜잭션에서 동기로</b> 후처리를 돌린다(서버_내부_처리 1장).
+     * 커밋 전이어야 "거래는 저장됐는데 카드만 안 생긴" 상태가 생기지 않는다. 순서는 명세대로
+     * 2번(챌린지 실적) → 3번(넛지 판정)이고, <b>5번(넛지 AI 문구)</b>만 커밋 후 비동기라 여기
+     * 없다. 명세는 후처리를 "카테고리마다 한 번씩" 돌리라고 한다(거래 건수만큼이 아니라):
+     * <ul>
+     *   <li>넛지는 이번 주 판정이라 카테고리만 있으면 된다 — 서로 다른 카테고리를 한 번에
+     *       넘긴다.</li>
+     *   <li>챌린지는 <b>날짜</b>로 대상을 고르므로({@link ChallengePerformance#recalculate})
+     *       카테고리 하나에 날짜가 여럿이면 날짜마다 부른다. 같은 (카테고리, 날짜) 는 한
+     *       번이고, 재계산이 멱등이라 같은 챌린지가 두 번 걸려도 결과가 같다.</li>
+     * </ul>
      *
-     * @throws BusinessException 404 {@code NOT_FOUND} — 없는 카테고리 (명세 TX-01 Errors)
+     * @throws BusinessException 404 {@code NOT_FOUND} — 없는 카테고리가 한 건이라도 있으면
+     *                           전체 실패 (명세 TX-01 Errors)
      */
     @Transactional
-    public TransactionResponse create(Long userId, CreateTransactionRequest request) {
+    public List<TransactionResponse> create(Long userId, CreateTransactionRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(BusinessException::notFound);
-        Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow(BusinessException::notFound);
+        List<CreateTransactionRequest.Item> items = request.transactions();
+        Map<Long, Category> categories = findCategories(items);
 
-        Transaction transaction = transactionRepository.save(Transaction.of(
-                user, category, request.amount(), request.transactionDate(), request.memo()));
+        List<Transaction> transactions = transactionRepository.saveAll(items.stream()
+                .map(item -> Transaction.of(user, categories.get(item.categoryId()),
+                        item.amount(), item.transactionDate(), item.memo()))
+                .toList());
 
-        challengePerformance.recalculate(user, category, transaction.getTransactionDate());
-        nudgeJudgement.judge(user, category);
+        Map<Category, Set<LocalDate>> datesByCategory = new LinkedHashMap<>();
+        for (Transaction transaction : transactions) {
+            datesByCategory.computeIfAbsent(transaction.getCategory(), category -> new LinkedHashSet<>())
+                    .add(transaction.getTransactionDate());
+        }
+        datesByCategory.forEach((category, dates) ->
+                dates.forEach(date -> challengePerformance.recalculate(user, category, date)));
+        nudgeJudgement.judge(user, datesByCategory.keySet().toArray(Category[]::new));
 
-        return TransactionResponse.from(transaction);
+        return transactions.stream()
+                .map(TransactionResponse::from)
+                .toList();
+    }
+
+    /**
+     * 요청에 나온 카테고리를 한 번에 조회한다. 같은 카테고리가 여러 건이어도 조회는 한 번이다.
+     *
+     * @throws BusinessException 404 {@code NOT_FOUND} — 하나라도 없는 ID 가 있을 때
+     */
+    private Map<Long, Category> findCategories(List<CreateTransactionRequest.Item> items) {
+        Set<Long> ids = items.stream()
+                .map(CreateTransactionRequest.Item::categoryId)
+                .collect(Collectors.toSet());
+        Map<Long, Category> found = categoryRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(Category::getId, Function.identity()));
+        if (found.size() != ids.size()) {
+            throw BusinessException.notFound();
+        }
+        return found;
     }
 
     /**

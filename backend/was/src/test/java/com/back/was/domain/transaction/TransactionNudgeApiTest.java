@@ -127,12 +127,12 @@ class TransactionNudgeApiTest {
         String body = mockMvc.perform(authed(post("/transactions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"categoryId": %d, "amount": %d, "transactionDate": "%s"}
+                                {"transactions": [{"categoryId": %d, "amount": %d, "transactionDate": "%s"}]}
                                 """.formatted(categoryId, amount, TODAY))))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
 
-        return ((Number) JsonPath.read(body, "$.data.id")).longValue();
+        return ((Number) JsonPath.read(body, "$.data[0].id")).longValue();
     }
 
     private long currentNudgeId() throws Exception {

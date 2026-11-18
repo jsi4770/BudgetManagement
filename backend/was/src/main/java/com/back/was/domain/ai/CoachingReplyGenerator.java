@@ -27,9 +27,8 @@ import com.back.was.global.exception.BusinessException;
  * {@code AI_PARSE_FAILED}, API 키는 환경 변수에서만. 프롬프트와 JSON 스키마는 AI 담당
  * 몫이다(8장).
  *
- * <p>현재 유일한 구현은 {@link UnavailableCoachingReplyGenerator} 이고 항상 던진다 —
- * 즉 <b>지금 COACH-03 은 언제나 대체 응답으로 동작한다</b>. 실제 어댑터가 오면 그 클래스는
- * <b>삭제</b>한다.
+ * <p>구현은 {@link GeminiCoachingReplyGenerator} 하나다. Gemini 키가 없거나 호출이
+ * 실패하면 이 포트가 던지고, COACH-03 은 대체 응답({@code isFallback: true})으로 동작한다.
  */
 public interface CoachingReplyGenerator {
 

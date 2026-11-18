@@ -21,9 +21,9 @@ import org.springframework.stereotype.Component;
  * <p>돌려주는 타입은 포트와 <b>같은</b> {@link CoachingReply} 다 — 서비스가 두 경로를
  * 구분 없이 저장할 수 있고, 다른 점은 서비스가 붙이는 {@code isFallback} 플래그뿐이다.
  *
- * <p><b>Gemini 어댑터가 와도 이 클래스는 남는다.</b> 그게 명세가 요구하는 실패 경로다
- * ({@code UnavailableCoachingReplyGenerator} 는 삭제 대상, 이쪽은 유지 — 넛지의
- * {@code TemplateNudgeTextGenerator} 와 같은 성격).
+ * <p><b>이 클래스는 지우지 않는다.</b> {@code GeminiCoachingReplyGenerator} 가 실패했을 때의
+ * 경로이고, 명세가 요구하는 실패 경로다 — 넛지의 {@code TemplateNudgeTextGenerator} 와 같은
+ * 성격.
  */
 @Component
 @RequiredArgsConstructor
