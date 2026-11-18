@@ -1,9 +1,9 @@
 package com.back.was.domain.ai;
 
-import com.back.was.domain.ai.gemini.GeminiClient;
-import com.back.was.domain.ai.gemini.GeminiErrors;
-import com.back.was.domain.ai.gemini.GeminiMessage;
-import com.back.was.domain.ai.gemini.GeminiSchema;
+import com.back.was.domain.ai.llm.LlmClient;
+import com.back.was.domain.ai.llm.LlmErrors;
+import com.back.was.domain.ai.llm.LlmMessage;
+import com.back.was.domain.ai.llm.LlmSchema;
 import com.back.was.domain.category.RentCategory;
 import com.back.was.domain.category.dto.CategoryResponse;
 import com.back.was.domain.coaching.GoalType;
@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * COACH-03 대화 응답의 Gemini 구현.
+ * COACH-03 대화 응답의 LLM 구현.
  *
  * <p><b>이 포트는 실패를 숨기지 않는다</b> — 호출자({@code CoachingService})가 예외를 잡아 규칙 기반 대체 응답에
  * {@code isFallback: true} 를 붙여 200 으로 내린다(명세 COACH-03). 그래서 여기서는 실패를 그대로 던진다:
@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
  */
 @Primary
 @Component
-public class GeminiCoachingReplyGenerator implements CoachingReplyGenerator {
+public class LlmCoachingReplyGenerator implements CoachingReplyGenerator {
 
     private static final Set<Integer> PERIODS = Set.of(7, 14, 30);
     private static final int DEFAULT_PERIOD_DAYS = 7;
@@ -45,25 +45,25 @@ public class GeminiCoachingReplyGenerator implements CoachingReplyGenerator {
 
     static {
         Map<String, Map<String, Object>> goal = new LinkedHashMap<>();
-        goal.put("categoryId", GeminiSchema.integer("목표 대상 지출 카테고리 id (목록 중 하나)"));
-        goal.put("title", GeminiSchema.string("목표 제목. 예: 배달 2회 이하"));
-        goal.put("goalType", GeminiSchema.string("AMOUNT 또는 COUNT"));
-        goal.put("goalAmount", GeminiSchema.nullable(GeminiSchema.integer("AMOUNT 일 때 목표 금액(원). 아니면 null")));
-        goal.put("goalCount", GeminiSchema.nullable(GeminiSchema.integer("COUNT 일 때 목표 횟수. 아니면 null")));
-        goal.put("periodDays", GeminiSchema.integer("기간(일): 7, 14, 30 중 하나"));
+        goal.put("categoryId", LlmSchema.integer("목표 대상 지출 카테고리 id (목록 중 하나)"));
+        goal.put("title", LlmSchema.string("목표 제목. 예: 배달 2회 이하"));
+        goal.put("goalType", LlmSchema.string("AMOUNT 또는 COUNT"));
+        goal.put("goalAmount", LlmSchema.nullable(LlmSchema.integer("AMOUNT 일 때 목표 금액(원). 아니면 null")));
+        goal.put("goalCount", LlmSchema.nullable(LlmSchema.integer("COUNT 일 때 목표 횟수. 아니면 null")));
+        goal.put("periodDays", LlmSchema.integer("기간(일): 7, 14, 30 중 하나"));
 
         Map<String, Map<String, Object>> p = new LinkedHashMap<>();
-        p.put("message", GeminiSchema.string("사용자에게 보낼 답변. 3~5문장"));
-        p.put("proposedGoal", GeminiSchema.nullable(GeminiSchema.object(goal)));
-        p.put("recommendedMerchantIds", GeminiSchema.array(GeminiSchema.integer("추천 가맹점 id"),
+        p.put("message", LlmSchema.string("사용자에게 보낼 답변. 3~5문장"));
+        p.put("proposedGoal", LlmSchema.nullable(LlmSchema.object(goal)));
+        p.put("recommendedMerchantIds", LlmSchema.array(LlmSchema.integer("추천 가맹점 id"),
                 "[지역 가맹점] 목록의 id 중에서만, 최대 2개. 추천하지 않으면 빈 배열"));
-        SCHEMA = GeminiSchema.object(p);
+        SCHEMA = LlmSchema.object(p);
     }
 
-    private final GeminiClient gemini;
+    private final LlmClient llm;
 
-    public GeminiCoachingReplyGenerator(GeminiClient gemini) {
-        this.gemini = gemini;
+    public LlmCoachingReplyGenerator(LlmClient llm) {
+        this.llm = llm;
     }
 
     /** @throws BusinessException {@code AI_UNAVAILABLE} / {@code AI_PARSE_FAILED} */
@@ -73,22 +73,22 @@ public class GeminiCoachingReplyGenerator implements CoachingReplyGenerator {
                 .replace("{USERNAME}", "\"" + command.username() + "\"")
                 .replace("{CATEGORIES}", categoryLines(command.categories()))
                 .replace("{LOCAL}", localContext(command));
-        List<GeminiMessage> messages = toMessages(command.conversation());
+        List<LlmMessage> messages = toMessages(command.conversation());
 
-        CoachingReply reply = parse(gemini.generateJson(system, messages, SCHEMA, 0.5), command);
+        CoachingReply reply = parse(llm.generateJson(system, messages, SCHEMA), command);
         List<String> bad = unknownNumbers(reply, command);
         if (bad.isEmpty()) {
             return reply;
         }
 
         // 한 번만 다시 시킨다 — 어떤 숫자가 근거 없는지 알려 준다.
-        List<GeminiMessage> retry = new ArrayList<>(messages);
-        retry.add(GeminiMessage.model(reply.message()));
-        retry.add(GeminiMessage.user("방금 답변의 숫자 " + String.join(", ", bad)
+        List<LlmMessage> retry = new ArrayList<>(messages);
+        retry.add(LlmMessage.assistant(reply.message()));
+        retry.add(LlmMessage.user("방금 답변의 숫자 " + String.join(", ", bad)
                 + " 는 대화에 나온 적 없는 값이야. 대화에 나온 숫자와 제안하는 목표 값만 써서 다시 답해줘."));
-        reply = parse(gemini.generateJson(system, retry, SCHEMA, 0.5), command);
+        reply = parse(llm.generateJson(system, retry, SCHEMA), command);
         if (!unknownNumbers(reply, command).isEmpty()) {
-            throw GeminiErrors.parseFailed("코칭 답변에 근거 없는 숫자가 남았다");
+            throw LlmErrors.parseFailed("코칭 답변에 근거 없는 숫자가 남았다");
         }
         return reply;
     }
@@ -96,7 +96,7 @@ public class GeminiCoachingReplyGenerator implements CoachingReplyGenerator {
     private static CoachingReply parse(JsonNode r, CoachingReplyCommand command) {
         String message = r.path("message").asString("").strip();
         if (message.isEmpty()) {
-            throw GeminiErrors.parseFailed("코칭 답변이 비어 있다");
+            throw LlmErrors.parseFailed("코칭 답변이 비어 있다");
         }
         return new CoachingReply(message, parseGoal(r.path("proposedGoal"), command.categories()),
                 parseMerchantIds(r.path("recommendedMerchantIds"), command));
@@ -191,21 +191,21 @@ public class GeminiCoachingReplyGenerator implements CoachingReplyGenerator {
     }
 
     /**
-     * 대화를 Gemini 형식으로. 첫 턴이 AI(코칭 첫 메시지)이므로 user 로 시작하게 앞에 한 줄을 붙이고,
+     * 대화를 LLM 형식으로. 첫 턴이 AI(코칭 첫 메시지)이므로 user 로 시작하게 앞에 한 줄을 붙이고,
      * 같은 역할이 이어지면 합친다.
      */
-    private static List<GeminiMessage> toMessages(List<CoachingTurn> conversation) {
-        List<GeminiMessage> out = new ArrayList<>();
+    private static List<LlmMessage> toMessages(List<CoachingTurn> conversation) {
+        List<LlmMessage> out = new ArrayList<>();
         if (conversation.isEmpty() || conversation.get(0).role() == MessageRole.AI) {
-            out.add(GeminiMessage.user("(코칭을 시작했어요)"));
+            out.add(LlmMessage.user("(코칭을 시작했어요)"));
         }
         for (CoachingTurn turn : conversation) {
             String role = turn.role() == MessageRole.USER ? "user" : "model";
             if (!out.isEmpty() && out.get(out.size() - 1).role().equals(role)) {
-                GeminiMessage last = out.remove(out.size() - 1);
-                out.add(new GeminiMessage(role, last.text() + "\n" + turn.content()));
+                LlmMessage last = out.remove(out.size() - 1);
+                out.add(new LlmMessage(role, last.text() + "\n" + turn.content()));
             } else {
-                out.add(new GeminiMessage(role, turn.content()));
+                out.add(new LlmMessage(role, turn.content()));
             }
         }
         return out;

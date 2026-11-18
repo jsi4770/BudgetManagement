@@ -131,7 +131,7 @@ public class TransactionService {
      * TX-07 자연어 분석. 저장하지 않고 추출 결과만 돌려준다 — 최종 저장은 프론트가 확인·수정한
      * 뒤 TX-01 로 한다.
      *
-     * <p><b>트랜잭션을 걸지 않는다</b> (2026-11-15) — Gemini 를 기다리는 동안 DB 커넥션을 쥐지 않기
+     * <p><b>트랜잭션을 걸지 않는다</b> (2026-11-15) — AI 를 기다리는 동안 DB 커넥션을 쥐지 않기
      * 위해서다. 읽는 것은 카테고리 목록 하나뿐이고, 그 조회는 리포지토리가 자기 트랜잭션으로 끝낸다.
      * {@code @Transactional(readOnly = true)} 를 다시 붙이면 요청 하나가 커넥션을 호출 상한(10초)만큼
      * 잡는다 — {@code AiCallOutsideTransactionTest} 가 고정한다.

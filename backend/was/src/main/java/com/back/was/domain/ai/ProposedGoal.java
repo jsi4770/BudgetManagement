@@ -10,8 +10,8 @@ import com.back.was.domain.coaching.GoalType;
  * 한 벌이면 두 경로가 어긋날 수 없다.
  *
  * <ul>
- *   <li>Gemini 구조화 출력 (명세 COACH-03 "{@code proposal} 은 Gemini 구조화 출력으로 수신")</li>
- *   <li>서버의 규칙 기반 제안 ({@code docs/AI_대체_문구.md} 5장 — Gemini 가 죽어도
+ *   <li>Claude 구조화 출력 (명세 COACH-03 "{@code proposal} 은 Claude 구조화 출력으로 수신")</li>
+ *   <li>서버의 규칙 기반 제안 ({@code docs/AI_대체_문구.md} 5장 — AI 가 죽어도
  *       "넛지 → 코칭 → 챌린지 확정" 흐름이 끊기지 않게)</li>
  * </ul>
  *

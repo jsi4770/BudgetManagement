@@ -62,7 +62,7 @@ public class ChallengeTermination {
      * {@code CHALLENGE_ID} UNIQUE 로 터뜨리는 것보다 조용히 건너뛰는 쪽이 스케줄러의 나머지
      * 대상을 지킨다.
      *
-     * <p><b>피드백 문구(Gemini)는 트랜잭션 밖에서 만든다</b> (2026-11-15). 그래서 위의
+     * <p><b>피드백 문구(AI)는 트랜잭션 밖에서 만든다</b> (2026-11-15). 그래서 위의
      * "독립 트랜잭션"이 둘이다: ① 판정할 대상인지 보고 문구 입력값을 모으는 읽기, ② 판정과
      * 리포트 저장. 그 사이에 외부 호출이 있다. 판정·리포트는 여전히 ② 하나에서 함께 커밋된다.
      *
@@ -175,7 +175,7 @@ public class ChallengeTermination {
      * 성공 여부는 {@link Challenge#verdict()} 로 묻는다 — 판정 전(①)과 후(②)에 같은 값이 나온다.
      *
      * <p>포트는 실패하지 않으므로({@link GrowthFeedbackGenerator}) {@code try/catch} 가
-     * 없다. Gemini 가 없으면 7장 템플릿이 들어온다.
+     * 없다. AI 가 없으면 7장 템플릿이 들어온다.
      */
     private GrowthFeedbackCommand commandOf(Challenge challenge, SpendingTotal before) {
         boolean amountGoal = challenge.getGoalType() == GoalType.AMOUNT;

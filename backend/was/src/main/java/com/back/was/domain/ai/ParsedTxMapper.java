@@ -11,7 +11,7 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 
 /**
- * Gemini 의 JSON 결과를 {@link ParsedTransaction} 으로 정규화한다.
+ * LLM 의 JSON 결과를 {@link ParsedTransaction} 으로 정규화한다.
  *
  * <p>모델 출력을 그대로 믿지 않고 서버 규칙으로 한 번 더 걸러낸다. 팀 포트 계약
  * ({@link TransactionTextParser})대로 <b>뽑지 못한 필드는 {@code null}</b> 이고,

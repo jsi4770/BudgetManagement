@@ -25,7 +25,7 @@ public record SendMessageResponse(
         List<MerchantResponse> recommendedMerchants
 ) {
     /**
-     * @param fallback Gemini 실패로 대체 문구를 쓴 턴인지 — {@code aiMessage.isFallback}
+     * @param fallback AI 실패로 대체 문구를 쓴 턴인지 — {@code aiMessage.isFallback}
      * @param merchants 이번 턴에 AI 가 권한 내 지역 가맹점(후보 목록에서 검증된 것만). 없으면 빈 목록
      * @param proposed <b>이번 턴에</b> 제안이 저장됐는지. {@code false} 면 {@code coaching}
      *                 에 이전 제안이 남아 있어도 {@code proposal} 은 {@code null} 이다

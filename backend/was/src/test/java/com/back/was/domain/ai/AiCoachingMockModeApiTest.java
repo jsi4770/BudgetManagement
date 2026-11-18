@@ -18,11 +18,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * 코칭 흐름의 실제 빈 연결(목 없이): Gemini mock 모드에서는 템플릿이 아니라 <b>Gemini 구현이</b> 쓰이고,
+ * 코칭 흐름의 실제 빈 연결(목 없이): LLM mock 모드에서는 템플릿이 아니라 <b>LLM 구현이</b> 쓰이고,
  * 정상 응답이면 {@code isFallback} 이 {@code false} 다. (키 없음 → {@code true} 는 기존
  * {@code CoachingMessageApiTest} 가 본다.)
  */
-@SpringBootTest(properties = {"gemini.mock=true", "ocr.base-url="})
+@SpringBootTest(properties = {"claude.mock=true", "ocr.base-url="})
 @AutoConfigureMockMvc
 @Transactional
 class AiCoachingMockModeApiTest {
@@ -46,23 +46,23 @@ class AiCoachingMockModeApiTest {
     }
 
     @Test
-    @DisplayName("네 포트가 모두 Gemini 구현으로 연결된다 (템플릿은 실패 시 위임용으로만 남는다)")
-    void portsAreWiredToGemini() {
-        assertThat(openingGenerator).isInstanceOf(GeminiCoachingOpeningGenerator.class);
-        assertThat(replyGenerator).isInstanceOf(GeminiCoachingReplyGenerator.class);
-        assertThat(nudgeTextGenerator).isInstanceOf(GeminiNudgeTextGenerator.class);
-        assertThat(growthFeedbackGenerator).isInstanceOf(GeminiGrowthFeedbackGenerator.class);
+    @DisplayName("네 포트가 모두 LLM 구현으로 연결된다 (템플릿은 실패 시 위임용으로만 남는다)")
+    void portsAreWiredToLlm() {
+        assertThat(openingGenerator).isInstanceOf(LlmCoachingOpeningGenerator.class);
+        assertThat(replyGenerator).isInstanceOf(LlmCoachingReplyGenerator.class);
+        assertThat(nudgeTextGenerator).isInstanceOf(LlmNudgeTextGenerator.class);
+        assertThat(growthFeedbackGenerator).isInstanceOf(LlmGrowthFeedbackGenerator.class);
     }
 
     @Test
-    @DisplayName("COACH-01·03: Gemini 응답이 그대로 내려가고 isFallback 은 false")
-    void coachingUsesGemini() throws Exception {
+    @DisplayName("COACH-01·03: AI 응답이 그대로 내려가고 isFallback 은 false")
+    void coachingUsesLlm() throws Exception {
         String started = mockMvc.perform(post("/coachings")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isCreated())
-                // mock 은 문자열 필드를 "mock" 으로 채운다 — 템플릿 문구("님, ...")가 아니라 Gemini 경로라는 증거
+                // mock 은 문자열 필드를 "mock" 으로 채운다 — 템플릿 문구("님, ...")가 아니라 LLM 경로라는 증거
                 .andExpect(jsonPath("$.data.messages[0].content").value("mock"))
                 .andReturn().getResponse().getContentAsString();
         Number coachingId = JsonPath.read(started, "$.data.coachingId");

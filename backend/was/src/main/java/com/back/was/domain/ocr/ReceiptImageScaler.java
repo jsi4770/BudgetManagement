@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 /**
- * AI 가 이미지를 직접 읽는 대체 경로({@link GeminiReceiptOcrClient})에 넘기기 전에 영수증을 줄인다.
+ * AI 가 이미지를 직접 읽는 대체 경로({@link LlmReceiptOcrClient})에 넘기기 전에 영수증을 줄인다.
  * Django 경로는 원본을 그대로 넘기므로 여기를 거치지 않는다.
  *
  * <p>줄이는 이유: 업로드 상한은 10MB(RCPT-01)인데 Claude API 는 이미지 한 장에 5MB 까지 받고, 긴 변이

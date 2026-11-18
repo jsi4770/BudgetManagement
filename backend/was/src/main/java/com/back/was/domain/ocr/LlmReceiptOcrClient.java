@@ -3,7 +3,7 @@ package com.back.was.domain.ocr;
 import com.back.was.domain.ai.ParsedTransaction;
 import com.back.was.domain.ai.ParsedTxMapper;
 import com.back.was.domain.ai.ParsedTxSchema;
-import com.back.was.domain.ai.gemini.GeminiClient;
+import com.back.was.domain.ai.llm.LlmClient;
 import com.back.was.domain.category.dto.CategoryResponse;
 import com.back.was.global.support.KstTime;
 import org.slf4j.Logger;
@@ -16,7 +16,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 /**
- * Django OCR 서버가 없을 때({@code ocr.base-url} 비어 있음) Gemini 가 영수증 이미지를 직접 읽는
+ * Django OCR 서버가 없을 때({@code ocr.base-url} 비어 있음) Claude 가 영수증 이미지를 직접 읽는
  * 대체 경로. 개발·시연에서 OCR 서버 없이도 RCPT-01 이 동작하게 한다.
  *
  * <p>영수증은 날짜를 오늘로 채우면 오히려 틀릴 수 있어서 못 읽으면 {@code null}
@@ -27,30 +27,30 @@ import java.util.List;
  */
 @Component
 @ConditionalOnExpression(OcrConfig.DJANGO_NOT_CONFIGURED)
-public class GeminiReceiptOcrClient implements ReceiptOcrClient {
+public class LlmReceiptOcrClient implements ReceiptOcrClient {
 
-    private static final Logger log = LoggerFactory.getLogger(GeminiReceiptOcrClient.class);
+    private static final Logger log = LoggerFactory.getLogger(LlmReceiptOcrClient.class);
 
-    private final GeminiClient gemini;
+    private final LlmClient llm;
     private final ReceiptPromptBuilder promptBuilder;
 
-    public GeminiReceiptOcrClient(GeminiClient gemini, ReceiptPromptBuilder promptBuilder) {
-        this.gemini = gemini;
+    public LlmReceiptOcrClient(LlmClient llm, ReceiptPromptBuilder promptBuilder) {
+        this.llm = llm;
         this.promptBuilder = promptBuilder;
     }
 
     @Override
     public ParsedTransaction analyze(ReceiptImage image, List<CategoryResponse> categories) {
-        log.info("[RCPT-01] OCR 서버 미설정 → Gemini 가 이미지를 직접 읽습니다.");
+        log.info("[RCPT-01] OCR 서버 미설정 → Claude 가 이미지를 직접 읽습니다.");
         ReceiptImage fitted = ReceiptImageScaler.fitForAi(image);   // 읽을 수 없는 파일이면 여기서 415
         log.debug("[RCPT-01] 이미지 {} → {} bytes", image.bytes().length, fitted.bytes().length);
         LocalDate today = KstTime.today();
 
-        JsonNode r = gemini.generateJson(
+        JsonNode r = llm.generateJson(
                 promptBuilder.build(today, categories),
                 "위 영수증 이미지에서 거래 정보를 추출해.",
                 fitted.bytes(), fitted.contentType(),
-                ParsedTxSchema.SCHEMA, 0.0);
+                ParsedTxSchema.SCHEMA);
 
         return ParsedTxMapper.toParsed(r, today, false, categories);
     }

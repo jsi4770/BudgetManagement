@@ -1,6 +1,6 @@
 package com.back.was.domain.ai;
 
-import com.back.was.domain.ai.AiTestFixtures.ScriptedGemini;
+import com.back.was.domain.ai.AiTestFixtures.ScriptedLlm;
 import com.back.was.domain.coaching.MessageRole;
 import com.back.was.domain.merchant.MerchantGroup;
 import org.junit.jupiter.api.DisplayName;
@@ -11,7 +11,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** 코칭 답변의 지역 가맹점 추천 — AI 가 고른 ID 는 후보 안에 있는 것만 살고, 지출 숫자 인용은 허용된다. */
-class GeminiCoachingMerchantTest {
+class LlmCoachingMerchantTest {
 
     private static final List<CoachingTurn> TALK = List.of(
             new CoachingTurn(MessageRole.AI, "홍길동님, 이번 주 식비가 늘었어요."),
@@ -29,7 +29,7 @@ class GeminiCoachingMerchantTest {
     @Test
     @DisplayName("후보에 없는 ID·중복은 버리고 최대 2개만 남긴다")
     void keepsOnlyKnownIds() {
-        CoachingReply reply = new GeminiCoachingReplyGenerator(new ScriptedGemini().thenReply("""
+        CoachingReply reply = new LlmCoachingReplyGenerator(new ScriptedLlm().thenReply("""
                 {"message":"동네 마트에서 장을 보면 어떨까요?","proposedGoal":null,
                  "recommendedMerchantIds":[11,999,11,12,13]}"""))
                 .reply(command());
@@ -40,7 +40,7 @@ class GeminiCoachingMerchantTest {
     @Test
     @DisplayName("프롬프트로 준 지출 숫자(320,000원·18회)는 답변에서 인용해도 통과한다")
     void spendingNumbersAreAllowed() {
-        CoachingReply reply = new GeminiCoachingReplyGenerator(new ScriptedGemini().thenReply("""
+        CoachingReply reply = new LlmCoachingReplyGenerator(new ScriptedLlm().thenReply("""
                 {"message":"최근 30일 식비가 320,000원, 18번이었어요. 천안 행복마트에서 장 보는 건 어때요?",
                  "proposedGoal":null,"recommendedMerchantIds":[11]}"""))
                 .reply(command());
@@ -54,7 +54,7 @@ class GeminiCoachingMerchantTest {
     void noCandidatesNoRecommendation() {
         CoachingReplyCommand plain = new CoachingReplyCommand("홍길동", TALK,
                 AiTestFixtures.CATEGORIES.stream().filter(c -> "EXPENSE".equals(c.type())).toList());
-        CoachingReply reply = new GeminiCoachingReplyGenerator(new ScriptedGemini().thenReply("""
+        CoachingReply reply = new LlmCoachingReplyGenerator(new ScriptedLlm().thenReply("""
                 {"message":"왜 늘었는지 이야기해 줄래요?","proposedGoal":null,"recommendedMerchantIds":[11]}"""))
                 .reply(plain);
 

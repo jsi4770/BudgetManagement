@@ -49,9 +49,9 @@ public class ReceiptOcrController {
             `image` 파트에 jpg 또는 png, 최대 10MB. 아이폰 HEIC 는 **프론트에서 JPG 로 변환**해 보내세요
             (미변환 HEIC 는 415). 결과를 돌려준 뒤 이미지는 즉시 폐기됩니다.
 
-            `OCR_BASE_URL` 이 설정돼 있으면 Django OCR 서버가, 없으면 Gemini 가 이미지를 직접 읽습니다.
+            `OCR_BASE_URL` 이 설정돼 있으면 Django OCR 서버가, 없으면 Claude 가 이미지를 직접 읽습니다.
             **응답 코드로 어느 쪽이 문제인지 알 수 있습니다** — OCR 서버 장애는 `502 OCR_FAILED`,
-            AI(Gemini) 한도·장애·키 없음은 `503 AI_UNAVAILABLE` 입니다.
+            AI(Claude) 한도·장애·키 없음은 `503 AI_UNAVAILABLE` 입니다.
 
             **실패**: `400 VALIDATION_ERROR`(`image` 파트 없음), `413 FILE_TOO_LARGE`,
             `415 UNSUPPORTED_FILE_TYPE`(jpg·png 아님, 빈 파일, AI 가 직접 읽는 경로에서 이미지를 읽을 수 없음), `502 OCR_FAILED`,

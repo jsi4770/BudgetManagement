@@ -1,7 +1,7 @@
 package com.back.was.domain.ai;
 
-import com.back.was.domain.ai.gemini.GeminiClient;
-import com.back.was.domain.ai.gemini.GeminiSchema;
+import com.back.was.domain.ai.llm.LlmClient;
+import com.back.was.domain.ai.llm.LlmSchema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Primary;
@@ -13,36 +13,36 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 코칭 첫 메시지(COACH-01)의 Gemini 구현. <b>이 포트는 실패하지 않는다</b> — 명세 COACH-01 은 에러를 정의하지
+ * 코칭 첫 메시지(COACH-01)의 LLM 구현. <b>이 포트는 실패하지 않는다</b> — 명세 COACH-01 은 에러를 정의하지
  * 않고 201 과 메시지 하나를 요구한다. 호출 실패·빈 응답·검증 안 된 숫자는 모두
  * {@link TemplateCoachingOpeningGenerator} 로 대체한다.
  */
 @Primary
 @Component
-public class GeminiCoachingOpeningGenerator implements CoachingOpeningGenerator {
+public class LlmCoachingOpeningGenerator implements CoachingOpeningGenerator {
 
-    private static final Logger log = LoggerFactory.getLogger(GeminiCoachingOpeningGenerator.class);
+    private static final Logger log = LoggerFactory.getLogger(LlmCoachingOpeningGenerator.class);
 
     private static final Map<String, Object> SCHEMA;
 
     static {
         Map<String, Map<String, Object>> p = new LinkedHashMap<>();
-        p.put("message", GeminiSchema.string("코칭 첫 메시지. 2문장 이내"));
-        SCHEMA = GeminiSchema.object(p);
+        p.put("message", LlmSchema.string("코칭 첫 메시지. 2문장 이내"));
+        SCHEMA = LlmSchema.object(p);
     }
 
-    private final GeminiClient gemini;
+    private final LlmClient llm;
     private final TemplateCoachingOpeningGenerator template;
 
-    public GeminiCoachingOpeningGenerator(GeminiClient gemini, TemplateCoachingOpeningGenerator template) {
-        this.gemini = gemini;
+    public LlmCoachingOpeningGenerator(LlmClient llm, TemplateCoachingOpeningGenerator template) {
+        this.llm = llm;
         this.template = template;
     }
 
     @Override
     public String generate(CoachingOpeningCommand command) {
         try {
-            JsonNode r = gemini.generateJson(AiPrompts.COACHING_OPENING, data(command), SCHEMA, 0.7);
+            JsonNode r = llm.generateJson(AiPrompts.COACHING_OPENING, data(command), SCHEMA);
             String message = r.path("message").asString("").strip();
             if (message.isEmpty()) {
                 return template.generate(command);

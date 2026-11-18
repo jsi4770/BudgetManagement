@@ -487,7 +487,7 @@ class FullApiJourneyIntegrationTest {
 
     @Test
     @Order(14)
-    @DisplayName("TX-07 자연어 파싱 — Gemini 키가 없어 503 AI_UNAVAILABLE (명세 TX-07)")
+    @DisplayName("TX-07 자연어 파싱 — Claude 키가 없어 503 AI_UNAVAILABLE (명세 TX-07)")
     void parseTransactionText() throws Exception {
         mockMvc.perform(authed(json(post("/transactions/parse"), """
                         {"text": "어제 스타벅스에서 커피 5500원"}
@@ -504,7 +504,7 @@ class FullApiJourneyIntegrationTest {
 
     @Test
     @Order(15)
-    @DisplayName("RCPT-01 영수증 OCR — OCR 서버도 Gemini 키도 없어 503 AI_UNAVAILABLE (유일한 multipart API)")
+    @DisplayName("RCPT-01 영수증 OCR — OCR 서버도 Claude 키도 없어 503 AI_UNAVAILABLE (유일한 multipart API)")
     void analyzeReceipt() throws Exception {
         MockMultipartFile image = new MockMultipartFile(
                 "image", "receipt.jpg", MediaType.IMAGE_JPEG_VALUE, TestImages.jpeg(400, 600));
@@ -648,7 +648,7 @@ class FullApiJourneyIntegrationTest {
         mockMvc.perform(authed(get("/nudges/{id}", nudgeId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.id").value(nudgeId))
-                // Gemini 가 없으니 AI_대체_문구 1·2장 템플릿이 채워진다 — 치환되지 않은
+                // AI 가 없으니 AI_대체_문구 1·2장 템플릿이 채워진다 — 치환되지 않은
                 // 자리표시자가 남아 있으면 안 된다
                 .andExpect(jsonPath("$.data.aiAnalysis")
                         .value(Matchers.containsString("배달")))

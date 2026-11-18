@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 /**
- * Gemini 가 실패했을 때 대신 내려보낼 응답을 만든다 — {@code docs/AI_대체_문구.md} 4·5장을
+ * AI 가 실패했을 때 대신 내려보낼 응답을 만든다 — {@code docs/AI_대체_문구.md} 4·5장을
  * 하나로 묶는 자리다 (서버_내부_처리 8장: "에러 대신 대체 메시지로 200, 제안이 필요한
  * 시점이면 규칙 기반 제안 포함").
  *
@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
  * <p>돌려주는 타입은 포트와 <b>같은</b> {@link CoachingReply} 다 — 서비스가 두 경로를
  * 구분 없이 저장할 수 있고, 다른 점은 서비스가 붙이는 {@code isFallback} 플래그뿐이다.
  *
- * <p><b>이 클래스는 지우지 않는다.</b> {@code GeminiCoachingReplyGenerator} 가 실패했을 때의
+ * <p><b>이 클래스는 지우지 않는다.</b> {@code LlmCoachingReplyGenerator} 가 실패했을 때의
  * 경로이고, 명세가 요구하는 실패 경로다 — 넛지의 {@code TemplateNudgeTextGenerator} 와 같은
  * 성격.
  */
@@ -37,7 +37,7 @@ public class CoachingReplyFallback {
      * 그것이고, 가리킬 카드가 없는데 3번을 보내면 사용자가 없는 버튼을 찾는다.
      *
      * <p><b>항상 제안을 시도한다.</b> "제안이 필요한 시점"을 판단할 대화 이해가 서버에는
-     * 없고(그 판단이 Gemini 의 몫이다), 명세 COACH-03 이 "재제안이 필요하면 메시지 재전송"
+     * 없고(그 판단이 AI 의 몫이다), 명세 COACH-03 이 "재제안이 필요하면 메시지 재전송"
      * 이라고 적은 것과도 맞는다 — 메시지를 다시 보내면 제안이 다시 온다.
      */
     public CoachingReply of(User user) {

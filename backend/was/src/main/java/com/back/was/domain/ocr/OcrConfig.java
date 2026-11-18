@@ -12,7 +12,7 @@ import org.springframework.web.client.RestClient;
 @EnableConfigurationProperties(OcrProperties.class)
 public class OcrConfig {
 
-    /** {@link DjangoReceiptOcrClient} 와 {@link GeminiReceiptOcrClient} 를 가르는 조건과 같은 식. */
+    /** {@link DjangoReceiptOcrClient} 와 {@link LlmReceiptOcrClient} 를 가르는 조건과 같은 식. */
     static final String DJANGO_CONFIGURED = "!'${ocr.base-url:}'.isBlank()";
     static final String DJANGO_NOT_CONFIGURED = "'${ocr.base-url:}'.isBlank()";
 

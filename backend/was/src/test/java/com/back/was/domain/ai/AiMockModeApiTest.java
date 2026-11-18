@@ -1,6 +1,6 @@
 package com.back.was.domain.ai;
 
-import com.back.was.domain.ocr.GeminiReceiptOcrClient;
+import com.back.was.domain.ocr.LlmReceiptOcrClient;
 import com.back.was.domain.ocr.ReceiptOcrClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,10 +19,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * 실제 빈 연결 확인(목 없이): Gemini mock 모드 + OCR 서버 미설정.
- * TX-07 은 {@link GeminiTransactionTextParser}, RCPT-01 은 {@link GeminiReceiptOcrClient} 로 흐른다.
+ * 실제 빈 연결 확인(목 없이): LLM mock 모드 + OCR 서버 미설정.
+ * TX-07 은 {@link LlmTransactionTextParser}, RCPT-01 은 {@link LlmReceiptOcrClient} 로 흐른다.
  */
-@SpringBootTest(properties = {"gemini.mock=true", "ocr.base-url="})
+@SpringBootTest(properties = {"claude.mock=true", "ocr.base-url="})
 @AutoConfigureMockMvc
 @Transactional
 class AiMockModeApiTest {
@@ -42,10 +42,10 @@ class AiMockModeApiTest {
     }
 
     @Test
-    @DisplayName("포트 구현체가 Gemini 어댑터로 연결된다 (OCR 서버가 없으면 Gemini 직접 읽기)")
+    @DisplayName("포트 구현체가 LLM 어댑터로 연결된다 (OCR 서버가 없으면 Claude 직접 읽기)")
     void portsAreWired() {
-        assertThat(parser).isInstanceOf(GeminiTransactionTextParser.class);
-        assertThat(receiptOcrClient).isInstanceOf(GeminiReceiptOcrClient.class);
+        assertThat(parser).isInstanceOf(LlmTransactionTextParser.class);
+        assertThat(receiptOcrClient).isInstanceOf(LlmReceiptOcrClient.class);
     }
 
     @Test

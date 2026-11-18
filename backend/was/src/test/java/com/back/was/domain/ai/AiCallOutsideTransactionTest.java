@@ -45,11 +45,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 /**
- * Gemini 를 부르는 백그라운드·비대화 경로가 <b>트랜잭션 밖에서, DB 커넥션 없이</b> 부르는지
+ * AI 를 부르는 백그라운드·비대화 경로가 <b>트랜잭션 밖에서, DB 커넥션 없이</b> 부르는지
  * (2026-11-15). COACH-01·03 은 {@code CoachingTransactionBoundaryTest} 에 있다.
  *
  * <p>대상은 셋이다 — TX-07 파싱, 후처리 5번 넛지 문구({@link NudgeTextFiller}), 챌린지 종료 판정의
- * 성장 리포트 피드백({@link ChallengeTermination}). 셋 다 예전에는 트랜잭션 안에서 Gemini 를
+ * 성장 리포트 피드백({@link ChallengeTermination}). 셋 다 예전에는 트랜잭션 안에서 AI 를
  * 기다려서, 호출 상한(10초)만큼 커넥션을 쥐었다. 넛지 문구는 비동기 스레드(기본 8개)마다 그랬으니
  * 거래 등록이 몰리면 풀(기본 10개)이 말랐다.
  *

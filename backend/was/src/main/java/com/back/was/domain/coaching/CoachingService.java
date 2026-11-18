@@ -89,11 +89,11 @@ public class CoachingService {
      * ({@code CoachingStartApiTest.doesNotBlockWhileAChallengeRuns} 가 고정한다).
      *
      * <p>첫 메시지 생성은 {@link CoachingOpeningGenerator} 가 하고 <b>실패하지 않는다</b> —
-     * Gemini 가 없거나 죽어도 {@code docs/AI_대체_문구.md} 3장 문구가 들어온다. 그래서
+     * AI 가 없거나 죽어도 {@code docs/AI_대체_문구.md} 3장 문구가 들어온다. 그래서
      * {@code try/catch} 가 없고, 명세 COACH-01 에 에러가 정의되지 않은 것과도 맞는다.
      *
      * <p><b>첫 메시지는 트랜잭션 밖에서 만든다</b> (위험_구간 2번, 2026-11-15) — COACH-03 과
-     * 같은 이유로, Gemini 를 기다리는 동안 DB 커넥션을 쥐지 않기 위해서다. 위 순서는 그대로
+     * 같은 이유로, AI 를 기다리는 동안 DB 커넥션을 쥐지 않기 위해서다. 위 순서는 그대로
      * 지키되 두 트랜잭션에 나뉜다:
      *
      * <ol>
@@ -202,7 +202,7 @@ public class CoachingService {
      *   <li>짧은 트랜잭션 — (실패했으면 대체 응답 생성) AI 메시지 저장, 제안 반영. 커밋.</li>
      * </ol>
      *
-     * <p>한 트랜잭션으로 묶으면 메시지 한 건이 Gemini 를 기다리는 동안 DB 커넥션을 쥐고
+     * <p>한 트랜잭션으로 묶으면 메시지 한 건이 AI 를 기다리는 동안 DB 커넥션을 쥐고
      * 있어서, 동시 대화 몇 건이면 풀(Boot 기본 10개)이 말라 <b>코칭과 무관한 요청까지</b>
      * 멈춘다. 그래서 6장의 "함께 저장" 원자성을 포기했다: 2번 도중 서버가 죽으면 사용자
      * 메시지만 남는다(화면상 답 없는 질문 — 재전송으로 복구). {@code open-in-view} 가 꺼져
@@ -224,7 +224,7 @@ public class CoachingService {
      * 에러 대신 대체 메시지로 응답하라고 정했다 — 그래서 포트 호출만 {@code try} 로 감싸고
      * ({@link CoachingReplyGenerator} 는 일부러 던지는 포트다) 실패하면
      * {@link CoachingReplyFallback} 이 만든 응답에 {@code isFallback: true} 를 붙인다.
-     * <b>Gemini 키가 없거나 한도·장애일 때 이 경로가 타진다.</b>
+     * <b>Claude 키가 없거나 한도·장애일 때 이 경로가 타진다.</b>
      *
      * <p>{@code RuntimeException} 을 통째로 잡는다. 8장은 어댑터가 실패를
      * {@code AI_UNAVAILABLE} 로 변환하도록 정하지만, 변환을 빠뜨린 예외 하나가 500 으로
@@ -454,7 +454,7 @@ public class CoachingService {
     /**
      * 제안을 ERD 7장 {@code PROPOSAL_} 컬럼에 덮어쓴다 (최신 1개만 보관).
      *
-     * <p><b>저장하기 전에 전부 검증한다.</b> 값의 출처가 Gemini 일 수 있고, 저장된 제안은
+     * <p><b>저장하기 전에 전부 검증한다.</b> 값의 출처가 AI 일 수 있고, 저장된 제안은
      * 사용자가 그대로 확정하면 챌린지가 된다 — 없는 카테고리나 유형에 맞지 않는 목표가
      * 들어가면 COACH-04 에서 터지거나 틀린 챌린지가 만들어진다. 통과하지 못하면 제안만
      * 버리고 <b>메시지는 그대로 내려보낸다</b>: TX-07 이 모르는 카테고리를 "기타"로
