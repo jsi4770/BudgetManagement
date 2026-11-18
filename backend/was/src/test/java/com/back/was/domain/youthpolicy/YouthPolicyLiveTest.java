@@ -21,13 +21,16 @@ class YouthPolicyLiveTest {
         var client = new YouthPolicyApiClient(RestClient.builder().requestFactory(factory).build(), props);
 
         for (String zip : new String[]{"44130", "44200"}) {
-            var page = client.fetch(zip, 1, 5);
+            var page = client.fetch(zip, 1, 100);   // 동기화가 쓰는 크기·페이지 그대로
             assertThat(page.totalCount()).as(zip).isGreaterThan(10);
             assertThat(page.items()).isNotEmpty().allSatisfy(p -> {
                 assertThat(p.plcyNo()).isNotBlank();
                 assertThat(p.name()).isNotBlank();
                 assertThat(p.zipCodes()).contains(zip);
             });
+            if (page.totalCount() > 100) {
+                assertThat(client.fetch(zip, 2, 100).items()).isNotEmpty();
+            }
         }
     }
 }

@@ -26,6 +26,8 @@ import java.util.List;
 @Component
 public class YouthPolicyApiClient {
 
+    private static final int ATTEMPTS = 4;
+
     private final RestClient restClient;
     private final YouthPolicyProperties props;
 
@@ -51,15 +53,36 @@ public class YouthPolicyApiClient {
         }
         URI uri = URI.create(props.baseUrl() + "?apiKeyNm=" + enc(props.key()) + "&pageNum=" + page
                 + "&pageSize=" + pageSize + "&rtnType=json&zipCd=" + enc(zipCd));
-        JsonNode body;
-        try {
-            body = restClient.get().uri(uri).retrieve().body(JsonNode.class);
-        } catch (RestClientResponseException e) {
-            throw new IllegalStateException("청년정책 API 가 " + e.getStatusCode().value() + " 로 응답했다");
-        } catch (RestClientException e) {
-            throw new IllegalStateException("청년정책 API 호출 실패(" + e.getClass().getSimpleName() + ")");
+        return parse(getWithRetry(uri));
+    }
+
+    /**
+     * 이 API 는 같은 요청도 가끔 500(HTML 오류 페이지)을 돌려준다 — 재시도하면 성공한다. 서버 오류·연결 실패만 최대
+     * {@value #ATTEMPTS}번 시도하고, 4xx 는 요청이 잘못된 것이라 바로 던진다. 예외 메시지에는 URL(키)을 넣지 않는다.
+     */
+    private JsonNode getWithRetry(URI uri) {
+        IllegalStateException last = null;
+        for (int attempt = 1; attempt <= ATTEMPTS; attempt++) {
+            try {
+                return restClient.get().uri(uri).retrieve().body(JsonNode.class);
+            } catch (RestClientResponseException e) {
+                last = new IllegalStateException("청년정책 API 가 " + e.getStatusCode().value() + " 로 응답했다");
+                if (!e.getStatusCode().is5xxServerError()) {
+                    throw last;
+                }
+            } catch (RestClientException e) {
+                last = new IllegalStateException("청년정책 API 호출 실패(" + e.getClass().getSimpleName() + ")");
+            }
+            if (attempt < ATTEMPTS) {
+                try {
+                    Thread.sleep(700L * attempt);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw last;
+                }
+            }
         }
-        return parse(body);
+        throw last;
     }
 
     static PolicyPage parse(JsonNode body) {
