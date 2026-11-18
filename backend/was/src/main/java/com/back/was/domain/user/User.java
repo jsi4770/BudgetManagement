@@ -49,6 +49,21 @@ public class User {
     @Column(nullable = false, length = 10)
     private Role role;
 
+    /**
+     * 사는 지역(법정동코드 앞 5자리, 천안 44130·아산 44200). 지역 가맹점 목록과 코칭 추천의 기준이다.
+     * 가입 때는 묻지 않으므로 {@code null} 일 수 있다 — USER-02 로 나중에 설정한다.
+     */
+    @Column(name = "region_code", length = 5)
+    private String regionCode;
+
+    /** 출생연도. 나이는 여기서 계산한다(해마다 틀어지는 나이를 저장하지 않는다). 온보딩 전에는 {@code null}. */
+    @Column(name = "birth_year")
+    private Integer birthYear;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    private Gender gender;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -89,5 +104,28 @@ public class User {
 
     public void changeUsername(String username) {
         this.username = username;
+    }
+
+    /** 지원 지역인지는 요청 DTO 의 검증이 보장한다. */
+    public void changeRegionCode(String regionCode) {
+        this.regionCode = regionCode;
+    }
+
+    public void changeBirthYear(Integer birthYear) {
+        this.birthYear = birthYear;
+    }
+
+    public void changeGender(Gender gender) {
+        this.gender = gender;
+    }
+
+    /** 만 나이 근사(올해 − 출생연도). 모르면 {@code null}. */
+    public Integer ageIn(int year) {
+        return birthYear == null ? null : year - birthYear;
+    }
+
+    /** 지역·나이·성별을 모두 정했는지 — 온보딩 화면을 건너뛰어도 되는지의 기준. */
+    public boolean isOnboarded() {
+        return regionCode != null && birthYear != null && gender != null;
     }
 }

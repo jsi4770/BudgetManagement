@@ -1,5 +1,6 @@
 package com.back.was.domain.user.dto;
 
+import com.back.was.domain.merchant.SupportedRegion;
 import com.back.was.domain.user.User;
 import com.back.was.global.support.KstTime;
 
@@ -17,14 +18,26 @@ public record MeResponse(
         String username,
         String email,
         String role,
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+        String regionCode,
+        String regionName,
+        Integer age,
+        String gender,
+        boolean onboardingCompleted
 ) {
     public static MeResponse from(User user) {
+        String regionName = SupportedRegion.fromCode(user.getRegionCode())
+                .map(SupportedRegion::displayName).orElse(null);
         return new MeResponse(
                 user.getId(),
                 user.getUsername(),
                 user.getEmail(),
                 user.getRole().name(),
-                KstTime.toOffset(user.getCreatedAt()));
+                KstTime.toOffset(user.getCreatedAt()),
+                user.getRegionCode(),
+                regionName,
+                user.ageIn(KstTime.today().getYear()),
+                user.getGender() == null ? null : user.getGender().name(),
+                user.isOnboarded());
     }
 }

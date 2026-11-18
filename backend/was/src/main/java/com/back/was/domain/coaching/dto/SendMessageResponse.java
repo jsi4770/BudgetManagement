@@ -2,6 +2,9 @@ package com.back.was.domain.coaching.dto;
 
 import com.back.was.domain.coaching.Coaching;
 import com.back.was.domain.coaching.CoachingMessage;
+import com.back.was.domain.merchant.dto.MerchantResponse;
+
+import java.util.List;
 
 /**
  * COACH-03 응답 — 이번 턴에 오간 두 메시지와, 제안했다면 그 제안.
@@ -18,18 +21,22 @@ import com.back.was.domain.coaching.CoachingMessage;
 public record SendMessageResponse(
         CoachingMessageResponse userMessage,
         AiMessageResponse aiMessage,
-        CoachingProposalResponse proposal
+        CoachingProposalResponse proposal,
+        List<MerchantResponse> recommendedMerchants
 ) {
     /**
      * @param fallback Gemini 실패로 대체 문구를 쓴 턴인지 — {@code aiMessage.isFallback}
+     * @param merchants 이번 턴에 AI 가 권한 내 지역 가맹점(후보 목록에서 검증된 것만). 없으면 빈 목록
      * @param proposed <b>이번 턴에</b> 제안이 저장됐는지. {@code false} 면 {@code coaching}
      *                 에 이전 제안이 남아 있어도 {@code proposal} 은 {@code null} 이다
      */
     public static SendMessageResponse of(CoachingMessage userMessage, CoachingMessage aiMessage,
-                                         boolean fallback, Coaching coaching, boolean proposed) {
+                                         boolean fallback, Coaching coaching, boolean proposed,
+                                         List<MerchantResponse> merchants) {
         return new SendMessageResponse(
                 CoachingMessageResponse.from(userMessage),
                 AiMessageResponse.of(aiMessage, fallback),
-                proposed ? CoachingProposalResponse.from(coaching) : null);
+                proposed ? CoachingProposalResponse.from(coaching) : null,
+                merchants);
     }
 }

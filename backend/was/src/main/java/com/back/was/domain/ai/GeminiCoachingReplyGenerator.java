@@ -55,6 +55,8 @@ public class GeminiCoachingReplyGenerator implements CoachingReplyGenerator {
         Map<String, Map<String, Object>> p = new LinkedHashMap<>();
         p.put("message", GeminiSchema.string("사용자에게 보낼 답변. 3~5문장"));
         p.put("proposedGoal", GeminiSchema.nullable(GeminiSchema.object(goal)));
+        p.put("recommendedMerchantIds", GeminiSchema.array(GeminiSchema.integer("추천 가맹점 id"),
+                "[지역 가맹점] 목록의 id 중에서만, 최대 2개. 추천하지 않으면 빈 배열"));
         SCHEMA = GeminiSchema.object(p);
     }
 
@@ -69,7 +71,8 @@ public class GeminiCoachingReplyGenerator implements CoachingReplyGenerator {
     public CoachingReply reply(CoachingReplyCommand command) {
         String system = AiPrompts.COACHING_REPLY
                 .replace("{USERNAME}", "\"" + command.username() + "\"")
-                .replace("{CATEGORIES}", categoryLines(command.categories()));
+                .replace("{CATEGORIES}", categoryLines(command.categories()))
+                .replace("{LOCAL}", localContext(command));
         List<GeminiMessage> messages = toMessages(command.conversation());
 
         CoachingReply reply = parse(gemini.generateJson(system, messages, SCHEMA, 0.5), command);
@@ -95,7 +98,40 @@ public class GeminiCoachingReplyGenerator implements CoachingReplyGenerator {
         if (message.isEmpty()) {
             throw GeminiErrors.parseFailed("코칭 답변이 비어 있다");
         }
-        return new CoachingReply(message, parseGoal(r.path("proposedGoal"), command.categories()));
+        return new CoachingReply(message, parseGoal(r.path("proposedGoal"), command.categories()),
+                parseMerchantIds(r.path("recommendedMerchantIds"), command));
+    }
+
+    /** 후보 목록에 있는 ID 만, 중복 없이 최대 2개. 나머지는 조용히 버린다. */
+    private static List<Long> parseMerchantIds(JsonNode ids, CoachingReplyCommand command) {
+        if (!ids.isArray() || command.merchants().isEmpty()) {
+            return List.of();
+        }
+        Set<Long> known = command.merchants().stream().map(MerchantCandidate::id).collect(Collectors.toSet());
+        List<Long> out = new ArrayList<>();
+        for (JsonNode n : ids) {
+            if (n.isIntegralNumber() && known.contains(n.asLong()) && !out.contains(n.asLong()) && out.size() < 2) {
+                out.add(n.asLong());
+            }
+        }
+        return out;
+    }
+
+    /** 프롬프트의 {LOCAL} 자리. 지역·후보가 없으면 가맹점 이야기를 하지 말라는 한 줄만 들어간다. */
+    private static String localContext(CoachingReplyCommand command) {
+        if (command.merchants().isEmpty()) {
+            return "(지역 가맹점 정보 없음 — 가맹점은 언급하지 말고 recommendedMerchantIds 는 빈 배열)";
+        }
+        StringBuilder sb = new StringBuilder("사용자 지역: ").append(command.regionName()).append("\n");
+        sb.append("최근 30일 지출(코드 계산): ");
+        sb.append(command.spending().stream()
+                .map(s -> s.categoryName() + " " + s.amount() + "원 " + s.count() + "회")
+                .collect(Collectors.joining(", "))).append("\n");
+        sb.append("가맹점 후보: ");
+        sb.append(command.merchants().stream()
+                .map(m -> "id=" + m.id() + " " + m.name() + "(" + m.groupLabel() + ", " + m.categoryName() + ")")
+                .collect(Collectors.joining(" / ")));
+        return sb.toString();
     }
 
     /** 형태만 정리한다. 알아볼 수 없으면 {@code null} — 메시지는 그대로 내려간다. */
@@ -135,6 +171,11 @@ public class GeminiCoachingReplyGenerator implements CoachingReplyGenerator {
     private static List<String> unknownNumbers(CoachingReply reply, CoachingReplyCommand command) {
         Set<Double> allowed = NumberGuard.allowed();
         NumberGuard.addNumbersIn(command.conversation().stream().map(CoachingTurn::content).toList(), allowed);
+        // 코드가 계산해 프롬프트에 준 지출 숫자와, 상호에 들어 있는 숫자("세븐일레븐365")도 인용할 수 있다.
+        for (SpendingFact f : command.spending()) {
+            allowed.addAll(NumberGuard.allowed(f.amount(), f.count()));
+        }
+        NumberGuard.addNumbersIn(command.merchants().stream().map(MerchantCandidate::name).toList(), allowed);
         ProposedGoal goal = reply.proposal();
         if (goal != null) {
             allowed.addAll(NumberGuard.allowed(goal.goalAmount(), goal.goalCount(), goal.periodDays()));

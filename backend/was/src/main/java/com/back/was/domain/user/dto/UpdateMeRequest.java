@@ -1,5 +1,6 @@
 package com.back.was.domain.user.dto;
 
+import com.back.was.domain.merchant.SupportedRegion;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
@@ -18,9 +19,32 @@ public record UpdateMeRequest(
 
         @Size(min = 1, max = 50)
         @Pattern(regexp = ".*\\S.*")
-        String username
+        String username,
+
+        /** 사는 지역. 지원 지역(천안 44130·아산 44200)만 허용하고, 보내지 않으면 바꾸지 않는다. */
+        @Pattern(regexp = SupportedRegion.CODE_PATTERN)
+        String regionCode,
+
+        /** 만 나이. 보내지 않으면 바꾸지 않는다. */
+        @jakarta.validation.constraints.Min(14) @jakarta.validation.constraints.Max(99)
+        Integer age,
+
+        /** MALE / FEMALE / NONE(선택 안 함). 보내지 않으면 바꾸지 않는다. */
+        com.back.was.domain.user.Gender gender
 ) {
+    public boolean hasAge() {
+        return age != null;
+    }
+
+    public boolean hasGender() {
+        return gender != null;
+    }
+
     public boolean hasUsername() {
         return username != null;
+    }
+
+    public boolean hasRegionCode() {
+        return regionCode != null;
     }
 }
