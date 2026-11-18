@@ -1,7 +1,7 @@
 package com.back.was.coach;
 
-import com.back.was.ai.gemini.GeminiClient;
-import com.back.was.ai.gemini.GeminiSchema;
+import com.back.was.ai.llm.LlmClient;
+import com.back.was.ai.llm.LlmSchema;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -20,15 +20,15 @@ public class InsightService {
     private static final String SYSTEM = Prompts.load("insight-system.txt");
     private static final Map<String, Object> SCHEMA = schema();
 
-    private final GeminiClient gemini;
+    private final LlmClient llm;
     private final Aggregator aggregator;
     private final InsightValidator validator;
     private final CoachStore store;
     private final ObjectMapper om;
 
-    public InsightService(GeminiClient gemini, Aggregator aggregator, InsightValidator validator,
+    public InsightService(LlmClient llm, Aggregator aggregator, InsightValidator validator,
                           CoachStore store, ObjectMapper om) {
-        this.gemini = gemini;
+        this.llm = llm;
         this.aggregator = aggregator;
         this.validator = validator;
         this.store = store;
@@ -60,7 +60,7 @@ public class InsightService {
             if (!problems.isEmpty()) {
                 p += "\n\n이전 응답에서 아래 문제가 있었다. 입력 JSON의 값만 사용해 다시 작성해라:\n- " + String.join("\n- ", problems);
             }
-            JsonNode node = gemini.generateJson(SYSTEM, p, SCHEMA, 0.4);
+            JsonNode node = llm.generateJson(SYSTEM, p, SCHEMA);
             report = om.treeToValue(node, InsightReport.class);
             problems = validator.validate(report, summary);
             if (problems.isEmpty()) return new Result(summary, report, List.of());
@@ -70,24 +70,24 @@ public class InsightService {
 
     private static Map<String, Object> schema() {
         Map<String, Map<String, Object>> ev = new LinkedHashMap<>();
-        ev.put("label", GeminiSchema.string("사용자에게 보이는 한국어 라벨"));
-        ev.put("value", GeminiSchema.number("입력 JSON 의 값 그대로"));
+        ev.put("label", LlmSchema.string("사용자에게 보이는 한국어 라벨"));
+        ev.put("value", LlmSchema.number("입력 JSON 의 값 그대로"));
         ev.put("unit", enumString("원", "%", "건", "개", "개월"));
         Map<String, Map<String, Object>> in = new LinkedHashMap<>();
-        in.put("title", GeminiSchema.string(null));
-        in.put("category", GeminiSchema.string(null));
+        in.put("title", LlmSchema.string(null));
+        in.put("category", LlmSchema.string(null));
         in.put("severity", enumString("info", "warn", "alert"));
-        in.put("message", GeminiSchema.string("사용자에게 보일 설명 (2~3문장)"));
-        in.put("evidence", GeminiSchema.array(GeminiSchema.object(ev), null));
-        in.put("action", GeminiSchema.string("바로 해볼 수 있는 구체적 제안 1개"));
+        in.put("message", LlmSchema.string("사용자에게 보일 설명 (2~3문장)"));
+        in.put("evidence", LlmSchema.array(LlmSchema.object(ev), null));
+        in.put("action", LlmSchema.string("바로 해볼 수 있는 구체적 제안 1개"));
         Map<String, Map<String, Object>> root = new LinkedHashMap<>();
-        root.put("headline", GeminiSchema.string(null));
-        root.put("insights", GeminiSchema.array(GeminiSchema.object(in), null));
-        return GeminiSchema.object(root);
+        root.put("headline", LlmSchema.string(null));
+        root.put("insights", LlmSchema.array(LlmSchema.object(in), null));
+        return LlmSchema.object(root);
     }
 
     static Map<String, Object> enumString(String... values) {
-        Map<String, Object> m = GeminiSchema.string(null);
+        Map<String, Object> m = LlmSchema.string(null);
         m.put("enum", List.of(values));
         return m;
     }

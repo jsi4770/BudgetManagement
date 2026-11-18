@@ -12,10 +12,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 서버 자체의 오버헤드 측정 (Gemini mock, 지연 0). AI 호출 시간을 뺀 "우리 코드"의 속도다.
+ * 서버 자체의 오버헤드 측정 (LLM mock, 지연 0). AI 호출 시간을 뺀 "우리 코드"의 속도다.
  * 실행: ./gradlew perf
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {"gemini.mock=true"})
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {"claude.mock=true"})
 class ThroughputPerfTest {
 
     @LocalServerPort int port;
@@ -42,7 +42,7 @@ class ThroughputPerfTest {
             for (int conc : new int[]{1, 8, 32}) rows.add(LoadGen.run(s.name(), conc, 2000, s.req()).row());
         }
 
-        StringBuilder md = new StringBuilder("# 서버 오버헤드 (Gemini mock, 지연 0)\n\n");
+        StringBuilder md = new StringBuilder("# 서버 오버헤드 (LLM mock, 지연 0)\n\n");
         md.append("- 환경: ").append(System.getProperty("os.name")).append(", JDK ").append(System.getProperty("java.version"))
                 .append(", CPU ").append(Runtime.getRuntime().availableProcessors()).append("코어\n\n");
         md.append(LoadGen.HEADER).append('\n').append(String.join("\n", rows)).append("\n\n");

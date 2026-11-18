@@ -1,7 +1,7 @@
 package com.back.was.coach;
 
-import com.back.was.ai.gemini.GeminiClient;
-import com.back.was.ai.gemini.GeminiSchema;
+import com.back.was.ai.llm.LlmClient;
+import com.back.was.ai.llm.LlmSchema;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -30,16 +30,16 @@ public class GoalService {
     private static final String INTENT_SYSTEM = Prompts.load("goal-intent-system.txt");
     private static final String NARR_SYSTEM = Prompts.load("goal-narrative-system.txt");
 
-    private final GeminiClient gemini;
+    private final LlmClient llm;
     private final Aggregator aggregator;
     private final DemoData data;
     private final NumberCheck numbers;
     private final CoachStore store;
     private final ObjectMapper om;
 
-    public GoalService(GeminiClient gemini, Aggregator aggregator, DemoData data, NumberCheck numbers,
+    public GoalService(LlmClient llm, Aggregator aggregator, DemoData data, NumberCheck numbers,
                        CoachStore store, ObjectMapper om) {
-        this.gemini = gemini;
+        this.llm = llm;
         this.aggregator = aggregator;
         this.data = data;
         this.numbers = numbers;
@@ -51,14 +51,14 @@ public class GoalService {
     public GoalIntent parseIntent(String text, String todayMonth, List<String> categories) {
         Map<String, Map<String, Object>> p = new LinkedHashMap<>();
         p.put("goal_type", InsightService.enumString("save_amount", "cap_category"));
-        p.put("title", GeminiSchema.string("목표 제목 (예: 배달비 줄이기)"));
-        p.put("target_amount", GeminiSchema.nullable(GeminiSchema.integer("save_amount: 모으려는 총액(원)")));
-        p.put("months", GeminiSchema.nullable(GeminiSchema.integer("기간(개월). 말하지 않았으면 null")));
-        p.put("category", GeminiSchema.nullable(GeminiSchema.string("cap_category: 줄일 카테고리")));
-        p.put("monthly_limit", GeminiSchema.nullable(GeminiSchema.integer("cap_category: 월 한도(원)")));
-        p.put("needs_clarification", GeminiSchema.nullable(GeminiSchema.string("정보가 부족할 때 사용자에게 되물을 한 문장")));
+        p.put("title", LlmSchema.string("목표 제목 (예: 배달비 줄이기)"));
+        p.put("target_amount", LlmSchema.nullable(LlmSchema.integer("save_amount: 모으려는 총액(원)")));
+        p.put("months", LlmSchema.nullable(LlmSchema.integer("기간(개월). 말하지 않았으면 null")));
+        p.put("category", LlmSchema.nullable(LlmSchema.string("cap_category: 줄일 카테고리")));
+        p.put("monthly_limit", LlmSchema.nullable(LlmSchema.integer("cap_category: 월 한도(원)")));
+        p.put("needs_clarification", LlmSchema.nullable(LlmSchema.string("정보가 부족할 때 사용자에게 되물을 한 문장")));
         String prompt = "기준 월: " + todayMonth + "\n카테고리 목록: " + String.join(", ", categories) + "\n\n사용자 문장: " + text;
-        JsonNode node = gemini.generateJson(INTENT_SYSTEM, prompt, GeminiSchema.object(p), 0.4);
+        JsonNode node = llm.generateJson(INTENT_SYSTEM, prompt, LlmSchema.object(p));
         return om.treeToValue(node, GoalIntent.class);
     }
 
@@ -173,16 +173,16 @@ public class GoalService {
         Map<String, Object> slim = new LinkedHashMap<>(assessment);
         slim.remove("schedule");
         Map<String, Map<String, Object>> p = new LinkedHashMap<>();
-        p.put("headline", GeminiSchema.string(null));
-        p.put("message", GeminiSchema.string("현실성 평가를 2~3문장으로"));
-        p.put("tips", GeminiSchema.array(GeminiSchema.string(null), "실행 팁 2~3개"));
+        p.put("headline", LlmSchema.string(null));
+        p.put("message", LlmSchema.string("현실성 평가를 2~3문장으로"));
+        p.put("tips", LlmSchema.array(LlmSchema.string(null), "실행 팁 2~3개"));
         String prompt = "목표: " + title + "\n\n평가 결과:\n" + om.writerWithDefaultPrettyPrinter().writeValueAsString(slim);
         Set<Double> allowed = numbers.allowed(slim);
         List<String> problems = List.of();
         GoalNarrative nar = null;
         for (int i = 0; i <= 2; i++) {
             String q = prompt + (problems.isEmpty() ? "" : "\n\n이전 응답의 문제:\n- " + String.join("\n- ", problems));
-            nar = om.treeToValue(gemini.generateJson(NARR_SYSTEM, q, GeminiSchema.object(p), 0.4), GoalNarrative.class);
+            nar = om.treeToValue(llm.generateJson(NARR_SYSTEM, q, LlmSchema.object(p)), GoalNarrative.class);
             List<String> texts = new ArrayList<>(List.of(nar.headline(), nar.message()));
             texts.addAll(nar.tips());
             problems = numbers.unknownNumbers(texts, allowed);

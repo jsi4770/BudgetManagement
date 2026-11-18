@@ -1,4 +1,4 @@
-package com.back.was.ai.gemini;
+package com.back.was.ai.llm;
 
 import com.back.was.common.ApiResponses;
 import tools.jackson.databind.JsonNode;
@@ -19,24 +19,24 @@ import java.util.Map;
 @Profile("local")
 @RestController
 @RequestMapping("/dev/ai")
-public class DevGeminiController {
+public class DevLlmController {
 
-    private final GeminiClient gemini;
+    private final LlmClient llm;
 
-    public DevGeminiController(GeminiClient gemini) {
-        this.gemini = gemini;
+    public DevLlmController(LlmClient llm) {
+        this.llm = llm;
     }
 
     @GetMapping("/ping")
     public Map<String, Object> ping(@RequestParam(defaultValue = "배민 3.4") String text) {
         Map<String, Map<String, Object>> props = new LinkedHashMap<>();
-        props.put("amount", GeminiSchema.nullable(GeminiSchema.integer("원 단위 정수. 없으면 null")));
-        props.put("memo", GeminiSchema.nullable(GeminiSchema.string("가게명·품목")));
+        props.put("amount", LlmSchema.nullable(LlmSchema.integer("원 단위 정수. 없으면 null")));
+        props.put("memo", LlmSchema.nullable(LlmSchema.string("가게명·품목")));
 
-        JsonNode data = gemini.generateJson(
+        JsonNode data = llm.generateJson(
                 "너는 가계부 입력 해석기다. 금액(원)과 메모만 뽑는다. "
                         + "단위 없는 작은 수는 항목의 통상 가격대로 천원/만원 단위를 판단한다. 예: 배민 3.4 = 34000",
-                text, GeminiSchema.object(props), 0.0);
+                text, LlmSchema.object(props));
         return ApiResponses.ok(data);
     }
 }

@@ -14,7 +14,7 @@ import java.util.List;
 
 /** 한 줄 입력 파싱 정확도(금액·카테고리·날짜) + 지연. 작성일은 2026-11-10(화)로 고정 */
 @SpringBootTest
-@org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "GEMINI_API_KEY", matches = ".+")
+@org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named = "ANTHROPIC_API_KEY", matches = ".+")
 class ParseAccuracyLiveEval extends LiveEvalBase {
 
     record Case(String text, Long amount, String category, String date, boolean notTx) {
@@ -66,7 +66,7 @@ class ParseAccuracyLiveEval extends LiveEvalBase {
             }
         }
         long[] nanos = lat.stream().mapToLong(Long::longValue).toArray();
-        String md = "# 한 줄 입력 파싱 정확도 (실제 Gemini)\n\n"
+        String md = "# 한 줄 입력 파싱 정확도 (실제 Claude)\n\n"
                 + String.format("- 금액 정확도: **%d/%d (%.0f%%)**\n- 카테고리 정확도: **%d/%d (%.0f%%)**\n- 상대 날짜 정확도: %d/%d\n- 거래 아님 거부: %d/%d\n- AI 호출 실패(한도·장애, 정확도에서 제외): %d\n- 지연: p50 %.0fms, p95 %.0fms\n\n",
                 amountOk, total, pctOf(amountOk, total), catOk, total, pctOf(catOk, total), dateOk, dateTotal, notTxOk, notTxTotal,
                 unavailable, EvalReport.pct(nanos, 0.5), EvalReport.pct(nanos, 0.95))
