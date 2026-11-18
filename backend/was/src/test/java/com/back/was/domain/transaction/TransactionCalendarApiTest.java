@@ -71,7 +71,7 @@ class TransactionCalendarApiTest {
         mockMvc.perform(authed(post("/transactions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"categoryId": %d, "amount": %d, "transactionDate": "%s"}
+                                {"transactions": [{"categoryId": %d, "amount": %d, "transactionDate": "%s"}]}
                                 """.formatted(categoryId, amount, date))))
                 .andExpect(status().isCreated());
     }

@@ -27,4 +27,4 @@ CLAUDE.md
 compose.yaml
 Dockerfile
 .dockerignore
-.env_example
+.env.example

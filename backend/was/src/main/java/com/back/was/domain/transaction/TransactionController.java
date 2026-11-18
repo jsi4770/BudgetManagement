@@ -30,6 +30,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @Tag(name = "6. 거래 (TX)", description = """
         수입·지출 기록. **수입/지출 구분 필드가 없습니다** — 방향은 `categoryId` 가 가리키는
         카테고리의 `type` 이 정하고 `amount` 는 항상 양수입니다.
@@ -42,18 +44,24 @@ public class TransactionController {
 
     private final TransactionService transactionService;
 
-    @Operation(summary = "TX-01 거래 등록", description = """
-            저장 후 같은 트랜잭션에서 진행 중 챌린지의 실적과 이번 주 넛지를 다시 계산합니다.
-            그래서 등록 직후 홈·챌린지 화면의 숫자가 이미 맞습니다.
+    @Operation(summary = "TX-01 거래 등록 (여러 건)", description = """
+            `transactions` 배열로 **1~50건**을 한 번에 저장합니다. 한 건만 저장할 때도 배열에 하나를 담아 보내세요.
+            응답 `data` 는 저장된 거래의 배열이고 **요청 순서 그대로**입니다.
+
+            **전부 저장되거나 하나도 저장되지 않습니다** — 한 건이라도 규칙을 어기면 요청 전체가 실패합니다.
+
+            저장 후 같은 트랜잭션에서 요청에 나온 카테고리마다 진행 중 챌린지의 실적과 이번 주 넛지를
+            다시 계산합니다. 그래서 등록 직후 홈·챌린지 화면의 숫자가 이미 맞습니다.
 
             `memo` 는 선택입니다. **미래 날짜는 거부합니다**(오늘은 허용).
 
-            **실패**: `400 VALIDATION_ERROR` — 미래 날짜는 `details[].reason: FUTURE_DATE` 로 구분됩니다 /
-            `404 NOT_FOUND`(없는 카테고리)""")
+            **실패**: `400 VALIDATION_ERROR` — 빈 배열·51건 이상 포함. `details[].field` 는
+            `transactions[1].amount` 처럼 몇 번째 거래인지(0부터) 담고, 미래 날짜는 `reason: FUTURE_DATE` 로 구분됩니다 /
+            `404 NOT_FOUND`(없는 카테고리가 한 건이라도 있음)""")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ApiResponse<TransactionResponse> create(@AuthenticationPrincipal AuthUser authUser,
-                                                   @RequestBody @Valid CreateTransactionRequest request) {
+    public ApiResponse<List<TransactionResponse>> create(@AuthenticationPrincipal AuthUser authUser,
+                                                         @RequestBody @Valid CreateTransactionRequest request) {
         return ApiResponse.ok(transactionService.create(authUser.id(), request));
     }
 

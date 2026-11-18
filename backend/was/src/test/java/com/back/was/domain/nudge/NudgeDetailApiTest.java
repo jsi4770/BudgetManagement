@@ -35,7 +35,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * NDG-02 넛지 상세.
  *
  * <p>NDG-01 과 같은 숫자({@link SpendingComparison} 으로 만든 시연 6-1 의 배달 판정)에 AI
- * 문구 두 개가 더 붙는 모양이다. 판정이 아직 없어 카드는 리포지터리로 직접 넣는다.
+ * 문구 두 개가 더 붙는 모양이다. 카드는 판정({@code NudgeJudgement})을 거치지 않고
+ * 리포지터리로 직접 넣는다 — 이 클래스의 대상은 NDG-02 의 응답이지 판정이 아니다.
  */
 @SpringBootTest
 @AutoConfigureMockMvc

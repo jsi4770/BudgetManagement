@@ -33,11 +33,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * COACH-03 메시지 전송.
  *
- * <p><b>지금은 모든 응답이 대체 응답이다.</b> AI 어댑터가 없어
- * {@code UnavailableCoachingReplyGenerator} 가 항상 던지고, 서비스가 그것을 잡아
- * {@code docs/AI_대체_문구.md} 4·5장으로 200 을 만든다(서버_내부_처리 8장). 그래서 여기의
- * 기대값은 거의 전부 {@code isFallback: true} 쪽이고, <b>그게 의도된 현재 동작</b>이다 —
- * 503 이 나가면 명세 위반이다.
+ * <p><b>여기의 모든 응답은 대체 응답이다.</b> 테스트 설정은 {@code gemini.api-key} 가 비어
+ * 있어 {@code GeminiCoachingReplyGenerator} 가 항상 {@code AI_UNAVAILABLE} 을 던지고, 서비스가
+ * 그것을 잡아 {@code docs/AI_대체_문구.md} 4·5장으로 200 을 만든다(서버_내부_처리 8장). 그래서
+ * 기대값은 거의 전부 {@code isFallback: true} 쪽이다 — 503 이 나가면 명세 위반이다.
  *
  * <p>제안 숫자는 규칙 기반 제안(5장)의 결과다. 계산 자체는
  * {@code RuleBasedGoalProposerTest} 가 검증하고, 여기서는 그것이 <b>응답에 실리고 DB 에

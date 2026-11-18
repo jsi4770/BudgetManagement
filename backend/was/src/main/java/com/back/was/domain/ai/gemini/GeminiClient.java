@@ -10,7 +10,8 @@ import java.util.Map;
  * - HttpGeminiClient : 실제 호출 (gemini.mock=false, 기본)
  * - MockGeminiClient : 가짜 응답 (gemini.mock=true)
  *
- * 실패 시: AiUnavailableException(503) / AiParseFailedException(422)
+ * 실패 시: BusinessException(AI_UNAVAILABLE, 503) / BusinessException(AI_PARSE_FAILED, 422)
+ * — {@link GeminiErrors} 가 만든다.
  */
 public interface GeminiClient {
 

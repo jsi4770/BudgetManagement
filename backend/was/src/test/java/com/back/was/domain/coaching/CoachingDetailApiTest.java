@@ -30,9 +30,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * COACH-02 코칭 조회 (재진입 복원).
  *
- * <p>대화와 제안을 만드는 쪽(COACH-03)이 아직 없으므로 메시지와 제안은 엔티티로 직접
- * 넣는다 — {@code CoachingMessage.user/ai} 와 {@code Coaching.propose} 가 COACH-03 이 쓸
- * 바로 그 메서드들이다.
+ * <p>메시지와 제안은 COACH-03 을 거치지 않고 엔티티로 직접 넣는다 — 대화 결과가 AI 응답에
+ * 좌우되지 않게 하려는 것이다. {@code CoachingMessage.user/ai} 와 {@code Coaching.propose} 가
+ * COACH-03 이 쓰는 바로 그 메서드들이다.
  *
  * <p>가장 중요한 한 가지는 <b>COACH-01 과 같은 형식</b>이라는 것이고(명세 COACH-02 머리말),
  * {@code restoresTheSameShapeAsStart} 가 두 응답의 {@code data} 를 직접 비교해서 그걸

@@ -164,10 +164,10 @@ public class DevChallengeService {
      * DEV-01 로 초기화하기 전에 어떤 거래가 버튼으로 들어온 것인지 알 수 있다.
      */
     private void addTransaction(Long userId, Challenge challenge, int amount) {
-        transactionService.create(userId, new CreateTransactionRequest(
+        transactionService.create(userId, CreateTransactionRequest.of(new CreateTransactionRequest.Item(
                 challenge.getCategory().getId(),
                 amount,
                 KstTime.today(),
-                "시연용 자동 기록 (DEV-02)"));
+                "시연용 자동 기록 (DEV-02)")));
     }
 }

@@ -67,12 +67,12 @@ class TransactionListApiTest {
         String body = mockMvc.perform(authed(post("/transactions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"categoryId": %d, "amount": %d, "transactionDate": "%s", "memo": "%s"}
+                                {"transactions": [{"categoryId": %d, "amount": %d, "transactionDate": "%s", "memo": "%s"}]}
                                 """.formatted(categoryId, amount, date, memo))))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
 
-        return ((Number) JsonPath.read(body, "$.data.id")).longValue();
+        return ((Number) JsonPath.read(body, "$.data[0].id")).longValue();
     }
 
     @Test
