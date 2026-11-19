@@ -1,3 +1,5 @@
+import { isPreview, previewRequest } from './preview';
+
 const BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api/v1';
 
 let accessToken = null;
@@ -34,6 +36,8 @@ function query(params) {
 }
 
 async function request(path, { method = 'GET', body, form, auth = true, retry = true } = {}) {
+  if (isPreview()) return previewRequest(path, { method, body });
+
   const headers = { Accept: 'application/json' };
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (auth && accessToken) headers.Authorization = `Bearer ${accessToken}`;

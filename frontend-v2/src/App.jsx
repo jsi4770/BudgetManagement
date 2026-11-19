@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, setAuthLostHandler, setToken } from './api';
+import { enablePreview } from './preview';
 import { todayISO } from './format';
 import { Icon } from './icons';
 import { PrefsProvider } from './prefs';
@@ -76,6 +77,11 @@ export default function App() {
       setCategoryFocus(category);
       setCategoryBack(back);
       go('S016');
+    },
+    preview: () => {
+      setUser(enablePreview());
+      say('예시 데이터로 둘러보는 중이에요');
+      go('S005');
     },
   };
 
