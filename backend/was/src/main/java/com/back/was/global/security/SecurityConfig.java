@@ -98,6 +98,7 @@ public class SecurityConfig {
                         .requestMatchers(DOCS_PATHS).permitAll()
                         // 명세 0장 5) 예외: 기능 자체에 권한이 필요한 경우만 403.
                         // 남의 리소스 접근은 여기서 막지 않고 서비스 계층이 404로 처리한다.
+                        .requestMatchers("/admin/kpi").authenticated()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())
                 // CorsFilter 뒤, 컨트롤러 앞. 대상이 permitAll 경로라 인가 단계보다 먼저
