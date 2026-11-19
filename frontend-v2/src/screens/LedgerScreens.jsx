@@ -116,6 +116,7 @@ export function Ledger({ c }) {
               date ? (
                 <button type="button" key={date} className={selected === date ? 'sel' : ''} onClick={() => setSelected(date)}>
                   {Number(date.slice(-2))}
+                  {sums[date]?.totalIncome > 0 && <small className="in">+{Math.round(sums[date].totalIncome / 1000) / 10}만</small>}
                   {sums[date]?.totalExpense > 0 && <small>-{Math.round(sums[date].totalExpense / 1000) / 10}만</small>}
                 </button>
               ) : <div key={`empty-${index}`} />
