@@ -93,6 +93,7 @@ export default function App() {
     S001: <Onboarding c={c} />,
     S002: <Auth c={c} mode="up" />,
     S003: <Auth c={c} mode="in" />,
+    S019: <Auth c={c} mode="demo" />,
     S004: <Setup c={c} />,
     S005: <Home c={c} />,
     S006: <Ledger c={c} />,

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api, setToken } from '../api';
+import { disablePreview } from '../preview';
 import { Hd, Keypad } from '../components/common';
 import { advisePattern, focusLabel, FOCUSES, SAVINGS, signupError, won, yearMonth } from '../format';
 import { PigLogo } from '../icons';
@@ -21,15 +22,16 @@ export function Onboarding({ c }) {
       </p>
       <button type="button" className="btn" style={{ marginTop: 40 }} onClick={() => c.go('S002')}>시작하기</button>
       <button type="button" className="btn sub" onClick={() => c.go('S003')}>이미 계정이 있어요</button>
-      <button type="button" className="btn sub" onClick={() => c.preview()}>서버 없이 둘러보기</button>
+      <button type="button" className="btn sub" onClick={() => c.go('S019')}>시연용으로 로그인하기</button>
     </div>
   );
 }
 
 export function Auth({ c, mode }) {
   const signup = mode === 'up';
+  const demo = mode === 'demo';
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(demo ? 'dummy123@dummy123.com' : '');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
@@ -40,11 +42,12 @@ export function Auth({ c, mode }) {
       const message = signupError({ username, email, password, confirm });
       if (message) return setError(message);
     } else if (!email.trim() || !password) {
-      return setError('이메일과 비밀번호를 입력해주세요.');
+      return setError(demo ? '아이디와 비밀번호를 입력해주세요.' : '이메일과 비밀번호를 입력해주세요.');
     }
     setBusy(true);
     setError('');
     try {
+      if (demo) disablePreview();
       const data = signup
         ? await api.signup({ username: username.trim(), email: email.trim(), password })
         : await api.login({ email: email.trim(), password });
@@ -68,7 +71,7 @@ export function Auth({ c, mode }) {
 
   return (
     <div className="screen">
-      <Hd title={signup ? '회원가입' : '로그인'} onBack={() => c.go('S001')} />
+      <Hd title={signup ? '회원가입' : demo ? '시연용 로그인' : '로그인'} onBack={() => c.go('S001')} />
       {!signup && <div className="brand" style={{ padding: '4px 0 12px' }}><PigLogo size={96} /></div>}
       {signup && (
         <div className="fld">
@@ -77,7 +80,7 @@ export function Auth({ c, mode }) {
         </div>
       )}
       <div className="fld">
-        <label>이메일</label>
+        <label>{demo ? '아이디' : '이메일'}</label>
         <input className="input" value={email} onChange={(event) => setEmail(event.target.value)} />
       </div>
       <div className="fld">
@@ -93,9 +96,11 @@ export function Auth({ c, mode }) {
       )}
       {error && <div className="err">{error}</div>}
       <button type="button" className="btn" disabled={busy} onClick={submit}>{signup ? '회원가입' : '로그인'}</button>
-      <button type="button" className="btn sub" onClick={() => c.go(signup ? 'S003' : 'S002')}>
-        {signup ? '로그인으로 이동' : '회원가입으로 이동'}
-      </button>
+      {!demo && (
+        <button type="button" className="btn sub" onClick={() => c.go(signup ? 'S003' : 'S002')}>
+          {signup ? '로그인으로 이동' : '회원가입으로 이동'}
+        </button>
+      )}
     </div>
   );
 }
