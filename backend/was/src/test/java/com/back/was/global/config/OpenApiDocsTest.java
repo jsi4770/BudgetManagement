@@ -86,12 +86,13 @@ class OpenApiDocsTest {
     );
 
     /**
-     * dev 프로필 전용이라 기본 컨텍스트의 문서에는 없어야 하는 두 개 (명세 12장).
+     * dev 프로필 전용이라 기본 컨텍스트의 문서에는 없어야 하는 것들 (명세 12장).
      * 문서가 운영에서 공개될 수 있는 이상, 시연용 API 의 존재 자체가 노출되지 않는 편이 낫다.
      */
     private static final List<String> DEV_ONLY_ENDPOINTS = List.of(
             "/dev/seed",
-            "/dev/challenges/{id}/complete"
+            "/dev/challenges/{id}/complete",
+            "/dev/demo-account/reset"
     );
 
     @Autowired
