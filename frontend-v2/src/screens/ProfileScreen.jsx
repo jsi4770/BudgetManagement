@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { Loading } from '../components/common';
+import { Hd, Loading } from '../components/common';
 
 const GENDERS = [['FEMALE', '여성'], ['MALE', '남성'], ['NONE', '선택 안 함']];
 
@@ -12,6 +12,8 @@ export function Profile({ c }) {
   const [gender, setGender] = useState(c.user?.gender ?? null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // 이미 온보딩을 마친 사용자가 마이페이지에서 들어오면 수정 모드다.
+  const editing = c.user?.onboardingCompleted === true;
 
   useEffect(() => {
     let cancel = false;
@@ -31,7 +33,8 @@ export function Profile({ c }) {
     try {
       const updated = await api.completeOnboarding({ regionCode: region, age: ageNumber, gender });
       c.setUser(updated);
-      c.go(c.afterProfile || 'S005');
+      if (editing) c.say('내 정보를 저장했어요.');
+      c.go(editing ? 'S015' : c.afterProfile || 'S005');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -41,8 +44,14 @@ export function Profile({ c }) {
 
   return (
     <div className="screen">
-      <h1 className="h1" style={{ margin: '2px 0 6px' }}>내 정보를 알려주세요</h1>
-      <p className="t2" style={{ marginBottom: 16 }}>우리 동네 청년정책과 지역화폐 가맹점을 골라드릴게요.</p>
+      {editing ? (
+        <Hd title="내 정보 수정" onBack={() => c.go('S015')} />
+      ) : (
+        <h1 className="h1" style={{ margin: '2px 0 6px' }}>내 정보를 알려주세요</h1>
+      )}
+      <p className="t2" style={{ marginBottom: 16 }}>
+        {editing ? '바꾸면 맞춤 청년정책과 가맹점 목록도 새 지역 기준으로 바뀌어요.' : '우리 동네 청년정책과 지역화폐 가맹점을 골라드릴게요.'}
+      </p>
 
       <div className="card">
         <h2 className="h2" style={{ marginBottom: 12 }}>사는 지역 (충남)</h2>
@@ -98,7 +107,7 @@ export function Profile({ c }) {
       </div>
 
       {error && <div className="err" role="alert">{error}</div>}
-      <button type="button" className="btn" disabled={!ready || busy} onClick={submit}>{busy ? '저장 중…' : '시작하기'}</button>
+      <button type="button" className="btn" disabled={!ready || busy} onClick={submit}>{busy ? '저장 중…' : editing ? '저장' : '시작하기'}</button>
       <div className="pad" />
     </div>
   );
