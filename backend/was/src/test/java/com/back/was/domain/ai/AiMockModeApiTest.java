@@ -77,8 +77,8 @@ class AiMockModeApiTest {
     void receiptWorksEndToEnd() throws Exception {
         receipt(mockMvc, token)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.amount").value(1000))
-                .andExpect(jsonPath("$.data.transactionDate").doesNotExist())
-                .andExpect(jsonPath("$.data.missingFields", contains("transactionDate")));
+                .andExpect(jsonPath("$.data[0].amount").value(1000))
+                .andExpect(jsonPath("$.data[0].transactionDate").doesNotExist())
+                .andExpect(jsonPath("$.data[0].missingFields", contains("transactionDate")));
     }
 }

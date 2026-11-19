@@ -23,6 +23,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +32,8 @@ import java.util.Map;
  *
  * <p>요청은 {@code multipart/form-data} — {@code image}(파일)와 {@code categories}(DB 카테고리 JSON).
  * 카테고리를 넘겨야 Django 의 기본 목록(하드코딩된 id)이 아니라 <b>실제 DB id</b> 로 골라 온다.
- * 응답은 {@code {"success":true,"data":{amount,transactionDate,category{id,name,type},memo,missingFields}}}.
+ * 응답은 {@code {"success":true,"data":{"items":[{amount,transactionDate,category{id,name,type},memo,missingFields}, …]}}}
+ * — 전부 순서대로 돌려준다. {@code items} 없이 {@code data} 에 바로 필드가 있는 예전 단건 모양도 받는다.
  *
  * <p>Django 가 준 {@code missingFields} 는 쓰지 않는다 — Django 는 {@code memo} 까지 필수로 세지만
  * 명세 TX-07/RCPT-01 의 필수는 금액·날짜·카테고리 셋이다. {@code null} 로부터 서비스가 다시 만든다.
@@ -53,7 +55,7 @@ public class DjangoReceiptOcrClient implements ReceiptOcrClient {
     }
 
     @Override
-    public ParsedTransaction analyze(ReceiptImage image, List<CategoryResponse> categories) {
+    public List<ParsedTransaction> analyze(ReceiptImage image, List<CategoryResponse> categories) {
         // MultipartBodyBuilder 는 쓰지 않는다 — org.reactivestreams 가 필요한데 이 프로젝트는 MVC 만 쓴다.
         String filename = "png".equals(extensionOf(image.contentType())) ? "receipt.png" : "receipt.jpg";
         // 파일명이 있어야 multipart 에서 "파일"로 전송된다
@@ -93,13 +95,31 @@ public class DjangoReceiptOcrClient implements ReceiptOcrClient {
         return toParsed(response);
     }
 
-    private ParsedTransaction toParsed(JsonNode response) {
+    private List<ParsedTransaction> toParsed(JsonNode response) {
         if (response == null || !response.path("success").asBoolean(false) || !response.path("data").isObject()) {
             log.warn("[RCPT-01] OCR 서버 응답 형식이 계약과 다릅니다");
             throw new BusinessException(ErrorCode.OCR_FAILED);
         }
         JsonNode data = response.path("data");
 
+        // 2026-11-18 부터 Django 는 항상 {"items":[...]} 로 준다(금융 앱 캡처의 다건 대응). 빈 배열이면
+        // 빈 목록 — 서비스가 422 로 바꾼다. items 가 없는 예전 단건 모양은 1건으로 받는다.
+        if (!data.has("items")) {
+            return List.of(toItem(data));
+        }
+        JsonNode items = data.path("items");
+        if (!items.isArray()) {
+            log.warn("[RCPT-01] OCR 서버 응답 형식이 계약과 다릅니다 (items)");
+            throw new BusinessException(ErrorCode.OCR_FAILED);
+        }
+        List<ParsedTransaction> parsed = new ArrayList<>();
+        for (JsonNode item : items) {
+            parsed.add(toItem(item));
+        }
+        return parsed;
+    }
+
+    private static ParsedTransaction toItem(JsonNode data) {
         Integer amount = null;
         JsonNode a = data.path("amount");
         if (a.isIntegralNumber() && a.asLong() >= 1 && a.asLong() <= Integer.MAX_VALUE) {

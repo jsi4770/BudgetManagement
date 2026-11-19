@@ -55,7 +55,10 @@ public class MockLlmClient implements LlmClient {
         }
     }
 
-    /** 스키마를 따라가며 기본값: 문자열 "mock", 숫자 1000, boolean true, 배열 []. nullable(anyOf)은 null 이 아닌 쪽 */
+    /**
+     * 스키마를 따라가며 기본값: 문자열 "mock", 숫자 1000, boolean true, 배열은 항목 1개.
+     * nullable(anyOf)은 null 이 아닌 쪽. 배열을 비워 두면 RCPT-01(items)이 "거래 없음" 422 가 된다.
+     */
     @SuppressWarnings("unchecked")
     private JsonNode fill(Map<String, Object> schema) {
         if (schema.get("anyOf") instanceof List<?> branches) {
@@ -70,7 +73,9 @@ public class MockLlmClient implements LlmClient {
                 return node;
             }
             case "array":
-                return objectMapper.createArrayNode();
+                return schema.get("items") instanceof Map<?, ?> items
+                        ? objectMapper.createArrayNode().add(fill((Map<String, Object>) items))
+                        : objectMapper.createArrayNode();
             case "integer":
             case "number":
                 return objectMapper.getNodeFactory().numberNode(1000);

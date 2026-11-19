@@ -9,7 +9,8 @@ import java.util.List;
 /**
  * 영수증 분석 포트 (RCPT-01 · 서버_내부_처리 9장 2단계).
  *
- * <p>이미지를 받아 거래 정보({@link ParsedTransaction})까지 돌려준다. 구현은 둘이고 설정으로 갈린다:
+ * <p>이미지를 받아 거래 정보({@link ParsedTransaction}) <b>목록</b>까지 돌려준다. 영수증은 보통 1건,
+ * 금융 앱 거래내역 캡처는 여러 건이다. 이미지 속 순서(위 → 아래)를 지킨다. 구현은 둘이고 설정으로 갈린다:
  * <ul>
  *   <li>{@link DjangoReceiptOcrClient} — {@code ocr.base-url} 이 있을 때. 별도 OCR 서비스
  *       ({@code backend/ocr}, Vertex AI 멀티모달)가 이미지에서 금액·날짜·카테고리·메모를 직접 뽑아 준다.</li>
@@ -32,7 +33,8 @@ public interface ReceiptOcrClient {
 
     /**
      * @param categories 모델이 고를 수 있는 카테고리 전체(DB 목록). {@code id} 로 고르게 한다
+     * @return 찾은 거래들. 거래를 못 찾으면 빈 목록(예외 아님 — 422 는 서비스가 정한다)
      * @throws BusinessException 502 {@code OCR_FAILED} / 503 {@code AI_UNAVAILABLE} / 422 {@code AI_PARSE_FAILED}
      */
-    ParsedTransaction analyze(ReceiptImage image, List<CategoryResponse> categories);
+    List<ParsedTransaction> analyze(ReceiptImage image, List<CategoryResponse> categories);
 }
