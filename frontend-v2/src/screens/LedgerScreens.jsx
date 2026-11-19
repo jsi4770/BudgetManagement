@@ -466,7 +466,7 @@ export function ReceiptOcr({ c }) {
         <div className="t2">촬영 사진이나 캡처 화면을 올리면 위에서부터 여러 건을 꺼내요. jpg, png만 올릴 수 있고 아이폰 HEIC는 jpg로 바꿉니다.</div>
       </div>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif" hidden onChange={(event) => upload(event.target.files?.[0])} />
-      <button type="button" className="btn" disabled={busy} onClick={() => inputRef.current?.click()}>{busy ? '영수증을 읽는 중…' : '영수증 사진 올리기'}</button>
+      <button type="button" className="btn" disabled={busy} onClick={() => inputRef.current?.click()}>{busy ? '영수증을 읽는 중…' : '촬영 사진 및 캡처화면 올리기'}</button>
       {error && (
         <div className="err">
           {error}
