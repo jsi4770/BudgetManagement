@@ -204,7 +204,7 @@ export function ManualEntry({ c }) {
     setError('');
     try {
       if (draft.id) await api.updateTransaction(draft.id, body);
-      else await api.createTransaction(body);
+      else await api.createTransactions([body]);
       c.say(draft.id ? '수정했어요' : '저장했어요');
       c.setDraft(null);
       c.go('S005');
@@ -260,7 +260,7 @@ export function AiInput({ c }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api.categories('EXPENSE').then(setCategories).catch(() => {});
+    api.categories().then(setCategories).catch(() => {});
   }, []);
 
   const analyze = async () => {
@@ -384,43 +384,61 @@ function ParsedFields({ parsed, setParsed, categories }) {
   );
 }
 
-async function saveParsed(parsed) {
-  if (!parsed?.amount || !parsed.date || !parsed.categoryId) {
-    throw new Error('금액, 날짜, 카테고리를 채운 뒤 저장해주세요.');
-  }
-  await api.createTransaction({
+function toTransactionBody(parsed) {
+  return {
     categoryId: parsed.categoryId,
     amount: Number(parsed.amount),
     transactionDate: parsed.date,
     memo: parsed.memo?.trim() || null,
-  });
+  };
+}
+
+async function saveParsed(items) {
+  const list = Array.isArray(items) ? items : [items];
+  if (list.length === 0) throw new Error('저장할 항목이 없어요.');
+  if (list.some((item) => !item?.amount || !item.date || !item.categoryId)) {
+    throw new Error('금액, 날짜, 카테고리를 채운 뒤 저장해주세요.');
+  }
+  await api.createTransactions(list.map(toTransactionBody));
 }
 
 export function ReceiptOcr({ c }) {
   const inputRef = useRef(null);
   const { prefs } = usePrefs();
-  const [parsed, setParsed] = useState(null);
-  const [editing, setEditing] = useState(false);
+  const [items, setItems] = useState([]);
+  const [editing, setEditing] = useState(null);
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api.categories('EXPENSE').then(setCategories).catch(() => {});
+    api.categories().then(setCategories).catch(() => {});
   }, []);
+
+  const updateItem = (index, next) => {
+    setItems((current) => current.map((item, itemIndex) => (itemIndex === index ? next : item)));
+  };
 
   const upload = async (file) => {
     if (!file) return;
     setBusy(true);
     setError('');
-      setParsed(null);
-      setEditing(false);
+    setItems([]);
+    setEditing(null);
     try {
       const image = await prepareReceipt(file);
       const result = await api.ocrReceipt(image);
-      setParsed(toParsed(result));
+      const list = Array.isArray(result) ? result : [];
+      if (list.length === 0) {
+        const empty = new Error('영수증에서 거래를 찾지 못했어요.');
+        empty.code = 'AI_PARSE_FAILED';
+        throw empty;
+      }
+      setItems(list.map(toParsed));
     } catch (err) {
-      setError(err.message);
+      setError(err.code === 'AI_PARSE_FAILED' || err.code === 'OCR_FAILED' || err.code === 'AI_UNAVAILABLE'
+        ? `${err.message} 직접 입력으로 기록할 수 있어요.`
+        : err.message);
     } finally {
       setBusy(false);
     }
@@ -430,8 +448,8 @@ export function ReceiptOcr({ c }) {
     setBusy(true);
     setError('');
     try {
-      await saveParsed(parsed);
-      c.say('저장했어요');
+      await saveParsed(items);
+      c.say(items.length > 1 ? `${items.length}건 저장했어요` : '저장했어요');
       c.go('S005');
     } catch (err) {
       setError(err.message);
@@ -445,7 +463,7 @@ export function ReceiptOcr({ c }) {
       <Hd title="영수증 촬영/캡처화면 추출" onBack={() => c.go('S005')} />
       <div className="card center">
         <div className="big"><Icon name="receipt-scan" size={48} /></div>
-        <div className="t2">촬영 사진이나 캡처 화면을 올리면 날짜별로 나눠 보여 드려요. jpg, png만 올릴 수 있고 아이폰 HEIC는 jpg로 바꿉니다.</div>
+        <div className="t2">촬영 사진이나 캡처 화면을 올리면 위에서부터 여러 건을 꺼내요. jpg, png만 올릴 수 있고 아이폰 HEIC는 jpg로 바꿉니다.</div>
       </div>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif" hidden onChange={(event) => upload(event.target.files?.[0])} />
       <button type="button" className="btn" disabled={busy} onClick={() => inputRef.current?.click()}>{busy ? '영수증을 읽는 중…' : '영수증 사진 올리기'}</button>
@@ -458,29 +476,36 @@ export function ReceiptOcr({ c }) {
           </button>
         </div>
       )}
-      {parsed && (
-        <div>
+      {items.map((parsed, index) => (
+        <div key={`${parsed.date}-${index}`}>
           <div className="date-head">{parsed.date ? dayHeading(parsed.date) : '날짜 없음'}</div>
           <div className="card">
             <div className="row">
               <b>{wonLabel(parsed.amount)}</b>
-              {!editing && (
-                <button type="button" className="icon-btn" aria-label="수정" onClick={() => setEditing(true)}>
-                  <Icon name="pencil" size={16} />
-                </button>
-              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                {editing !== index && (
+                  <button type="button" className="icon-btn" aria-label="수정" onClick={() => setEditing(index)}>
+                    <Icon name="pencil" size={16} />
+                  </button>
+                )}
+                <button type="button" className="t2" onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}>빼기</button>
+              </div>
             </div>
-            {editing ? (
-              <ParsedFields parsed={parsed} setParsed={setParsed} categories={categories} />
+            {editing === index ? (
+              <ParsedFields parsed={parsed} setParsed={(next) => updateItem(index, next)} categories={categories} />
             ) : (
               <>
                 <div className="t2" style={{ marginTop: 8 }}>{categoryName(categories, parsed.categoryId, prefs.aliases) || '카테고리 없음'}</div>
                 <div style={{ marginTop: 4 }}>{parsed.memo || '메모 없음'}</div>
               </>
             )}
-            <button type="button" className="btn" disabled={busy} onClick={save}>확인하고 저장</button>
           </div>
         </div>
+      ))}
+      {items.length > 0 && (
+        <button type="button" className="btn" disabled={busy} onClick={save}>
+          {busy ? '저장 중…' : `확인하고 ${items.length}건 저장`}
+        </button>
       )}
     </div>
   );

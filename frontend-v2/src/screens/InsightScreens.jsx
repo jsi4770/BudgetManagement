@@ -96,6 +96,7 @@ export function Analysis({ c }) {
                     ? '비교는 월세 제외'
                     : `평소 이맘때 ${item.averageAmount == null ? '비교 없음' : won(item.averageAmount)}`}
                   {item.growthRate != null && ` · ${percent(item.growthRate) > 0 ? '+' : ''}${percent(item.growthRate)}%`}
+                  {item.isAnomaly && ' · 평소보다 높아요'}
                 </div>
               </button>
             ))}
@@ -155,7 +156,10 @@ export function NudgeDetail({ c }) {
             <p className="t2" style={{ fontSize: 14, lineHeight: 1.6 }}>{nudge.aiRecommendation || '제안을 준비하고 있어요.'}</p>
           </div>
           <button type="button" className="btn" onClick={() => { c.setCoachingId(null); c.go('S012'); }}>AI 코칭 시작하기</button>
-          <button type="button" className="btn sub" onClick={() => c.go('S010')}>소비 현황 확인</button>
+          <button type="button" className="btn sub" onClick={async () => {
+            try { await api.nudgeStatus(c.nudgeId, 'VIEWED'); } catch { /* 상태 변경이 실패해도 분석 화면으로 이동한다. */ }
+            c.go('S010');
+          }}>소비 현황 확인</button>
         </>
       )}
     </div>
