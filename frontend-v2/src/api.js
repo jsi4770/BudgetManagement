@@ -125,6 +125,7 @@ export const api = {
   report: (id) => request(`/challenges/${id}/report`),
   kpi: () => request('/admin/kpi'),
   seed: (scenario) => request('/dev/seed', { method: 'POST', body: { scenario } }),
+  resetDemoAccount: () => request('/dev/demo-account/reset', { method: 'POST' }),
   completeChallenge: (id, scenario) => request(`/dev/challenges/${id}/complete`, {
     method: 'POST',
     body: { scenario },

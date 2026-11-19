@@ -97,6 +97,20 @@ export function MyPage({ c }) {
     return () => { cancel = true; };
   }, []);
 
+  const resetDemoAccount = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await api.resetDemoAccount();
+      setKpi(await loadKpi());
+      c.say('데이터를 초기화했어요');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const resetData = async (scenario) => {
     setBusy(true);
     setError('');
@@ -361,6 +375,7 @@ export function MyPage({ c }) {
         {error && <div className="err">{error}</div>}
         <button type="button" className="btn sm" disabled={busy} onClick={() => resetData('NORMAL')}>정상 소비 상황으로 초기화</button>
         <button type="button" className="btn sm sub" disabled={busy} onClick={() => resetData('DELIVERY_SPIKE')}>배달비 증가 상황으로 초기화</button>
+        <button type="button" className="btn sm sub" disabled={busy} onClick={resetDemoAccount}>데이터 초기화</button>
       </div>
       <button type="button" className="btn sub" onClick={logout}>로그아웃</button>
       <div className="pad" />
