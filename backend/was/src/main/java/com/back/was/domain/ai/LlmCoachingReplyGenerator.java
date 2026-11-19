@@ -117,12 +117,24 @@ public class LlmCoachingReplyGenerator implements CoachingReplyGenerator {
         return out;
     }
 
-    /** 프롬프트의 {LOCAL} 자리. 지역·후보가 없으면 가맹점 이야기를 하지 말라는 한 줄만 들어간다. */
+    /**
+     * 프롬프트의 {LOCAL} 자리. 사용자가 가맹점을 묻지 않았으면 가맹점 이야기를 하지 말라는 한 줄만 들어가고,
+     * 물었는데 후보가 없으면(보통 지역 미설정) 그 사정을 알려 준다.
+     */
     private static String localContext(CoachingReplyCommand command) {
         if (command.merchants().isEmpty()) {
+            if (command.merchantRequested()) {
+                return "(사용자가 가맹점을 직접 물었지만 보여 줄 후보가 없다 — 사는 지역(천안시·아산시)이 설정돼 있지 않거나 "
+                        + "해당 업종 가맹점이 없다. 마이페이지에서 사는 지역을 설정하면 알려 드릴 수 있다고 짧게 안내하고 "
+                        + "recommendedMerchantIds 는 빈 배열)";
+            }
             return "(지역 가맹점 정보 없음 — 가맹점은 언급하지 말고 recommendedMerchantIds 는 빈 배열)";
         }
-        StringBuilder sb = new StringBuilder("사용자 지역: ").append(command.regionName()).append("\n");
+        StringBuilder sb = new StringBuilder();
+        if (command.merchantRequested()) {
+            sb.append("사용자가 방금 우리 동네 가맹점을 직접 물었다. 아래 [가맹점 후보] 중 질문에 맞는 곳을 골라 안내한다.\n");
+        }
+        sb.append("사용자 지역: ").append(command.regionName()).append("\n");
         sb.append("최근 30일 지출(코드 계산): ");
         sb.append(command.spending().stream()
                 .map(s -> s.categoryName() + " " + s.amount() + "원 " + s.count() + "회")

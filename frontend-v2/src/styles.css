@@ -46,7 +46,7 @@ textarea.input{height:90px;padding:12px;resize:vertical}
 .week-row{display:flex;gap:8px;margin-top:6px}.week-row span{flex:1;min-width:0;text-align:center;font-size:11px;line-height:1.2;white-space:nowrap}
 .chat-fab{position:absolute;right:20px;bottom:84px;width:56px;height:56px;border-radius:99px;background:#fff;color:var(--primary-ink);display:flex;align-items:center;justify-content:center;border:2px solid var(--primary);box-shadow:0 6px 16px rgba(15,118,110,.28);z-index:6}.chat-fab img{width:32px;height:32px;filter:none}
 .chat-panel{position:absolute;left:16px;right:16px;bottom:148px;background:var(--surface);border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:6;display:flex;flex-direction:column;overflow:hidden}
-.chat-log{max-height:280px;overflow-y:auto;padding:14px 14px 4px;display:flex;flex-direction:column}
+.chat-log{max-height:340px;position:relative;overflow-y:auto;padding:14px 14px 4px;display:flex;flex-direction:column}
 .chip,.btn.sub,.tabs .on,.nav .on,.cal .sel,.step button{color:var(--primary-ink)}
 .nudge .chip{background:var(--primary)!important;color:#fff!important}
 .opt.on{outline:2px solid var(--primary);background:var(--primary-light);color:var(--primary-ink);font-weight:700}.opt[disabled]{opacity:.4;cursor:not-allowed}
@@ -67,3 +67,8 @@ textarea.input{height:90px;padding:12px;resize:vertical}
 a.btn.link-btn{display:flex;align-items:center;justify-content:center;text-decoration:none}
 .merchant .tel{display:inline-block;margin-top:4px;color:var(--primary-ink);text-decoration:none}
 .nav button{min-width:0}
+.m-list{max-width:92%;margin:-2px 0 10px}
+.m-card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:6px;font-size:13px}
+.m-card .row{align-items:flex-start}.m-card b{font-size:14px;line-height:1.35}
+.m-card .t2{margin-top:2px;line-height:1.4}.m-card .tel{display:inline-block;color:var(--primary-ink);text-decoration:none}
+.m-more{display:block;margin:2px 0 0 2px;color:var(--primary-ink);font-weight:500}

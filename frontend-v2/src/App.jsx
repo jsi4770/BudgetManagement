@@ -116,7 +116,7 @@ export default function App() {
     <div className="phone">
       {!ready ? <div className="screen" style={{ display: 'flex', alignItems: 'center' }}><Loading /></div> : page}
       {ready && screen === 'S005' && <button type="button" className="fab" onClick={() => setSheet(true)}>＋ 지출 기록</button>}
-      {ready && screen === 'S010' && <AnalysisChat />}
+      {ready && screen === 'S010' && <AnalysisChat c={c} />}
       {ready && NAV.some(([id]) => id === screen) && (
         <nav className="nav">
           {NAV.map(([id, icon, label]) => (

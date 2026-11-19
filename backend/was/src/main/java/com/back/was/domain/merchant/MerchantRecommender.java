@@ -55,6 +55,69 @@ public class MerchantRecommender {
         return out;
     }
 
+    /** 질문에 업종이 없을 때 쓰는 기본 업종 — 자주 쓰는 동네 가게부터. */
+    private static final List<MerchantGroup> DEFAULT_GROUPS = List.of(MerchantGroup.FOOD, MerchantGroup.CAFE, MerchantGroup.GROCERY);
+    /** 사용자가 직접 묻는 경우 한 업종에서 뽑는 후보 수. */
+    static final int PER_ASKED_GROUP = 5;
+    /** 한 번에 다루는 업종 수 상한. */
+    static final int MAX_ASKED_GROUPS = 3;
+
+    /**
+     * 사용자가 <b>가맹점을 직접 물었을 때</b>의 후보. 물은 업종이 있으면 그 업종에서, 없으면("가맹점 알려줘")
+     * 지출 상위 카테고리에 이어지는 업종에서, 그것도 없으면 식당·카페·마트에서 뽑는다.
+     *
+     * @param regionCode 사용자 지역 코드. 없거나 지원 지역이 아니면 빈 목록
+     */
+    public List<MerchantCandidate> candidatesFor(String regionCode, MerchantIntent intent, List<SpendingFact> topSpending) {
+        if (regionCode == null || SupportedRegion.fromCode(regionCode).isEmpty()) {
+            return List.of();
+        }
+        List<MerchantGroup> groups = new ArrayList<>(intent.groups());
+        if (groups.isEmpty()) {
+            for (SpendingFact fact : topSpending.stream().limit(TOP_CATEGORIES).toList()) {
+                for (MerchantGroup g : MerchantGroup.forCategoryName(fact.categoryName())) {
+                    if (!groups.contains(g)) {
+                        groups.add(g);
+                    }
+                }
+            }
+        }
+        if (groups.isEmpty()) {
+            groups.addAll(DEFAULT_GROUPS);
+        }
+        List<MerchantCandidate> out = new ArrayList<>();
+        Set<Long> seen = new java.util.HashSet<>();
+        for (MerchantGroup group : groups.stream().limit(MAX_ASKED_GROUPS).toList()) {
+            for (LocalMerchant m : repository.findByRegionCodeAndMerchantGroupIn(
+                    regionCode, List.of(group), PageRequest.of(0, PER_ASKED_GROUP, Sort.by("id")))) {
+                if (seen.add(m.getId())) {
+                    out.add(new MerchantCandidate(m.getId(), m.getName(), m.getMerchantGroup().label(), group.appCategoryName()));
+                }
+            }
+        }
+        return out;
+    }
+
+    /**
+     * 사용자가 가맹점을 물었는데 AI 가 하나도 못 골랐을 때(실패·대체 응답 포함) 서버가 대신 내려 주는 최대 2곳.
+     * 업종이 여러 개면 업종마다 하나씩 먼저 고른다. 후보 순서(id 순)가 그대로 유지돼 같은 질문엔 같은 답이 나온다.
+     */
+    public List<Long> fallbackPicks(List<MerchantCandidate> candidates) {
+        List<Long> picks = new ArrayList<>();
+        Set<String> groups = new java.util.HashSet<>();
+        for (MerchantCandidate c : candidates) {
+            if (picks.size() < 2 && groups.add(c.groupLabel())) {
+                picks.add(c.id());
+            }
+        }
+        for (MerchantCandidate c : candidates) {
+            if (picks.size() < 2 && !picks.contains(c.id())) {
+                picks.add(c.id());
+            }
+        }
+        return picks;
+    }
+
     /** AI 가 고른 ID 중 <b>후보에 있던 것</b>만 가맹점 응답으로 바꾼다. */
     public List<MerchantResponse> resolve(List<Long> chosenIds, List<MerchantCandidate> candidates) {
         Set<Long> allowed = candidates.stream().map(MerchantCandidate::id).collect(Collectors.toSet());
