@@ -22,6 +22,7 @@ import com.back.was.domain.coaching.dto.ConfirmGoalResponse;
 import com.back.was.domain.coaching.dto.SendMessageRequest;
 import com.back.was.domain.coaching.dto.SendMessageResponse;
 import com.back.was.domain.coaching.dto.StartCoachingRequest;
+import com.back.was.domain.merchant.MerchantIntent;
 import com.back.was.domain.merchant.MerchantRecommender;
 import com.back.was.domain.merchant.SupportedRegion;
 import com.back.was.domain.merchant.dto.MerchantResponse;
@@ -44,6 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
+import java.util.Optional;
 
 /** 명세 10장 AI 코칭(COACHING) — COACH-01~04. */
 @Slf4j
@@ -295,9 +297,14 @@ public class CoachingService {
         }
 
         // 제안 응답이 지연 로딩된 카테고리를 읽으므로 트랜잭션 안에서 만든다.
-        // AI 가 고른 가맹점 ID 는 서비스가 준 후보 안에 있는 것만 남긴다. 대체 응답에는 추천이 없다.
+        // AI 가 고른 가맹점 ID 는 서비스가 준 후보 안에 있는 것만 남긴다.
         List<MerchantResponse> merchants = merchantRecommender.resolve(
                 reply.recommendedMerchantIds(), turn.command().merchants());
+        // 사용자가 가맹점을 직접 물었는데 AI 가 못 골랐거나 실패했으면, 물은 업종의 후보 중 2곳을 서버가 대신 내려 준다.
+        if (merchants.isEmpty() && turn.command().merchantRequested() && !turn.command().merchants().isEmpty()) {
+            merchants = merchantRecommender.resolve(
+                    merchantRecommender.fallbackPicks(turn.command().merchants()), turn.command().merchants());
+        }
         return SendMessageResponse.of(turn.userMessage(), aiMessage, fallback, coaching, proposed, merchants);
     }
 
@@ -428,11 +435,18 @@ public class CoachingService {
 
         User user = coaching.getUser();
         List<SpendingFact> spending = recentTopSpending(user.getId());
-        List<MerchantCandidate> merchants = merchantRecommender.candidates(user.getRegionCode(), spending);
+        // 가맹점은 사용자가 방금 직접 물었을 때만 다룬다. 그 질문의 업종으로 후보를 만든다.
+        Optional<MerchantIntent> intent = conversation.stream()
+                .filter(turn -> turn.role() == MessageRole.USER)
+                .reduce((first, second) -> second)
+                .flatMap(turn -> MerchantIntent.detect(turn.content()));
+        List<MerchantCandidate> merchants = intent
+                .map(i -> merchantRecommender.candidatesFor(user.getRegionCode(), i, spending))
+                .orElse(List.of());
         String regionName = SupportedRegion.fromCode(user.getRegionCode()).map(SupportedRegion::displayName).orElse(null);
 
         return new CoachingReplyCommand(user.getUsername(), conversation, categories, regionName,
-                merchants.isEmpty() ? List.of() : spending, merchants);
+                merchants.isEmpty() ? List.of() : spending, merchants, intent.isPresent());
     }
 
     /** 최근 30일 지출 상위 카테고리(월세 제외, 금액 큰 순). 숫자는 여기서 코드가 계산한다. */

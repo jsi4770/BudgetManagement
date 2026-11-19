@@ -29,6 +29,8 @@ import java.util.List;
  * @param regionName   사용자의 지역 이름(예: 천안시). 미설정이면 {@code null}
  * @param spending     최근 30일 지출 상위 카테고리 (금액 큰 순)
  * @param merchants    추천해도 되는 지역 가맹점 후보
+ * @param merchantRequested 사용자가 방금 <b>가맹점을 직접 물었는지</b>. {@code true} 면 이 턴의 답은 가맹점 안내가
+ *                     먼저이고, 후보가 비어 있는 이유는 보통 지역 미설정이다
  */
 public record CoachingReplyCommand(
         String username,
@@ -36,10 +38,17 @@ public record CoachingReplyCommand(
         List<CategoryResponse> categories,
         String regionName,
         List<SpendingFact> spending,
-        List<MerchantCandidate> merchants
+        List<MerchantCandidate> merchants,
+        boolean merchantRequested
 ) {
+    /** 가맹점을 묻지 않은 일반 턴. */
+    public CoachingReplyCommand(String username, List<CoachingTurn> conversation, List<CategoryResponse> categories,
+                                String regionName, List<SpendingFact> spending, List<MerchantCandidate> merchants) {
+        this(username, conversation, categories, regionName, spending, merchants, false);
+    }
+
     /** 지역·지출 맥락 없이 쓰는 기존 호출용. */
     public CoachingReplyCommand(String username, List<CoachingTurn> conversation, List<CategoryResponse> categories) {
-        this(username, conversation, categories, null, List.of(), List.of());
+        this(username, conversation, categories, null, List.of(), List.of(), false);
     }
 }
