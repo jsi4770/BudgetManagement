@@ -187,6 +187,15 @@ export function MyPage({ c }) {
           <div><b>{c.user?.username}</b><div className="t2">{c.user?.email}</div></div>
         </div>
       </div>
+      <div className="card">
+        <div className="row">
+          <h2 className="h2">내 정보</h2>
+          <button type="button" className="t2" onClick={() => c.go('S018')}>수정</button>
+        </div>
+        <div className="row" style={{ marginTop: 12 }}><span className="t2">사는 지역</span><b>{c.user?.regionName || '미설정'}</b></div>
+        <div className="row" style={{ marginTop: 8 }}><span className="t2">만 나이</span><b>{c.user?.age ? `${c.user.age}세` : '미설정'}</b></div>
+        <div className="row" style={{ marginTop: 8 }}><span className="t2">성별</span><b>{{ FEMALE: '여성', MALE: '남성', NONE: '선택 안 함' }[c.user?.gender] || '미설정'}</b></div>
+      </div>
       <button type="button" className="card row" style={{ width: '100%', textAlign: 'left' }} onClick={() => c.go('S017')}>
         <div className="row" style={{ justifyContent: 'flex-start' }}>
           <div className="ico"><Icon name="location" /></div>
