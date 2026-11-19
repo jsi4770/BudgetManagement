@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { Hd, Loading, Usage } from '../components/common';
 import { advisePattern, iconFor, percent, rangeLabel, weekSpan, won, yearMonth } from '../format';
@@ -166,7 +166,21 @@ export function NudgeDetail({ c }) {
   );
 }
 
-export function AnalysisChat() {
+/** AI 가 추천한 우리 동네 가맹점 한 곳. 전화번호를 누르면 전화가 걸린다. */
+function ChatMerchant({ merchant }) {
+  return (
+    <div className="m-card">
+      <div className="row">
+        <b>{merchant.name}</b>
+        {merchant.groupLabel && <span className="chip">{merchant.groupLabel}</span>}
+      </div>
+      {merchant.address && <div className="t2">{merchant.address}</div>}
+      {merchant.phone && <a className="t2 tel" href={`tel:${merchant.phone}`}>{merchant.phone}</a>}
+    </div>
+  );
+}
+
+export function AnalysisChat({ c }) {
   const [open, setOpen] = useState(false);
   const [coachingId, setCoachingId] = useState(null);
   const [messages, setMessages] = useState([
@@ -174,6 +188,16 @@ export function AnalysisChat() {
   ]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const logRef = useRef(null);
+
+  // 새 메시지가 오면 따라간다. AI 답변은 가맹점 카드가 길어도 답변 첫 줄부터 보이게 그 시작 위치로 맞춘다.
+  useEffect(() => {
+    const log = logRef.current;
+    const last = log?.lastElementChild;
+    if (!log || !last) return;
+    const isAi = messages[messages.length - 1]?.role === 'AI';
+    log.scrollTop = isAi ? Math.max(0, last.offsetTop - log.offsetTop - 8) : log.scrollHeight;
+  }, [messages, open]);
 
   const send = async () => {
     const message = text.trim();
@@ -190,7 +214,9 @@ export function AnalysisChat() {
       }
       const result = await api.sendMessage(id, message);
       const reply = result.aiMessage?.content || advisePattern(message).message;
-      setMessages((current) => [...current, { role: 'AI', content: reply }]);
+      // 서버가 후보 목록에서 검증해서 돌려준 가맹점만 답변 아래에 붙인다.
+      const merchants = Array.isArray(result.recommendedMerchants) ? result.recommendedMerchants : [];
+      setMessages((current) => [...current, { role: 'AI', content: reply, merchants }]);
     } catch {
       setMessages((current) => [...current, { role: 'AI', content: advisePattern(message).message }]);
     } finally {
@@ -213,9 +239,24 @@ export function AnalysisChat() {
           <b style={{ display: 'flex', alignItems: 'center', gap: 8 }}><PigLogo size={28} /> AI 코치</b>
           <button type="button" className="t2" onClick={() => setOpen(false)}>닫기</button>
         </div>
-        <div className="chat-log">
+        <div className="chat-log" ref={logRef}>
           {messages.map((message, index) => (
-            <div key={`${message.role}-${index}`} className={`bub ${message.role === 'USER' ? 'me' : 'ai'}`}>{message.content}</div>
+            <div key={`${message.role}-${index}`} className={message.merchants?.length ? 'bub-group' : undefined}>
+              <div className={`bub ${message.role === 'USER' ? 'me' : 'ai'}`}>{message.content}</div>
+              {message.merchants?.length > 0 && (
+                <div className="m-list">
+                  <div className="t2" style={{ margin: '0 0 6px 2px' }}>
+                    {c?.user?.regionName ? `${c.user.regionName} 지역화폐 가맹점` : '지역화폐 가맹점'}
+                  </div>
+                  {message.merchants.map((merchant) => <ChatMerchant key={merchant.id} merchant={merchant} />)}
+                  {c && (
+                    <button type="button" className="t2 m-more" onClick={() => { setOpen(false); c.go('S017'); }}>
+                      가맹점 전체 보기 ›
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           ))}
         </div>
         <div className="row" style={{ padding: 12 }}>
