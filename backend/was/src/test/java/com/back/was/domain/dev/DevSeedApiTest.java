@@ -1,5 +1,6 @@
 package com.back.was.domain.dev;
 
+import com.back.was.domain.ai.llm.LlmClient;
 import com.back.was.domain.budget.BudgetRepository;
 import com.back.was.domain.challenge.Challenge;
 import com.back.was.domain.challenge.ChallengeRepository;
@@ -27,6 +28,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +37,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.then;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -94,6 +97,10 @@ class DevSeedApiTest {
     @Autowired
     EntityManager entityManager;
 
+    /** 시드가 Claude 를 부르지 않는지 본다 — 과거 이력 문구는 템플릿이다. */
+    @MockitoBean
+    LlmClient llmClient;
+
     private String accessToken;
     private User user;
 
@@ -109,6 +116,17 @@ class DevSeedApiTest {
 
         accessToken = JsonPath.read(body, "$.data.accessToken");
         user = userRepository.findByEmail(EMAIL).orElseThrow();
+    }
+
+    @Test
+    @DisplayName("과거 코칭·성장 리포트 문구는 템플릿 — Claude 를 부르지 않는다 (트랜잭션 안에서 AI 를 기다리지 않음)")
+    void seedDoesNotCallAi() throws Exception {
+        seed("DELIVERY_SPIKE");
+
+        then(llmClient).shouldHaveNoInteractions();
+        assertThat(growthReportRepository.findAll())
+                .isNotEmpty()
+                .allSatisfy(report -> assertThat(report.getFeedback()).isNotBlank());
     }
 
     private MockHttpServletRequestBuilder authed(MockHttpServletRequestBuilder request) {

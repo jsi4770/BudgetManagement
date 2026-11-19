@@ -1,9 +1,9 @@
 package com.back.was.domain.dev;
 
 import com.back.was.domain.ai.CoachingOpeningCommand;
-import com.back.was.domain.ai.CoachingOpeningGenerator;
 import com.back.was.domain.ai.GrowthFeedbackCommand;
-import com.back.was.domain.ai.GrowthFeedbackGenerator;
+import com.back.was.domain.ai.TemplateCoachingOpeningGenerator;
+import com.back.was.domain.ai.TemplateGrowthFeedbackGenerator;
 import com.back.was.domain.budget.Budget;
 import com.back.was.domain.budget.BudgetRepository;
 import com.back.was.domain.budget.SpendingFocus;
@@ -130,8 +130,13 @@ public class DevSeedService {
     private final GrowthReportRepository growthReportRepository;
     private final NudgeRepository nudgeRepository;
     private final NudgeJudgement nudgeJudgement;
-    private final CoachingOpeningGenerator coachingOpeningGenerator;
-    private final GrowthFeedbackGenerator growthFeedbackGenerator;
+    /**
+     * 과거 이력 문구는 <b>템플릿</b>으로 만든다 — 인터페이스로 받으면 {@code @Primary} 인 Claude 구현이 들어와
+     * 챌린지 4건 × 2번을 차례로 기다리느라 시드가 15초쯤 걸리고, 그동안 이 트랜잭션이 DB 연결을 붙잡는다.
+     * 시드할 때마다 문구가 같아 시연도 예측 가능하다. AI 문구는 실제 넛지·코칭·DEV-02 에서 보여 준다.
+     */
+    private final TemplateCoachingOpeningGenerator coachingOpeningGenerator;
+    private final TemplateGrowthFeedbackGenerator growthFeedbackGenerator;
     private final EntityManager entityManager;
 
     /**
