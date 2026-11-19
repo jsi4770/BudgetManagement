@@ -4,6 +4,29 @@ import { iconFor, FOCUSES, percent, SAVINGS, won, yearMonth } from '../format';
 import { Icon } from '../icons';
 import { categoryLabel, usePrefs } from '../prefs';
 
+async function loadKpi() {
+  try {
+    const data = await api.kpi();
+    if (data) return data;
+  } catch {
+    // 일반 계정은 관리자 API가 막혀 있다. 아래는 내 종료 챌린지로 같은 지표를 만든다.
+  }
+  const [success, failed] = await Promise.all([
+    api.challenges('SUCCESS'),
+    api.challenges('FAILED'),
+  ]);
+  const successCount = (success || []).length;
+  const ended = successCount + (failed || []).length;
+  const achievementRate = ended === 0 ? 0 : Math.round((successCount * 10000) / ended) / 100;
+  return {
+    endedChallengeCount: ended,
+    successChallengeCount: successCount,
+    achievementRate,
+    target: 70,
+    isAchieved: achievementRate >= 70,
+  };
+}
+
 function KpiDetail({ kpi }) {
   const ended = Number(kpi.endedChallengeCount) || 0;
   const success = Number(kpi.successChallengeCount) || 0;
@@ -54,6 +77,7 @@ export function MyPage({ c }) {
   const [fixedEdit, setFixedEdit] = useState(null);
   const [kpi, setKpi] = useState(null);
   const [kpiError, setKpiError] = useState('');
+  const showKpi = c.user?.email === 'dummy123@dummy123.com';
 
   useEffect(() => {
     let cancel = false;
@@ -70,17 +94,18 @@ export function MyPage({ c }) {
       (data?.items || []).forEach((item) => { amounts[item.category.id] = item.amount; });
       setSpent(amounts);
     }).catch(() => {});
-    if (c.user?.role === 'ADMIN') {
-      api.kpi().then((data) => { if (!cancel) setKpi(data); }).catch((err) => { if (!cancel) setKpiError(err.message); });
+    if (showKpi) {
+      loadKpi().then((data) => { if (!cancel) setKpi(data); }).catch((err) => { if (!cancel) setKpiError(err.message); });
     }
     return () => { cancel = true; };
-  }, [c.user?.role]);
+  }, [showKpi]);
 
   const resetData = async (scenario) => {
     setBusy(true);
     setError('');
     try {
       const data = await api.seed(scenario);
+      if (showKpi) setKpi(await loadKpi());
       c.say(scenario === 'NORMAL'
         ? `정상 소비 상황으로 초기화했어요${data?.transactionCount != null ? ` · ${data.transactionCount}건` : ''}`
         : `배달비 증가 상황으로 초기화했어요${data?.transactionCount != null ? ` · ${data.transactionCount}건` : ''}`);
@@ -181,6 +206,16 @@ export function MyPage({ c }) {
   return (
     <div className="screen">
       <h1 className="h1" style={{ marginBottom: 16 }}>마이페이지</h1>
+      {showKpi && (
+        <div className="card">
+          <h2 className="h2" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="shield-check" size={18} /> KPI 달성률
+          </h2>
+          {kpiError && <div className="err">{kpiError}</div>}
+          {!kpi && !kpiError && <div className="t2" style={{ marginTop: 8 }}>불러오는 중…</div>}
+          {kpi && <KpiDetail kpi={kpi} />}
+        </div>
+      )}
       <div className="card row">
         <div className="row" style={{ justifyContent: 'flex-start' }}>
           <div className="ico"><Icon name="user-avatar" /></div>
@@ -206,16 +241,6 @@ export function MyPage({ c }) {
         </div>
         <span className="t2">›</span>
       </button>
-      {c.user?.role === 'ADMIN' && (
-        <div className="card">
-          <h2 className="h2" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="shield-check" size={18} /> KPI 달성률
-          </h2>
-          {kpiError && <div className="err">{kpiError}</div>}
-          {!kpi && !kpiError && <div className="t2" style={{ marginTop: 8 }}>불러오는 중…</div>}
-          {kpi && <KpiDetail kpi={kpi} />}
-        </div>
-      )}
       <div className="card">
         <div className="fld">
           <label>이름</label>
