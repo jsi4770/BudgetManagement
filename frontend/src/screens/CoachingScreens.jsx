@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { Hd, Loading, Usage } from '../components/common';
 import { addDays, goalTitle, percent, rangeLabel, todayISO, won } from '../format';
+import { Icon, PigLogo } from '../icons';
 
 const QUICK = ['퇴근 후 배달이 잦아요', '야식을 자주 시켜요', '잘 모르겠어요'];
 
@@ -96,6 +97,7 @@ export function Coaching({ c }) {
   return (
     <div className="screen">
       <Hd title="AI 재무 코치" onBack={() => c.go(c.nudgeId ? 'S011' : 'S005')} />
+      <div className="brand" style={{ paddingTop: 0 }}><PigLogo size={88} /></div>
       {error && <div className="err">{error}</div>}
       {!session && !error && <Loading text="코치를 불러오는 중…" />}
       {session?.messages?.map((message) => (
@@ -113,7 +115,7 @@ export function Coaching({ c }) {
       )}
       {open && proposal && (
         <div className="card" style={{ border: '1.5px solid var(--primary)' }}>
-          <span className="chip">🎯 AI 절약 목표 제안</span>
+          <span className="chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="goal" size={14} /> AI 절약 목표 제안</span>
           <div className="t2" style={{ margin: '12px 0 4px' }}>{proposal.title}</div>
           {proposal.goalType === 'COUNT' ? (
             <div className="step">
@@ -175,7 +177,7 @@ export function Challenge() {
       {items == null && !error && <Loading />}
       {items && !active && (
         <div className="card center">
-          <div className="big">🎯</div>
+          <div className="big"><Icon name="goal" size={48} /></div>
           <div className="t2" style={{ margin: '8px 0' }}>진행 중인 챌린지가 없어요</div>
         </div>
       )}
@@ -194,7 +196,7 @@ export function Challenge() {
           <h2 className="h2">완료된 챌린지</h2>
           {done.map((item) => (
             <div className="tx" key={item.id}>
-              <div className="ico">{item.status === 'SUCCESS' ? '🏆' : '🌱'}</div>
+              <div className="ico"><Icon name={item.status === 'SUCCESS' ? 'trophy' : 'shield-check'} size={18} /></div>
               <div style={{ flex: 1 }}>{item.title}<div className="t2">실제 {spentValue(item)}</div></div>
               <span className="chip">{item.status === 'SUCCESS' ? '달성' : '미달성'}</span>
             </div>
@@ -241,7 +243,7 @@ export function Report({ c }) {
     <div className="screen">
       <Hd title="성장 리포트" onBack={() => c.go('S013')} />
       <div className="card center">
-        <div className="big">{success ? '🎉' : '🌱'}</div>
+        <div className="big"><Icon name={success ? 'trophy' : 'shield-check'} size={48} /></div>
         <h2 className="h1" style={{ margin: '8px 0' }}>{success ? '챌린지 달성!' : '아쉽지만 괜찮아요'}</h2>
         <div className="t2">{report.title}</div>
         <div className="t2" style={{ marginTop: 6 }}>

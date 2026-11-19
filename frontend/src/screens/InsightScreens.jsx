@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Hd, Loading, Usage } from '../components/common';
-import { iconFor, percent, rangeLabel, won, yearMonth } from '../format';
+import { advisePattern, iconFor, percent, rangeLabel, weekSpan, won, yearMonth } from '../format';
+import { Icon, PigLogo } from '../icons';
+import { categoryLabel, usePrefs } from '../prefs';
 
-export function Analysis() {
+export function Analysis({ c }) {
+  const { prefs } = usePrefs();
   const [tab, setTab] = useState('WEEK');
   const [weekly, setWeekly] = useState([]);
   const [monthly, setMonthly] = useState(null);
@@ -52,13 +55,17 @@ export function Analysis() {
             <div className="t2">{tab === 'WEEK' ? '이번 주 지출(월세 제외)' : '이번 달 총지출'}</div>
             <div className="amount">{won(tab === 'WEEK' ? weekly.at(-1)?.totalExpense : monthly?.totalExpense)}</div>
             {tab === 'WEEK' ? (
-              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, height: 110, marginTop: 12 }}>
-                {weekly.map((week, index) => (
-                  <div key={week.weekStart} style={{ flex: 1, textAlign: 'center' }}>
-                    <div style={{ height: (week.totalExpense / max) * 80, background: index === weekly.length - 1 ? 'var(--primary)' : 'var(--primary-light)', borderRadius: 8 }} />
-                    <div className="t2" style={{ marginTop: 4 }}>{rangeLabel(week.weekStart, week.weekEnd)}</div>
-                  </div>
-                ))}
+              <div style={{ marginTop: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 88 }}>
+                  {weekly.map((week, index) => (
+                    <div key={week.weekStart} style={{ flex: 1, height: Math.max(4, (week.totalExpense / max) * 80), background: index === weekly.length - 1 ? 'var(--primary)' : 'var(--primary-light)', borderRadius: 8 }} />
+                  ))}
+                </div>
+                <div className="week-row">
+                  {weekly.map((week) => (
+                    <span key={week.weekStart}>{weekSpan(week.weekStart, week.weekEnd)}</span>
+                  ))}
+                </div>
               </div>
             ) : (
               <>
@@ -70,10 +77,15 @@ export function Analysis() {
           <div className="card">
             <h2 className="h2" style={{ marginBottom: 12 }}>카테고리별 · 평소 평균 비교</h2>
             {comparison?.dataSufficient === false && <div className="t2" style={{ marginBottom: 8 }}>기록이 더 쌓이면 정확해져요.</div>}
-            {(comparison?.items || []).filter((item) => item.amount > 0).map((item) => (
-              <div key={item.category.id} style={{ marginBottom: 14 }}>
+            {[...(comparison?.items || [])]
+              .filter((item) => item.amount > 0)
+              .sort((a, b) => b.amount - a.amount)
+              .map((item) => (
+              <button type="button" key={item.category.id} onClick={() => c.openCategory(item.category, 'S010')} style={{ display: 'block', width: '100%', textAlign: 'left', marginBottom: 14 }}>
                 <div className="row">
-                  <span>{iconFor(item.category.name)} {item.category.name}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Icon name={iconFor(item.category.name)} size={16} /> {categoryLabel(item.category, prefs.aliases)}
+                  </span>
                   <b>{won(item.amount)}</b>
                 </div>
                 <div className="bar" style={{ marginTop: 6 }}>
@@ -85,7 +97,7 @@ export function Analysis() {
                     : `평소 이맘때 ${item.averageAmount == null ? '비교 없음' : won(item.averageAmount)}`}
                   {item.growthRate != null && ` · ${percent(item.growthRate) > 0 ? '+' : ''}${percent(item.growthRate)}%`}
                 </div>
-              </div>
+              </button>
             ))}
             {(comparison?.items || []).every((item) => item.amount === 0) && <div className="t2">이 기간의 지출이 없어요.</div>}
           </div>
@@ -126,8 +138,10 @@ export function NudgeDetail({ c }) {
       {nudge && (
         <>
           <div className="card nudge">
-            <span className="chip">💡 소비 증가 항목</span>
-            <h2 className="h1" style={{ margin: '12px 0 4px' }}>{iconFor(nudge.category?.name)} {nudge.category?.name}</h2>
+            <span className="chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="bell" size={14} /> 소비 증가 항목</span>
+            <h2 className="h1" style={{ margin: '12px 0 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name={iconFor(nudge.category?.name)} /> {nudge.category?.name}
+            </h2>
             <div className="amount">{won(nudge.spendingAmount)}</div>
             <div className="t2">
               평소 이맘때 평균 {won(nudge.avgAmount)} 대비 <b style={{ color: 'var(--error)' }}>{percent(nudge.growthRate) > 0 ? '+' : ''}{percent(nudge.growthRate)}%</b>
@@ -145,5 +159,77 @@ export function NudgeDetail({ c }) {
         </>
       )}
     </div>
+  );
+}
+
+export function AnalysisChat() {
+  const [open, setOpen] = useState(false);
+  const [coachingId, setCoachingId] = useState(null);
+  const [messages, setMessages] = useState([
+    { role: 'AI', content: '이번 소비에서 궁금한 점을 물어보세요.' },
+  ]);
+  const [text, setText] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const send = async () => {
+    const message = text.trim();
+    if (!message || busy) return;
+    setMessages((current) => [...current, { role: 'USER', content: message }]);
+    setText('');
+    setBusy(true);
+    try {
+      let id = coachingId;
+      if (!id) {
+        const session = await api.startCoaching({});
+        id = session.coachingId;
+        setCoachingId(id);
+      }
+      const result = await api.sendMessage(id, message);
+      const reply = result.aiMessage?.content || advisePattern(message).message;
+      setMessages((current) => [...current, { role: 'AI', content: reply }]);
+    } catch {
+      setMessages((current) => [...current, { role: 'AI', content: advisePattern(message).message }]);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button type="button" className="chat-fab" aria-label="AI 챗봇" onClick={() => setOpen(true)}>
+        <Icon name="ai-coach" size={24} />
+      </button>
+    );
+  }
+
+  return (
+    <>
+      <div className="chat-panel">
+        <div className="row" style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)' }}>
+          <b style={{ display: 'flex', alignItems: 'center', gap: 8 }}><PigLogo size={28} /> AI 코치</b>
+          <button type="button" className="t2" onClick={() => setOpen(false)}>닫기</button>
+        </div>
+        <div className="chat-log">
+          {messages.map((message, index) => (
+            <div key={`${message.role}-${index}`} className={`bub ${message.role === 'USER' ? 'me' : 'ai'}`}>{message.content}</div>
+          ))}
+        </div>
+        <div className="row" style={{ padding: 12 }}>
+          <input
+            className="input"
+            style={{ flex: 1, width: 'auto' }}
+            maxLength={500}
+            placeholder="소비에 대해 물어보세요"
+            value={text}
+            onChange={(event) => setText(event.target.value)}
+            onKeyDown={(event) => { if (event.key === 'Enter') send(); }}
+          />
+          <button type="button" className="btn sm" style={{ width: 72 }} disabled={busy || !text.trim()} onClick={send}>전송</button>
+        </div>
+      </div>
+      <button type="button" className="chat-fab" aria-label="AI 챗봇 닫기" onClick={() => setOpen(false)}>
+        <Icon name="ai-coach" size={24} />
+      </button>
+    </>
   );
 }

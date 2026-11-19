@@ -1,19 +1,22 @@
 import { useEffect, useState } from 'react';
 import { api, setAuthLostHandler, setToken } from './api';
 import { todayISO } from './format';
+import { Icon } from './icons';
+import { PrefsProvider } from './prefs';
 import { Auth, Onboarding, Setup } from './screens/AuthScreens';
 import { Challenge } from './screens/CoachingScreens';
 import { Home } from './screens/HomeScreen';
-import { Analysis } from './screens/InsightScreens';
-import { AiInput, Ledger, ManualEntry, ReceiptOcr } from './screens/LedgerScreens';
+import { Analysis, AnalysisChat } from './screens/InsightScreens';
+import { Loading } from './components/common';
+import { AiInput, CategoryTransactions, Ledger, ManualEntry, ReceiptOcr } from './screens/LedgerScreens';
 import { MyPage } from './screens/MyScreen';
 
 const NAV = [
-  ['S005', '🏠', '홈'],
-  ['S006', '📒', '가계부'],
-  ['S010', '📊', '분석'],
-  ['S013', '🎯', '챌린지'],
-  ['S015', '👤', '마이'],
+  ['S005', 'home', '홈'],
+  ['S006', 'ledger', '가계부'],
+  ['S010', 'analytics', '분석'],
+  ['S013', 'challenge', '챌린지'],
+  ['S015', 'my', '마이'],
 ];
 
 export default function App() {
@@ -23,6 +26,8 @@ export default function App() {
   const [nudgeId, setNudgeId] = useState(null);
   const [coachingId, setCoachingId] = useState(null);
   const [challengeId, setChallengeId] = useState(null);
+  const [categoryFocus, setCategoryFocus] = useState(null);
+  const [categoryBack, setCategoryBack] = useState('S015');
   const [toast, setToast] = useState('');
   const [sheet, setSheet] = useState(false);
   const [ready, setReady] = useState(false);
@@ -65,7 +70,13 @@ export default function App() {
 
   const c = {
     user, setUser, draft, setDraft, nudgeId, setNudgeId,
-    coachingId, setCoachingId, challengeId, setChallengeId, go, say,
+    coachingId, setCoachingId, challengeId, setChallengeId,
+    categoryFocus, categoryBack, go, say,
+    openCategory: (category, back = 'S015') => {
+      setCategoryFocus(category);
+      setCategoryBack(back);
+      go('S016');
+    },
   };
 
   const page = {
@@ -81,21 +92,20 @@ export default function App() {
     S010: <Analysis c={c} />,
     S013: <Challenge c={c} />,
     S015: <MyPage c={c} />,
+    S016: <CategoryTransactions c={c} />,
   }[screen];
 
-  if (!ready) {
-    return <div className="phone"><div className="screen center"><div className="t2">불러오는 중…</div></div></div>;
-  }
-
   return (
+    <PrefsProvider userId={user?.id}>
     <div className="phone">
-      {page}
-      {screen === 'S005' && <button type="button" className="fab" onClick={() => setSheet(true)}>＋ 지출 기록</button>}
-      {NAV.some(([id]) => id === screen) && (
+      {!ready ? <div className="screen" style={{ display: 'flex', alignItems: 'center' }}><Loading /></div> : page}
+      {ready && screen === 'S005' && <button type="button" className="fab" onClick={() => setSheet(true)}>＋ 지출 기록</button>}
+      {ready && screen === 'S010' && <AnalysisChat />}
+      {ready && NAV.some(([id]) => id === screen) && (
         <nav className="nav">
           {NAV.map(([id, icon, label]) => (
             <button type="button" key={id} className={screen === id ? 'on' : ''} onClick={() => go(id)}>
-              <span>{icon}</span>{label}
+              <span><Icon name={icon} /></span>{label}
             </button>
           ))}
         </nav>
@@ -105,10 +115,10 @@ export default function App() {
           <div className="sheet" onClick={(event) => event.stopPropagation()}>
             <h2 className="h2">어떻게 기록할까요?</h2>
             {[
-              ['✍️', '한 줄 입력', '말하듯 적으면 AI가 정리해요', 'S008'],
-              ['📅', '캘린더 입력', '날짜를 골라 입력해요', 'S006'],
-              ['🧾', '영수증 촬영', '사진으로 자동 추출해요', 'S009'],
-              ['🔢', '직접 입력', '금액과 카테고리를 입력해요', 'S007'],
+              ['ai-coach', '한 줄 입력', '말하듯 적으면 AI가 정리해요', 'S008'],
+              ['calendar', '캘린더 입력', '날짜를 골라 입력해요', 'S006'],
+              ['receipt-scan', '영수증 촬영/캡처화면 추출', '사진이나 캡처 화면에서 날짜별로 꺼내요', 'S009'],
+              ['bank-card', '직접 입력', '금액과 카테고리를 입력해요', 'S007'],
             ].map(([icon, title, desc, target]) => (
               <button
                 type="button"
@@ -119,7 +129,7 @@ export default function App() {
                   go(target);
                 }}
               >
-                <span className="ico">{icon}</span>
+                <span className="ico"><Icon name={icon} /></span>
                 <div><b>{title}</b><div className="t2">{desc}</div></div>
               </button>
             ))}
@@ -128,5 +138,6 @@ export default function App() {
       )}
       {toast && <div className="toast">{toast}</div>}
     </div>
+    </PrefsProvider>
   );
 }

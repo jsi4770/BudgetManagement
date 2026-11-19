@@ -1,13 +1,21 @@
 import { useState } from 'react';
 import { api, setToken } from '../api';
 import { Hd, Keypad } from '../components/common';
-import { FOCUSES, SAVINGS, signupError, won, yearMonth } from '../format';
+import { advisePattern, focusLabel, FOCUSES, SAVINGS, signupError, won, yearMonth } from '../format';
+import { PigLogo } from '../icons';
+
+const PATTERNS = [
+  { label: '야식 배달', text: '퇴근하고 야식 배달을 자주 시켜요' },
+  { label: '카페 음료', text: '카페 음료를 거의 매일 사요' },
+  { label: '구독·고정비', text: '월세와 구독료 같은 고정지출이 커요' },
+  { label: '택시·교통', text: '늦은 시간 택시비가 자주 나가요' },
+];
 
 export function Onboarding({ c }) {
   return (
     <div className="screen center" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-      <div className="big">💡</div>
-      <h1 className="h1" style={{ margin: '12px 0' }}>넛지 가계부</h1>
+      <div className="brand" style={{ paddingBottom: 4 }}><PigLogo size={128} /></div>
+      <h1 className="h1" style={{ margin: '12px 0' }}>돈 워리</h1>
       <p className="t2" style={{ fontSize: 15, lineHeight: 1.6 }}>
         기록은 한 줄로 가볍게,<br />소비 습관은 AI 코치와 함께 차근차근.<br />자취 생활, 부담 없이 시작해요.
       </p>
@@ -52,15 +60,16 @@ export function Auth({ c, mode }) {
   return (
     <div className="screen">
       <Hd title={signup ? '회원가입' : '로그인'} onBack={() => c.go('S001')} />
+      {!signup && <div className="brand" style={{ padding: '4px 0 12px' }}><PigLogo size={96} /></div>}
       {signup && (
         <div className="fld">
           <label>이름</label>
-          <input className="input" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="홍길동" />
+          <input className="input" value={username} onChange={(event) => setUsername(event.target.value)} />
         </div>
       )}
       <div className="fld">
         <label>이메일</label>
-        <input className="input" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="hong@email.com" />
+        <input className="input" value={email} onChange={(event) => setEmail(event.target.value)} />
       </div>
       <div className="fld">
         <label>비밀번호</label>
@@ -87,8 +96,37 @@ export function Setup({ c }) {
   const [budget, setBudget] = useState('');
   const [savings, setSavings] = useState(200000);
   const [focus, setFocus] = useState('DELIVERY');
+  const [pattern, setPattern] = useState('');
+  const [picked, setPicked] = useState([]);
+  const [advice, setAdvice] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+
+  const composed = [pattern.trim(), ...PATTERNS.filter((item) => picked.includes(item.label)).map((item) => item.text)]
+    .filter(Boolean)
+    .join('\n');
+
+  const analyze = async () => {
+    const local = advisePattern(composed || focusLabel(focus));
+    if (local.focus) setFocus(local.focus);
+    setAdvice(local.message);
+    if (!composed) return;
+    setAnalyzing(true);
+    try {
+      const session = await api.startCoaching({});
+      const result = await api.sendMessage(session.coachingId, composed);
+      if (result.aiMessage?.content) setAdvice(result.aiMessage.content);
+      const name = result.proposal?.category?.name;
+      if (name === '배달') setFocus('DELIVERY');
+      else if (name === '카페') setFocus('CAFE');
+      else if (name === '월세' || name === '교통') setFocus('FIXED_COST');
+    } catch {
+      /* 코칭 API가 없어도 입력한 패턴으로 고른 목표와 안내를 보여 준다. */
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const save = async () => {
     setBusy(true);
@@ -133,6 +171,33 @@ export function Setup({ c }) {
       </div>
       <div className="card">
         <b>소비 관리 목표</b>
+        <div className="t2" style={{ margin: '8px 0' }}>요즘 소비 패턴을 적거나 골라 주세요. AI가 줄일 목표를 골라 드려요.</div>
+        <textarea className="input" maxLength={300} placeholder="예: 퇴근하면 배달을 자주 시켜요" value={pattern} onChange={(event) => setPattern(event.target.value)} />
+        <div className="chips" style={{ marginTop: 12, flexWrap: 'wrap' }}>
+          {PATTERNS.map((item) => (
+            <button
+              type="button"
+              key={item.label}
+              className={picked.includes(item.label) ? 'on' : ''}
+              onClick={() => setPicked((current) => (
+                current.includes(item.label) ? current.filter((label) => label !== item.label) : [...current, item.label]
+              ))}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <button type="button" className="btn sm" disabled={analyzing} onClick={analyze}>{analyzing ? '분석 중…' : 'AI에게 분석받기'}</button>
+        {advice && (
+          <div className="card" style={{ margin: '12px 0 0', background: 'var(--primary-light)' }}>
+            <div className="row" style={{ justifyContent: 'flex-start', gap: 8 }}>
+              <PigLogo size={32} />
+              <b>AI 안내</b>
+            </div>
+            <p className="t2" style={{ fontSize: 14, lineHeight: 1.6, margin: '8px 0 0' }}>{advice}</p>
+            <div className="t2" style={{ marginTop: 6 }}>선택한 목표: {focusLabel(focus)}</div>
+          </div>
+        )}
         <div className="chips" style={{ marginTop: 12 }}>
           {FOCUSES.map((item) => (
             <button type="button" key={item.id} className={focus === item.id ? 'on' : ''} onClick={() => setFocus(item.id)}>{item.label}</button>

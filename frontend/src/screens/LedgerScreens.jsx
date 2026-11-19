@@ -3,8 +3,31 @@ import heic2any from 'heic2any';
 import { api } from '../api';
 import { Hd, Keypad, Loading, Money } from '../components/common';
 import {
-  calendarCells, iconFor, monthEnd, monthLabel, shiftMonth, shortDate, todayISO, yearMonth,
+  calendarCells, dayHeading, iconFor, monthEnd, monthLabel, shiftMonth, todayISO, yearMonth,
 } from '../format';
+import { Icon } from '../icons';
+import { categoryLabel, usePrefs } from '../prefs';
+
+function wonLabel(amount) {
+  const value = Number(amount);
+  if (!value) return '금액 없음';
+  return `${value.toLocaleString('ko-KR')}원`;
+}
+
+function categoryName(categories, id, aliases) {
+  const category = categories.find((item) => String(item.id) === String(id));
+  return category ? categoryLabel(category, aliases) : '';
+}
+
+function groupByDate(items) {
+  const groups = new Map();
+  items.forEach((item) => {
+    const date = item.transactionDate || '';
+    if (!groups.has(date)) groups.set(date, []);
+    groups.get(date).push(item);
+  });
+  return [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+}
 
 export function Ledger({ c }) {
   const [view, setView] = useState('cal');
@@ -16,6 +39,7 @@ export function Ledger({ c }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { prefs } = usePrefs();
 
   useEffect(() => {
     let cancel = false;
@@ -45,7 +69,7 @@ export function Ledger({ c }) {
 
   const sums = Object.fromEntries(days.map((day) => [day.date, day]));
   const selectedItems = items.filter((item) => item.transactionDate === selected);
-  const filtered = items.filter((item) => filter === '전체' || item.category?.name === filter);
+  const filtered = items.filter((item) => filter === '전체' || String(item.category?.id) === String(filter));
   const list = view === 'cal' ? selectedItems : filtered;
   const current = yearMonth();
 
@@ -100,40 +124,44 @@ export function Ledger({ c }) {
         </div>
       ) : (
         <div className="chips">
-          {['전체', ...categories.map((category) => category.name)].map((name) => (
-            <button type="button" key={name} className={filter === name ? 'on' : ''} onClick={() => setFilter(name)}>{name}</button>
+          <button type="button" className={filter === '전체' ? 'on' : ''} onClick={() => setFilter('전체')}>전체</button>
+          {categories.map((category) => (
+            <button type="button" key={category.id} className={String(filter) === String(category.id) ? 'on' : ''} onClick={() => setFilter(category.id)}>
+              {categoryLabel(category, prefs.aliases)}
+            </button>
           ))}
         </div>
       )}
-      <div className="card">
-        {view === 'cal' && (
-          <div className="row">
-            <b>{monthLabel(ym)} {Number(selected.slice(-2))}일</b>
-            {selected <= todayISO() && (
-              <button type="button" className="chip" onClick={() => { c.setDraft({ type: 'EXPENSE', amount: '', date: selected, memo: '' }); c.go('S007'); }}>＋ 이 날짜에 입력</button>
-            )}
-          </div>
-        )}
-        {loading && <Loading />}
-        {!loading && list.length === 0 && <div className="t2 center" style={{ padding: 16 }}>내역이 없어요</div>}
-        {list.map((item) => (
-          <div className="tx" key={item.id}>
-            <div className="ico">{iconFor(item.category?.name)}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 500 }}>{item.memo || item.category?.name}</div>
-              <div className="t2">{item.category?.name} · {shortDate(item.transactionDate)}</div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <Money transaction={item} />
-              <div className="t2">
-                <button type="button" onClick={() => edit(item)}>수정</button>
-                {' · '}
-                <button type="button" onClick={() => remove(item.id)}>삭제</button>
+      {loading && <Loading />}
+      {!loading && list.length === 0 && <div className="card t2 center" style={{ padding: 16 }}>내역이 없어요</div>}
+      {!loading && groupByDate(list).map(([date, rows]) => (
+        <div key={date}>
+          <div className="date-head">{dayHeading(date)}</div>
+          <div className="card">
+            {view === 'cal' && date === selected && selected <= todayISO() && (
+              <div className="row" style={{ marginBottom: 8 }}>
+                <button type="button" className="chip" onClick={() => { c.setDraft({ type: 'EXPENSE', amount: '', date: selected, memo: '' }); c.go('S007'); }}>＋ 이 날짜에 입력</button>
               </div>
-            </div>
+            )}
+            {rows.map((item) => (
+              <div className="tx" key={item.id}>
+                <div className="ico"><Icon name={iconFor(item.category?.name)} /></div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 500 }}>{item.memo || categoryLabel(item.category, prefs.aliases)}</div>
+                  <div className="t2">{categoryLabel(item.category, prefs.aliases)}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                  <Money transaction={item} />
+                  <button type="button" className="icon-btn" aria-label="수정" onClick={() => edit(item)}>
+                    <Icon name="pencil" size={16} />
+                  </button>
+                  <button type="button" className="t2" onClick={() => remove(item.id)}>삭제</button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
       <div className="pad" />
     </div>
   );
@@ -141,6 +169,7 @@ export function Ledger({ c }) {
 
 export function ManualEntry({ c }) {
   const draft = c.draft || { type: 'EXPENSE', amount: '', date: todayISO(), memo: '' };
+  const { prefs } = usePrefs();
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -200,12 +229,18 @@ export function ManualEntry({ c }) {
         </div>
       </div>
       <Keypad value={draft.amount || ''} onChange={(amount) => set({ ...draft, amount })} />
-      <div className="chips">
-        {categories.map((category) => (
-          <button type="button" key={category.id} className={draft.categoryId === category.id ? 'on' : ''} onClick={() => set({ ...draft, categoryId: category.id })}>
-            {iconFor(category.name)} {category.name}
-          </button>
-        ))}
+      <div className="fld">
+        <label>카테고리</label>
+        <select
+          className="input"
+          value={draft.categoryId || ''}
+          onChange={(event) => set({ ...draft, categoryId: Number(event.target.value) || null })}
+        >
+          <option value="">카테고리를 선택하세요</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>{categoryLabel(category, prefs.aliases)}</option>
+          ))}
+        </select>
       </div>
       <div className="row">
         <input className="input" type="date" max={todayISO()} value={draft.date || ''} onChange={(event) => set({ ...draft, date: event.target.value })} />
@@ -322,6 +357,7 @@ function toParsed(result) {
 }
 
 function ParsedFields({ parsed, setParsed, categories }) {
+  const { prefs } = usePrefs();
   return (
     <>
       {parsed.missing.length > 0 && <div className="t2" style={{ marginTop: 8 }}>비어 있는 항목: {parsed.missing.join(', ')}</div>}
@@ -337,7 +373,7 @@ function ParsedFields({ parsed, setParsed, categories }) {
         <label>카테고리</label>
         <select className="input" value={parsed.categoryId || ''} onChange={(event) => setParsed({ ...parsed, categoryId: Number(event.target.value) })}>
           <option value="">선택</option>
-          {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+          {categories.map((category) => <option key={category.id} value={category.id}>{categoryLabel(category, prefs.aliases)}</option>)}
         </select>
       </div>
       <div className="fld">
@@ -362,7 +398,9 @@ async function saveParsed(parsed) {
 
 export function ReceiptOcr({ c }) {
   const inputRef = useRef(null);
+  const { prefs } = usePrefs();
   const [parsed, setParsed] = useState(null);
+  const [editing, setEditing] = useState(false);
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -375,7 +413,8 @@ export function ReceiptOcr({ c }) {
     if (!file) return;
     setBusy(true);
     setError('');
-    setParsed(null);
+      setParsed(null);
+      setEditing(false);
     try {
       const image = await prepareReceipt(file);
       const result = await api.ocrReceipt(image);
@@ -403,10 +442,10 @@ export function ReceiptOcr({ c }) {
 
   return (
     <div className="screen">
-      <Hd title="영수증 입력" onBack={() => c.go('S005')} />
+      <Hd title="영수증 촬영/캡처화면 추출" onBack={() => c.go('S005')} />
       <div className="card center">
-        <div className="big">🧾</div>
-        <div className="t2">jpg, png만 올릴 수 있어요. 아이폰 HEIC는 jpg로 바꾼 뒤 분석합니다.</div>
+        <div className="big"><Icon name="receipt-scan" size={48} /></div>
+        <div className="t2">촬영 사진이나 캡처 화면을 올리면 날짜별로 나눠 보여 드려요. jpg, png만 올릴 수 있고 아이폰 HEIC는 jpg로 바꿉니다.</div>
       </div>
       <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif" hidden onChange={(event) => upload(event.target.files?.[0])} />
       <button type="button" className="btn" disabled={busy} onClick={() => inputRef.current?.click()}>{busy ? '영수증을 읽는 중…' : '영수증 사진 올리기'}</button>
@@ -420,12 +459,90 @@ export function ReceiptOcr({ c }) {
         </div>
       )}
       {parsed && (
-        <div className="card" style={{ marginTop: 16 }}>
-          <span className="chip">OCR 추출 결과 · 틀린 곳은 수정해주세요</span>
-          <ParsedFields parsed={parsed} setParsed={setParsed} categories={categories} />
-          <button type="button" className="btn" disabled={busy} onClick={save}>확인하고 저장</button>
+        <div>
+          <div className="date-head">{parsed.date ? dayHeading(parsed.date) : '날짜 없음'}</div>
+          <div className="card">
+            <div className="row">
+              <b>{wonLabel(parsed.amount)}</b>
+              {!editing && (
+                <button type="button" className="icon-btn" aria-label="수정" onClick={() => setEditing(true)}>
+                  <Icon name="pencil" size={16} />
+                </button>
+              )}
+            </div>
+            {editing ? (
+              <ParsedFields parsed={parsed} setParsed={setParsed} categories={categories} />
+            ) : (
+              <>
+                <div className="t2" style={{ marginTop: 8 }}>{categoryName(categories, parsed.categoryId, prefs.aliases) || '카테고리 없음'}</div>
+                <div style={{ marginTop: 4 }}>{parsed.memo || '메모 없음'}</div>
+              </>
+            )}
+            <button type="button" className="btn" disabled={busy} onClick={save}>확인하고 저장</button>
+          </div>
         </div>
       )}
+    </div>
+  );
+}
+
+export function CategoryTransactions({ c }) {
+  const { prefs } = usePrefs();
+  const category = c.categoryFocus;
+  const [items, setItems] = useState(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!category?.id) return undefined;
+    let cancel = false;
+    api.transactions({ categoryId: category.id, from: `${yearMonth()}-01`, to: todayISO(), size: 100 })
+      .then((page) => { if (!cancel) setItems(page?.items || []); })
+      .catch((err) => { if (!cancel) { setError(err.message); setItems([]); } });
+    return () => { cancel = true; };
+  }, [category?.id]);
+
+  const edit = (item) => {
+    c.setDraft({
+      id: item.id,
+      type: item.category?.type === 'INCOME' ? 'INCOME' : 'EXPENSE',
+      categoryId: item.category?.id,
+      amount: String(item.amount),
+      date: item.transactionDate,
+      memo: item.memo || '',
+    });
+    c.go('S007');
+  };
+
+  return (
+    <div className="screen">
+      <Hd title={categoryLabel(category, prefs.aliases) || '소비 내역'} onBack={() => c.go(c.categoryBack || 'S015')} />
+      <div className="t2" style={{ marginBottom: 8 }}>{monthLabel(yearMonth())} 소비 내역</div>
+      {error && <div className="err">{error}</div>}
+      {items == null && !error && <Loading />}
+      {items && items.length === 0 && <div className="card t2 center">이 카테고리의 소비 내역이 없어요</div>}
+      {groupByDate(items || []).map(([date, rows]) => (
+        <div key={date}>
+          <div className="date-head">{dayHeading(date)}</div>
+          <div className="card">
+            {rows.map((item) => (
+              <div className="tx" key={item.id}>
+                <div className="ico"><Icon name={iconFor(item.category?.name)} /></div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 500 }}>{item.memo || categoryLabel(item.category, prefs.aliases)}</div>
+                  <div className="t2">{categoryLabel(item.category, prefs.aliases)}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+                  <Money transaction={item} />
+                  <button type="button" className="icon-btn" aria-label="수정" onClick={() => edit(item)}>
+                    <Icon name="pencil" size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div className="pad" />
     </div>
   );
 }

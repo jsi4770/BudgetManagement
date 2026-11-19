@@ -2,11 +2,21 @@ import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { Loading, TransactionRow, Usage } from '../components/common';
 import { greetingDate, percent, won, yearMonth } from '../format';
+import { Icon } from '../icons';
+
+function goalText(item) {
+  return item.goalType === 'COUNT' ? `${item.goalCount ?? 0}회` : won(item.goalAmount);
+}
+
+function spentText(item) {
+  return item.goalType === 'COUNT' ? `${item.spendingCount ?? 0}회` : won(item.spendingAmount);
+}
 
 export function Home({ c }) {
   const [monthly, setMonthly] = useState(null);
   const [transactions, setTransactions] = useState([]);
-  const [challenge, setChallenge] = useState(null);
+  const [challenges, setChallenges] = useState([]);
+  const [challengeOpen, setChallengeOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -22,7 +32,7 @@ export function Home({ c }) {
         if (cancel) return;
         setMonthly(summary);
         setTransactions(page?.items || []);
-        setChallenge(active?.[0] || null);
+        setChallenges(active || []);
       } catch (err) {
         if (!cancel) setError(err.message);
       } finally {
@@ -52,7 +62,7 @@ export function Home({ c }) {
         ) : (
           <>
             <div className="amount" style={{ color: remaining < 0 ? 'var(--error)' : 'var(--text)' }}>
-              {remaining < 0 ? '-' : ''}{won(remaining)}
+              {won(remaining)}
             </div>
             <Usage rate={rate} />
             <div className="row t2"><span>예산 사용률 {rate}%</span><span>예산 {won(monthly.budget)}</span></div>
@@ -64,12 +74,32 @@ export function Home({ c }) {
         </div>
       </div>
 
-      {challenge && (
-        <div className="card" onClick={() => { c.setChallengeId(challenge.id); c.go('S013'); }} style={{ cursor: 'pointer' }}>
-          <span className="chip">🎯 진행 중 챌린지</span>
-          <div style={{ marginTop: 8 }}>{challenge.title} · 현재 {won(challenge.spendingAmount)} ›</div>
-        </div>
-      )}
+      <div className="card">
+        <button type="button" className="row" onClick={() => setChallengeOpen((open) => !open)} style={{ width: '100%' }}>
+          <h2 className="h2" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="challenge" size={18} /> 진행 중인 챌린지
+          </h2>
+          <span className="t2">{challengeOpen ? '접기' : `펼치기 ${challenges.length}`}</span>
+        </button>
+        {challengeOpen && challenges.length === 0 && (
+          <div className="t2" style={{ marginTop: 12 }}>진행 중인 챌린지가 없어요</div>
+        )}
+        {challengeOpen && challenges.map((item) => (
+          <button
+            type="button"
+            key={item.id}
+            className="tx"
+            style={{ width: '100%', textAlign: 'left' }}
+            onClick={() => { c.setChallengeId(item.id); c.go('S013'); }}
+          >
+            <div className="ico"><Icon name="goal" size={18} /></div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 500 }}>{item.title}</div>
+              <div className="t2">실제 {spentText(item)} · 목표 {goalText(item)}{item.daysLeft != null ? ` · ${item.daysLeft}일 남음` : ''}</div>
+            </div>
+          </button>
+        ))}
+      </div>
 
       <div className="card">
         <div className="row">

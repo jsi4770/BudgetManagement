@@ -1,4 +1,6 @@
 import { iconFor, isIncome, shortDate, won } from '../format';
+import { Icon, PigLogo } from '../icons';
+import { categoryLabel, usePrefs } from '../prefs';
 
 export function Hd({ title, onBack }) {
   return (
@@ -30,13 +32,15 @@ export function Money({ transaction }) {
 }
 
 export function TransactionRow({ transaction, extra }) {
+  const { prefs } = usePrefs();
+  const name = categoryLabel(transaction.category, prefs.aliases);
   return (
     <div className="tx">
-      <div className="ico">{iconFor(transaction.category?.name)}</div>
+      <div className="ico"><Icon name={iconFor(transaction.category?.name)} /></div>
       <div style={{ flex: 1 }}>
-        <div style={{ fontWeight: 500 }}>{transaction.memo || transaction.category?.name}</div>
+        <div style={{ fontWeight: 500 }}>{transaction.memo || name}</div>
         <div className="t2">
-          {transaction.category?.name}
+          {name}
           {transaction.transactionDate ? ` · ${shortDate(transaction.transactionDate)}` : ''}
         </div>
       </div>
@@ -49,7 +53,12 @@ export function TransactionRow({ transaction, extra }) {
 }
 
 export function Loading({ text = '불러오는 중…' }) {
-  return <div className="t2 center" style={{ padding: 24 }}>{text}</div>;
+  return (
+    <div className="brand">
+      <PigLogo size={96} />
+      <div className="t2">{text}</div>
+    </div>
+  );
 }
 
 export function Usage({ rate }) {

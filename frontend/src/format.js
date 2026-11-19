@@ -55,6 +55,17 @@ export function greetingDate() {
   }).format(new Date());
 }
 
+export function dayHeading(iso) {
+  if (!iso) return '';
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'UTC',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+}
+
 export function shortDate(iso) {
   if (!iso) return '';
   const today = todayISO();
@@ -71,15 +82,41 @@ export function rangeLabel(start, end) {
 
 export function iconFor(name) {
   return {
-    식비: '🍚',
-    배달: '🛵',
-    카페: '☕',
-    교통: '🚌',
-    월세: '🏠',
-    급여: '💰',
-    용돈: '🎁',
-    기타: '📌',
-  }[name] || '📌';
+    식비: 'shopping',
+    배달: 'delivery',
+    카페: 'cafe',
+    교통: 'transport',
+    월세: 'rent',
+    급여: 'wallet',
+    용돈: 'gift',
+    기타: 'category',
+  }[name] || 'category';
+}
+
+export function weekSpan(start, end) {
+  if (!start || !end) return '';
+  const [, startMonth, startDay] = start.split('-').map(Number);
+  const [, endMonth, endDay] = end.split('-').map(Number);
+  return `${startMonth}.${startDay}–${endMonth}.${endDay}`;
+}
+
+export function advisePattern(text) {
+  const raw = String(text || '').trim();
+  let focus = null;
+  if (/배달|야식|시켜|배민|쿠팡잇츠/.test(raw)) focus = 'DELIVERY';
+  else if (/카페|커피|음료/.test(raw)) focus = 'CAFE';
+  else if (/고정|월세|구독|통신|보험/.test(raw)) focus = 'FIXED_COST';
+  else if (/택시|교통/.test(raw)) focus = 'FIXED_COST';
+  const tips = {
+    DELIVERY: '배달이 반복되고 있어요. 이번 주는 횟수를 2회 이하로 정해 두면 금액이 같이 줄어요.',
+    CAFE: '카페 지출은 주중 횟수를 줄이는 쪽이 효과적이에요. 주 3회 이하로 시작해 보세요.',
+    FIXED_COST: '반복되는 지출을 먼저 목록으로 나눠 보세요. 월세·구독처럼 매달 나가는 항목을 고정지출에 적어두면 생활비가 분명해져요.',
+  };
+  if (!raw) return { focus: null, message: '소비 패턴을 직접 적거나, 아래 항목을 골라 주세요.' };
+  if (!focus) {
+    return { focus: null, message: '적은 패턴을 봤어요. 배달, 카페, 고정비 중에서 가장 먼저 줄이고 싶은 목표를 골라 두면 그 항목을 우선 살펴볼게요.' };
+  }
+  return { focus, message: tips[focus] };
 }
 
 export const FOCUSES = [

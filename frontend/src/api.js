@@ -115,6 +115,7 @@ export const api = {
   confirmGoal: (id, body) => request(`/coachings/${id}/confirm`, { method: 'POST', body }),
   challenges: (status) => request(`/challenges${query({ status })}`),
   report: (id) => request(`/challenges/${id}/report`),
+  kpi: () => request('/admin/kpi'),
   seed: (scenario) => request('/dev/seed', { method: 'POST', body: { scenario } }),
   completeChallenge: (id, scenario) => request(`/dev/challenges/${id}/complete`, {
     method: 'POST',
