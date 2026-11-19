@@ -197,7 +197,7 @@ export function AnalysisChat() {
   if (!open) {
     return (
       <button type="button" className="chat-fab" aria-label="AI 챗봇" onClick={() => setOpen(true)}>
-        <Icon name="ai-coach" size={24} />
+        <Icon name="ai-coach" size={32} />
       </button>
     );
   }
@@ -228,7 +228,7 @@ export function AnalysisChat() {
         </div>
       </div>
       <button type="button" className="chat-fab" aria-label="AI 챗봇 닫기" onClick={() => setOpen(false)}>
-        <Icon name="ai-coach" size={24} />
+        <Icon name="ai-coach" size={32} />
       </button>
     </>
   );
