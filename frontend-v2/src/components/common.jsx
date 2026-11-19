@@ -25,10 +25,10 @@ export function Keypad({ value, onChange }) {
   );
 }
 
-export function Money({ transaction }) {
+export function Money({ transaction, expenseColor = 'var(--text)' }) {
   const income = isIncome(transaction.category);
   const text = `${income ? '+' : '-'}${Number(transaction.amount).toLocaleString('ko-KR')}원`;
-  return <b style={{ color: income ? 'var(--success)' : 'var(--text)' }}>{text}</b>;
+  return <b style={{ color: income ? 'var(--success)' : expenseColor }}>{text}</b>;
 }
 
 export function TransactionRow({ transaction, extra }) {

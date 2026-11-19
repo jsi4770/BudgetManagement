@@ -8,10 +8,24 @@ import {
 import { Icon } from '../icons';
 import { categoryLabel, usePrefs } from '../prefs';
 
-function wonLabel(amount) {
-  const value = Number(amount);
-  if (!value) return '금액 없음';
-  return `${value.toLocaleString('ko-KR')}원`;
+function categoryOf(categories, id) {
+  return categories.find((item) => String(item.id) === String(id));
+}
+
+function parsedIsIncome(parsed, categories) {
+  const category = categoryOf(categories, parsed.categoryId);
+  if (category?.type) return category.type === 'INCOME';
+  return parsed.categoryType === 'INCOME';
+}
+
+function signedWon(parsed, categories) {
+  const value = Number(parsed.amount);
+  if (!value) return { text: '금액 없음', color: 'var(--text)' };
+  const income = parsedIsIncome(parsed, categories);
+  return {
+    text: `${income ? '+' : '-'}${value.toLocaleString('ko-KR')}원`,
+    color: income ? 'var(--success)' : 'var(--error)',
+  };
 }
 
 function categoryName(categories, id, aliases) {
@@ -152,7 +166,7 @@ export function Ledger({ c }) {
                   <div className="t2">{categoryLabel(item.category, prefs.aliases)}</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                  <Money transaction={item} />
+                  <Money transaction={item} expenseColor={view === 'list' ? 'var(--error)' : 'var(--text)'} />
                   <button type="button" className="icon-btn" aria-label="수정" onClick={() => edit(item)}>
                     <Icon name="pencil" size={16} />
                   </button>
@@ -352,6 +366,7 @@ function toParsed(result) {
     amount: result.amount ? String(result.amount) : '',
     date: result.transactionDate || '',
     categoryId: result.category?.id || null,
+    categoryType: result.category?.type || null,
     memo: result.memo || '',
     missing: result.missingFields || [],
   };
@@ -372,7 +387,11 @@ function ParsedFields({ parsed, setParsed, categories }) {
       </div>
       <div className="fld">
         <label>카테고리</label>
-        <select className="input" value={parsed.categoryId || ''} onChange={(event) => setParsed({ ...parsed, categoryId: Number(event.target.value) })}>
+        <select className="input" value={parsed.categoryId || ''} onChange={(event) => {
+          const categoryId = Number(event.target.value);
+          const category = categoryOf(categories, categoryId);
+          setParsed({ ...parsed, categoryId, categoryType: category?.type || null });
+        }}>
           <option value="">선택</option>
           {categories.map((category) => <option key={category.id} value={category.id}>{categoryLabel(category, prefs.aliases)}</option>)}
         </select>
@@ -477,12 +496,14 @@ export function ReceiptOcr({ c }) {
           </button>
         </div>
       )}
-      {items.map((parsed, index) => (
+      {items.map((parsed, index) => {
+        const amount = signedWon(parsed, categories);
+        return (
         <div key={`${parsed.date}-${index}`}>
           <div className="date-head">{parsed.date ? dayHeading(parsed.date) : '날짜 없음'}</div>
           <div className="card">
             <div className="row">
-              <b>{wonLabel(parsed.amount)}</b>
+              <b style={{ color: amount.color }}>{amount.text}</b>
               <div style={{ display: 'flex', gap: 8 }}>
                 {editing !== index && (
                   <button type="button" className="icon-btn" aria-label="수정" onClick={() => setEditing(index)}>
@@ -502,7 +523,8 @@ export function ReceiptOcr({ c }) {
             )}
           </div>
         </div>
-      ))}
+        );
+      })}
       {items.length > 0 && (
         <button type="button" className="btn" disabled={busy} onClick={save}>
           {busy ? '저장 중…' : `확인하고 ${items.length}건 저장`}
