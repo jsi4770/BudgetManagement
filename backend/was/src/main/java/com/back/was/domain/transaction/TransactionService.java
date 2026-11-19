@@ -5,16 +5,16 @@ import com.back.was.domain.ai.TextParseCommand;
 import com.back.was.domain.ai.TransactionTextParser;
 import com.back.was.domain.category.Category;
 import com.back.was.domain.category.CategoryRepository;
-import com.back.was.domain.challenge.ChallengePerformance;
 import com.back.was.domain.category.CategoryType;
 import com.back.was.domain.category.dto.CategoryResponse;
+import com.back.was.domain.challenge.ChallengePerformance;
 import com.back.was.domain.nudge.NudgeJudgement;
 import com.back.was.domain.transaction.dto.CalendarResponse;
 import com.back.was.domain.transaction.dto.CreateTransactionRequest;
-import com.back.was.domain.transaction.dto.ParseTransactionRequest;
-import com.back.was.domain.transaction.dto.ParsedTransactionResponse;
 import com.back.was.domain.transaction.dto.TransactionListItem;
 import com.back.was.domain.transaction.dto.TransactionResponse;
+import com.back.was.domain.transaction.dto.ParseTransactionRequest;
+import com.back.was.domain.transaction.dto.ParsedTransactionResponse;
 import com.back.was.domain.transaction.dto.TransactionSearchRequest;
 import com.back.was.domain.transaction.dto.UpdateTransactionRequest;
 import com.back.was.domain.user.User;
@@ -32,19 +32,24 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
- * TX-01~07 거래. 등록·수정·삭제는 서버_내부_처리 1장의 후처리를 <b>같은 트랜잭션에서
- * 순서대로</b> 함께 돈다: 2번(챌린지 실적) → 3번(넛지 판정). 5번(넛지 AI 문구)만 커밋 후
- * 비동기다.
+ * TX-01~06 거래.
+ *
+ * <p>등록·수정·삭제는 같은 트랜잭션에서 서버_내부_처리 1장의 후처리를 돌린다 —
+ * 2번 챌린지 실적 재계산, 3번 넛지 판정(5번 넛지 AI 문구는 판정이 커밋 후에 비동기로 요청한다).
+ * 그래서 응답이 나간 시점에 홈·챌린지 화면의 숫자가 이미 맞다.
  */
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
-
-    /** TX-07 의 필수 추출 필드 수 — {@code amount} · {@code transactionDate} · {@code category}. */
-    private static final int REQUIRED_PARSED_FIELD_COUNT = 3;
 
     private final TransactionRepository transactionRepository;
     private final ChallengePerformance challengePerformance;
@@ -53,31 +58,152 @@ public class TransactionService {
     private final UserRepository userRepository;
     private final TransactionTextParser transactionTextParser;
 
+    /** TX-07 의 필수 추출 필드 수 — amount · transactionDate · category. 셋 다 못 뽑으면 422. */
+    private static final int REQUIRED_PARSED_FIELD_COUNT = 3;
+
     /**
-     * TX-01. 거래는 항상 토큰 주인의 것으로 저장된다 — 요청에 사용자 ID 가 없다.
+     * TX-01. 여러 건을 한 번에 저장하고, 응답은 <b>요청 순서 그대로</b>다. 거래는 항상
+     * 토큰 주인의 것으로 저장된다 — 요청에 사용자 ID 가 없다.
      *
-     * <p>저장 뒤 <b>같은 트랜잭션에서 동기로</b> 넛지를 재판정한다(서버_내부_처리 1장
-     * 순서 3번). 커밋 전이어야 "거래는 저장됐는데 카드만 안 생긴" 상태가 생기지 않는다.
+     * <p><b>전부 저장되거나 하나도 저장되지 않는다</b>(명세 TX-01). 카테고리를 저장 전에 한
+     * 번에 조회해 하나라도 없으면 404 로 끝내므로, 실패한 요청이 INSERT 를 남기지 않는다 —
+     * 롤백이 어차피 되돌려 주지만 그 전에 막는 쪽이 읽기 쉽다.
      *
-     * <p>후처리는 명세의 순서대로 2번(챌린지 실적) → 3번(넛지 판정)이다. <b>5번(넛지 AI
-     * 문구)</b>만 커밋 후 비동기라 여기 없다.
+     * <p>저장 뒤 <b>같은 트랜잭션에서 동기로</b> 후처리를 돌린다(서버_내부_처리 1장).
+     * 커밋 전이어야 "거래는 저장됐는데 카드만 안 생긴" 상태가 생기지 않는다. 순서는 명세대로
+     * 2번(챌린지 실적) → 3번(넛지 판정)이고, <b>5번(넛지 AI 문구)</b>만 커밋 후 비동기라 여기
+     * 없다. 명세는 후처리를 "카테고리마다 한 번씩" 돌리라고 한다(거래 건수만큼이 아니라):
+     * <ul>
+     *   <li>넛지는 이번 주 판정이라 카테고리만 있으면 된다 — 서로 다른 카테고리를 한 번에
+     *       넘긴다.</li>
+     *   <li>챌린지는 <b>날짜</b>로 대상을 고르므로({@link ChallengePerformance#recalculate})
+     *       카테고리 하나에 날짜가 여럿이면 날짜마다 부른다. 같은 (카테고리, 날짜) 는 한
+     *       번이고, 재계산이 멱등이라 같은 챌린지가 두 번 걸려도 결과가 같다.</li>
+     * </ul>
      *
-     * @throws BusinessException 404 {@code NOT_FOUND} — 없는 카테고리 (명세 TX-01 Errors)
+     * @throws BusinessException 404 {@code NOT_FOUND} — 없는 카테고리가 한 건이라도 있으면
+     *                           전체 실패 (명세 TX-01 Errors)
      */
     @Transactional
-    public TransactionResponse create(Long userId, CreateTransactionRequest request) {
+    public List<TransactionResponse> create(Long userId, CreateTransactionRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(BusinessException::notFound);
-        Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow(BusinessException::notFound);
+        List<CreateTransactionRequest.Item> items = request.transactions();
+        Map<Long, Category> categories = findCategories(items);
 
-        Transaction transaction = transactionRepository.save(Transaction.of(
-                user, category, request.amount(), request.transactionDate(), request.memo()));
+        List<Transaction> transactions = transactionRepository.saveAll(items.stream()
+                .map(item -> Transaction.of(user, categories.get(item.categoryId()),
+                        item.amount(), item.transactionDate(), item.memo()))
+                .toList());
 
-        challengePerformance.recalculate(user, category, transaction.getTransactionDate());
-        nudgeJudgement.judge(user, category);
+        Map<Category, Set<LocalDate>> datesByCategory = new LinkedHashMap<>();
+        for (Transaction transaction : transactions) {
+            datesByCategory.computeIfAbsent(transaction.getCategory(), category -> new LinkedHashSet<>())
+                    .add(transaction.getTransactionDate());
+        }
+        datesByCategory.forEach((category, dates) ->
+                dates.forEach(date -> challengePerformance.recalculate(user, category, date)));
+        nudgeJudgement.judge(user, datesByCategory.keySet().toArray(Category[]::new));
 
-        return TransactionResponse.from(transaction);
+        return transactions.stream()
+                .map(TransactionResponse::from)
+                .toList();
+    }
+
+    /**
+     * 요청에 나온 카테고리를 한 번에 조회한다. 같은 카테고리가 여러 건이어도 조회는 한 번이다.
+     *
+     * @throws BusinessException 404 {@code NOT_FOUND} — 하나라도 없는 ID 가 있을 때
+     */
+    private Map<Long, Category> findCategories(List<CreateTransactionRequest.Item> items) {
+        Set<Long> ids = items.stream()
+                .map(CreateTransactionRequest.Item::categoryId)
+                .collect(Collectors.toSet());
+        Map<Long, Category> found = categoryRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(Category::getId, Function.identity()));
+        if (found.size() != ids.size()) {
+            throw BusinessException.notFound();
+        }
+        return found;
+    }
+
+    /**
+     * TX-07 자연어 분석. 저장하지 않고 추출 결과만 돌려준다 — 최종 저장은 프론트가 확인·수정한
+     * 뒤 TX-01 로 한다.
+     *
+     * <p><b>트랜잭션을 걸지 않는다</b> (2026-11-15) — AI 를 기다리는 동안 DB 커넥션을 쥐지 않기
+     * 위해서다. 읽는 것은 카테고리 목록 하나뿐이고, 그 조회는 리포지토리가 자기 트랜잭션으로 끝낸다.
+     * {@code @Transactional(readOnly = true)} 를 다시 붙이면 요청 하나가 커넥션을 호출 상한(10초)만큼
+     * 잡는다 — {@code AiCallOutsideTransactionTest} 가 고정한다.
+     *
+     * @throws BusinessException 503 {@code AI_UNAVAILABLE} / 422 {@code AI_PARSE_FAILED}
+     */
+    public ParsedTransactionResponse parse(ParseTransactionRequest request) {
+        return parseText(request.text());
+    }
+
+    /**
+     * 텍스트 한 덩이를 거래 정보로 정리한다. {@link #parse} 와 같은 이유로 트랜잭션이 없다.
+     *
+     * @throws BusinessException 503 {@code AI_UNAVAILABLE} / 422 {@code AI_PARSE_FAILED}
+     */
+    public ParsedTransactionResponse parseText(String text) {
+        List<CategoryResponse> categories = selectableCategories();
+        ParsedTransaction parsed = transactionTextParser.parse(
+                new TextParseCommand(text, KstTime.today(), categories));
+        return assemble(parsed, categories);
+    }
+
+    /** 모델이 고를 수 있는 카테고리 전체(ID 순). 프롬프트와 {@link #assemble} 이 같은 목록을 쓴다. */
+    @Transactional(readOnly = true)
+    public List<CategoryResponse> selectableCategories() {
+        return categoryRepository.findAllByOrderByIdAsc().stream()
+                .map(CategoryResponse::from)
+                .toList();
+    }
+
+    /**
+     * 추출 결과({@link ParsedTransaction})를 TX-07 응답으로 만든다 — <b>TX-07 과 RCPT-01 이
+     * 공유하는 경로</b>다. {@code missingFields} 유도 규칙·422 조건·모르는 카테고리 처리가 두 벌이
+     * 되면 같은 확인 화면에 서로 다른 계약이 내려가므로 복사하지 않고 이 메서드를 쓴다.
+     *
+     * <p>{@code missingFields} 는 모델이 말한 목록이 아니라 {@code null} 로부터 만든다 — 값과
+     * 목록이 어긋나는 응답을 계약으로 흘려보내지 않기 위해서다.
+     *
+     * @throws BusinessException 422 {@code AI_PARSE_FAILED} — 필수 세 필드를 모두 못 뽑음
+     */
+    public ParsedTransactionResponse assemble(ParsedTransaction parsed, List<CategoryResponse> categories) {
+        CategoryResponse category = findCategory(categories, parsed.categoryId());
+
+        List<String> missingFields = new ArrayList<>();
+        if (parsed.amount() == null) {
+            missingFields.add("amount");
+        }
+        if (parsed.transactionDate() == null) {
+            missingFields.add("transactionDate");
+        }
+        if (category == null) {
+            missingFields.add("category");
+        }
+
+        if (missingFields.size() == REQUIRED_PARSED_FIELD_COUNT) {
+            throw new BusinessException(ErrorCode.AI_PARSE_FAILED);
+        }
+
+        return new ParsedTransactionResponse(
+                parsed.amount(), parsed.transactionDate(), category, parsed.memo(),
+                List.copyOf(missingFields));
+    }
+
+    /** 모델이 고른 ID 를 실제 카테고리로 되돌린다. 목록에 없으면 {@code null}. */
+    private static CategoryResponse findCategory(List<CategoryResponse> categories, Long categoryId) {
+        if (categoryId == null) {
+            return null;
+        }
+        return categories.stream()
+                .filter(category -> category.id().equals(categoryId))
+                .findFirst()
+                .orElse(null);
     }
 
     /**
@@ -137,69 +263,6 @@ public class TransactionService {
         nudgeJudgement.judge(owner, previousCategory, transaction.getCategory());
 
         return TransactionResponse.from(transaction);
-    }
-
-    /**
-     * TX-07 자연어 분석. <b>저장하지 않는다</b> — 추출 결과만 돌려주고, 저장은 사용자가
-     * 확인·수정한 뒤 TX-01 이 한다. 그래서 {@code userId} 를 받지 않는다(인증은 필요하되
-     * 결과가 사용자별로 달라지지 않는다).
-     *
-     * <p>{@code missingFields} 는 모델이 보고한 목록이 아니라 <b>값이 비었는지</b>로
-     * 만든다(필수 세 필드 고정 순서). 모델 응답에 값과 목록이 어긋난 경우를 계약으로
-     * 흘려보내지 않기 위함이고, 명세의 정의("추출 실패한 필수 필드")와도 정확히 같다.
-     * {@code memo} 는 선택이라 목록에 들어가지 않는다.
-     *
-     * <p><b>422 는 셋 다 비었을 때만</b> 낸다. 일부만 뽑힌 건 실패가 아니라
-     * {@code missingFields} 로 표현하는 정상 응답이다(명세 TX-07 이 부분 추출을 전제한다).
-     * 모델이 고른 카테고리가 DB 에 없으면 "기타"로 추측하지 않고 카테고리 추출 실패로
-     * 처리한다 — 틀린 카테고리는 넛지·분석까지 오염시키는데, 사용자에게 한 번 묻는 건
-     * 그보다 싸다.
-     *
-     * <p>미래 날짜가 나와도 그대로 통과시킨다(명세 TX-07). 거부는 저장 시점인 TX-01 의
-     * 몫이고, 그래야 사용자가 날짜를 고칠 기회를 얻는다.
-     *
-     * @throws BusinessException 503 {@code AI_UNAVAILABLE} / 422 {@code AI_PARSE_FAILED}
-     */
-    @Transactional(readOnly = true)
-    public ParsedTransactionResponse parse(ParseTransactionRequest request) {
-        List<CategoryResponse> categories = categoryRepository.findAllByOrderByIdAsc().stream()
-                .map(CategoryResponse::from)
-                .toList();
-
-        ParsedTransaction parsed = transactionTextParser.parse(
-                new TextParseCommand(request.text(), KstTime.today(), categories));
-
-        CategoryResponse category = findCategory(categories, parsed.categoryId());
-
-        List<String> missingFields = new ArrayList<>();
-        if (parsed.amount() == null) {
-            missingFields.add("amount");
-        }
-        if (parsed.transactionDate() == null) {
-            missingFields.add("transactionDate");
-        }
-        if (category == null) {
-            missingFields.add("category");
-        }
-
-        if (missingFields.size() == REQUIRED_PARSED_FIELD_COUNT) {
-            throw new BusinessException(ErrorCode.AI_PARSE_FAILED);
-        }
-
-        return new ParsedTransactionResponse(
-                parsed.amount(), parsed.transactionDate(), category, parsed.memo(),
-                List.copyOf(missingFields));
-    }
-
-    /** 모델이 고른 ID 를 실제 카테고리로 되돌린다. 목록에 없으면 {@code null}. */
-    private static CategoryResponse findCategory(List<CategoryResponse> categories, Long categoryId) {
-        if (categoryId == null) {
-            return null;
-        }
-        return categories.stream()
-                .filter(category -> category.id().equals(categoryId))
-                .findFirst()
-                .orElse(null);
     }
 
     /**

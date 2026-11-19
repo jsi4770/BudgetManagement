@@ -136,7 +136,7 @@ class NudgeTextApiTest {
         mockMvc.perform(authed(post("/transactions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"categoryId": %d, "amount": %d, "transactionDate": "%s"}
+                                {"transactions": [{"categoryId": %d, "amount": %d, "transactionDate": "%s"}]}
                                 """.formatted(DELIVERY, amount, TODAY))))
                 .andExpect(status().isCreated());
     }
@@ -157,7 +157,7 @@ class NudgeTextApiTest {
 
         mockMvc.perform(authed(get("/nudges/{id}", nudgeId)))
                 .andExpect(status().isOk())
-                // Gemini 가 없으니 docs/AI_대체_문구.md 1·2장 템플릿이 채워진다
+                // AI 가 없으니 docs/AI_대체_문구.md 1·2장 템플릿이 채워진다
                 .andExpect(jsonPath("$.data.aiAnalysis").value(
                         org.hamcrest.Matchers.containsString("배달")))
                 .andExpect(jsonPath("$.data.aiRecommendation").value(

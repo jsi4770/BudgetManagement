@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 가계부 코치</title>
+<style>
+  :root {
+    --bg: #f6f4ef; --card: #ffffff; --ink: #1f2420; --sub: #6b726c; --line: #e6e2d8;
+    --accent: #2f6b4f; --accent-soft: #e3efe8;
+    --alert: #c2410c; --alert-soft: #fdeadf; --warn: #a16207; --warn-soft: #fbf0d4; --info: #2f6b4f; --info-soft: #e3efe8;
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #151816; --card: #1e2220; --ink: #ecefe9; --sub: #98a098; --line: #2e3430;
+      --accent: #6fbf94; --accent-soft: #223329; --alert: #f08a5d; --alert-soft: #3a2519;
+      --warn: #e5b94a; --warn-soft: #382f17; --info: #6fbf94; --info-soft: #223329; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.6 -apple-system, "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px 80px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+  h1 { font-size: 20px; margin: 0; letter-spacing: -0.02em; }
+  h2 { font-size: 15px; margin: 0 0 10px; }
+  select { font: inherit; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); max-width: 100%; }
+  nav { display: flex; gap: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px; margin-bottom: 14px; }
+  nav button { flex: 1; border: 0; background: transparent; color: var(--sub); font: inherit; font-weight: 600; padding: 9px 0; border-radius: 9px; cursor: pointer; }
+  nav button.on { background: var(--accent); color: #fff; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat .k { color: var(--sub); font-size: 12px; } .stat .v { font-size: 19px; font-weight: 700; letter-spacing: -0.02em; }
+  .muted { color: var(--sub); font-size: 13px; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 99px; }
+  .b-alert { background: var(--alert-soft); color: var(--alert); } .b-warn { background: var(--warn-soft); color: var(--warn); } .b-info { background: var(--info-soft); color: var(--info); }
+  .ins { border-left: 4px solid var(--line); } .ins.alert { border-color: var(--alert); } .ins.warn { border-color: var(--warn); } .ins.info { border-color: var(--info); }
+  .ins h3 { font-size: 15px; margin: 6px 0 4px; } .ins p { margin: 0 0 8px; }
+  .ev { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .ev span { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 2px 8px; font-size: 12px; }
+  .act { background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 8px 10px; font-weight: 600; font-size: 14px; }
+  .cat { display: grid; grid-template-columns: 76px 1fr auto; gap: 8px; align-items: center; padding: 6px 0; font-size: 14px; }
+  .bar { height: 8px; background: var(--bg); border-radius: 99px; overflow: hidden; } .bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; }
+  .delta.up { color: var(--alert); } .delta.down { color: var(--accent); }
+  .row { display: flex; gap: 8px; } .row input { flex: 1; min-width: 0; font: inherit; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--ink); }
+  .btn { border: 0; background: var(--accent); color: #fff; font: inherit; font-weight: 700; padding: 0 16px; border-radius: 10px; cursor: pointer; }
+  .btn:disabled { opacity: .5; cursor: wait; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .chip { border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 99px; cursor: pointer; }
+  .chip:hover { border-color: var(--accent); color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; } td, th { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: right; } th:first-child, td:first-child { text-align: left; } th { color: var(--sub); font-weight: 600; font-size: 12px; }
+  .chat { display: flex; flex-direction: column; gap: 8px; min-height: 260px; }
+  .msg { max-width: 86%; padding: 10px 13px; border-radius: 14px; white-space: pre-wrap; word-break: keep-all; }
+  .msg.me { align-self: flex-end; background: var(--accent); color: #fff; border-bottom-right-radius: 4px; }
+  .msg.ai { align-self: flex-start; background: var(--bg); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .msg.err { align-self: center; color: var(--alert); font-size: 13px; background: var(--alert-soft); }
+  .typing { color: var(--sub); }
+  .hidden { display: none; }
+  svg text { fill: var(--sub); font-size: 11px; }
+  .progress { height: 10px; background: var(--bg); border-radius: 99px; overflow: hidden; margin: 6px 0; } .progress i { display: block; height: 100%; background: var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🌱 AI 가계부 코치</h1>
+    <select id="persona" aria-label="사용자 선택"></select>
+  </header>
+  <nav id="tabs">
+    <button data-t="home" class="on">홈</button>
+    <button data-t="goal">목표</button>
+    <button data-t="chat">코치와 대화</button>
+  </nav>
+
+  <section id="t-home">
+    <div class="card" id="stats"></div>
+    <div class="card"><h2>월별 지출 추이</h2><div id="trend"></div></div>
+    <div class="card"><h2>이번 달 변동 지출</h2><div id="cats"></div></div>
+    <h2 style="margin:18px 2px 8px">AI 인사이트 <button class="chip" id="refresh" style="margin-left:6px">다시 분석</button></h2>
+    <div id="insights"><div class="card muted">분석 불러오는 중…</div></div>
+  </section>
+
+  <section id="t-goal" class="hidden">
+    <div class="card">
+      <h2>어떤 목표를 세울까요?</h2>
+      <div class="row"><input id="goalText" placeholder="예: 6개월 안에 100만원 모으고 싶어"><button class="btn" id="goalBtn">만들기</button></div>
+      <div class="chips" id="goalChips"></div>
+      <div id="goalAsk" class="muted"></div>
+    </div>
+    <div id="goalView"></div>
+  </section>
+
+  <section id="t-chat" class="hidden">
+    <div class="card">
+      <div class="chat" id="chatLog"></div>
+      <div class="chips" id="chatChips"></div>
+      <div class="row"><input id="chatText" placeholder="궁금한 걸 물어보세요"><button class="btn" id="chatBtn">보내기</button></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const won = (n) => Math.round(n).toLocaleString("ko-KR") + "원";
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const unitFmt = (e) => e.unit === "원" ? won(e.value) : e.unit === "%" ? `${+e.value.toFixed(1)}%` : `${e.value}${e.unit}`;
+let persona = null;
+
+async function api(path, opt) {
+  const r = await fetch(path, opt);
+  if (!r.ok) { let m = "요청에 실패했어요."; try { m = (await r.json()).detail || m; } catch {} throw new Error(m); }
+  return r.json();
+}
+const post = (path, body) => api(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+
+/* ---------- 탭 ---------- */
+function showTab(t) {
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.t === t));
+  ["home", "goal", "chat"].forEach((x) => $("#t-" + x).classList.toggle("hidden", x !== t));
+  history.replaceState(null, "", "#" + t);
+}
+$("#tabs").addEventListener("click", (e) => { if (e.target.dataset.t) showTab(e.target.dataset.t); });
+
+/* ---------- 홈 ---------- */
+function renderStats(s) {
+  const rate = s.savings_rate;
+  $("#stats").innerHTML = `<div class="muted" style="margin-bottom:8px">${esc(s.name)} · ${esc(s.month)}</div>
+    <div class="grid">
+      <div class="stat"><div class="k">수입</div><div class="v">${won(s.income)}</div></div>
+      <div class="stat"><div class="k">지출</div><div class="v">${won(s.spending)}</div></div>
+      <div class="stat"><div class="k">저축률</div><div class="v" style="color:${rate < 10 ? "var(--alert)" : "var(--accent)"}">${rate}%</div></div>
+    </div>`;
+  const entries = Object.entries(s.monthly_totals), max = Math.max(...entries.map(([, v]) => v));
+  const w = 100 / entries.length;
+  $("#trend").innerHTML = `<svg viewBox="0 0 300 120" width="100%" role="img" aria-label="월별 지출">` + entries.map(([m, v], i) => {
+    const h = Math.max(4, v / max * 80), x = i * (300 / entries.length) + 10, bw = 300 / entries.length - 20, last = i === entries.length - 1;
+    return `<rect x="${x}" y="${95 - h}" width="${bw}" height="${h}" rx="5" fill="${last ? "var(--accent)" : "var(--line)"}"/>
+      <text x="${x + bw / 2}" y="112" text-anchor="middle">${+m.slice(5)}월</text>
+      <text x="${x + bw / 2}" y="${90 - h}" text-anchor="middle">${Math.round(v / 10000)}만</text>`;
+  }).join("") + `</svg>`;
+  const top = s.categories[0]?.amount || 1;
+  $("#cats").innerHTML = s.categories.map((c) => {
+    const d = c.mom_pct, cls = !d ? "" : d > 0 ? "up" : "down";
+    return `<div class="cat"><span>${esc(c.category)}</span><div class="bar"><i style="width:${c.amount / top * 100}%"></i></div>
+      <span>${won(c.amount)} <span class="delta ${cls}">${d == null ? "신규" : d === 0 ? "–" : (d > 0 ? "▲" : "▼") + Math.abs(d) + "%"}</span></span></div>`;
+  }).join("");
+}
+
+function renderInsights(d) {
+  const { report, problems } = d, label = { alert: "주의", warn: "확인", info: "참고" };
+  $("#insights").innerHTML = `<div class="card"><b>${esc(report.headline)}</b>${problems.length ? '<div class="muted">⚠ 일부 수치가 검증되지 않았어요</div>' : ""}</div>` +
+    report.insights.map((i) => `<div class="card ins ${i.severity}">
+      <span class="badge b-${i.severity}">${label[i.severity]}</span>
+      <h3>${esc(i.title)}</h3><p>${esc(i.message)}</p>
+      <div class="ev">${i.evidence.map((e) => `<span>${esc(e.label)} ${unitFmt(e)}</span>`).join("")}</div>
+      <div class="act">👉 ${esc(i.action)}</div></div>`).join("");
+}
+
+async function loadInsights(refresh = false) {
+  $("#insights").innerHTML = `<div class="card muted">AI가 분석하는 중… (${refresh ? "새로 분석하면 10초 이상 걸릴 수 있어요" : "잠시만요"})</div>`;
+  try { renderInsights(await api(`/api/insights/${persona}${refresh ? "?refresh=true" : ""}`)); }
+  catch (e) { $("#insights").innerHTML = `<div class="card muted">${esc(e.message)}</div>`; }
+}
+$("#refresh").onclick = () => loadInsights(true);
+
+/* ---------- 목표 ---------- */
+const GOAL_EXAMPLES = ["6개월 안에 100만원 모으고 싶어", "배달비를 한 달에 20만원 이하로 줄일래", "1년 안에 500만원 모으기", "돈 좀 모으고 싶어"];
+$("#goalChips").innerHTML = GOAL_EXAMPLES.map((t) => `<button class="chip">${t}</button>`).join("");
+$("#goalChips").onclick = (e) => { if (e.target.classList.contains("chip")) { $("#goalText").value = e.target.textContent; $("#goalBtn").click(); } };
+
+const STATUS = {
+  comfortable: ["여유 있음", "info"], tight: ["빠듯함", "warn"], needs_cut: ["지출 조정 필요", "warn"], infeasible: ["기간 조정 필요", "alert"],
+  already_met: ["이미 달성 중", "info"], easy: ["쉬운 편", "info"], stretch: ["도전적", "warn"], hard: ["많이 어려움", "alert"],
+};
+function renderGoal(d) {
+  const g = d.goal; if (!g) { $("#goalView").innerHTML = ""; return; }
+  const a = g.plan, n = d.narrative, p = d.progress, [sl, sc] = STATUS[g.status] || [g.status, "info"];
+  let body = "";
+  if (a.type === "save_amount") {
+    const cuts = Object.entries(a.category_cuts || {});
+    body += `<div class="grid" style="margin:10px 0"><div class="stat"><div class="k">월 필요</div><div class="v">${won(a.required_monthly)}</div></div>
+      <div class="stat"><div class="k">월 저축 여력</div><div class="v">${won(a.monthly_capacity)}</div></div>
+      <div class="stat"><div class="k">부족분</div><div class="v">${won(a.gap)}</div></div></div>`;
+    if (cuts.length) body += `<h2>이렇게 줄여보세요</h2><table>${cuts.map(([c, v]) => `<tr><td>${esc(c)}</td><td>-${won(v)}/월</td></tr>`).join("")}</table>`;
+    if (a.alt_months) body += `<div class="act" style="margin-top:10px">현재 여력으로는 약 ${a.alt_months}개월이 현실적이에요</div>`;
+    const pct = Math.min(100, p.pct || 0);
+    body += `<h2 style="margin-top:14px">진행 상황</h2><div class="progress"><i style="width:${pct}%"></i></div>
+      <div class="muted">${g.start_month}부터 시작 · ${p.months_elapsed ? `${won(p.saved)} 저축 (${p.pct}%)` : "아직 시작 전이에요"}</div>`;
+    body += `<h2 style="margin-top:14px">월별 계획</h2><table><tr><th>월</th><th>저축</th><th>누적</th></tr>${a.schedule.map((s) => `<tr><td>${s.month}</td><td>${won(s.save)}</td><td>${won(s.cumulative)}</td></tr>`).join("")}</table>`;
+  } else {
+    body += `<div class="grid" style="margin:10px 0"><div class="stat"><div class="k">현재 평균</div><div class="v">${won(a.current_avg)}</div></div>
+      <div class="stat"><div class="k">목표 한도</div><div class="v">${won(a.monthly_limit)}</div></div>
+      <div class="stat"><div class="k">줄일 금액</div><div class="v">${won(a.monthly_cut)}</div></div></div>
+      <div class="muted">${a.cut_pct}% 줄이면 1년에 ${won(a.yearly_saving)}을 아낄 수 있어요 · ${g.start_month}부터 시작${p.months_elapsed ? "" : " (시작 전)"}</div>`;
+  }
+  $("#goalView").innerHTML = `<div class="card"><span class="badge b-${sc}">${sl}</span> <b style="margin-left:6px">${esc(g.title)}</b>
+    <p><b>${esc(n.headline)}</b><br>${esc(n.message)}</p>${body}
+    <h2 style="margin-top:14px">실행 팁</h2>${n.tips.map((t) => `<div class="act" style="margin-bottom:6px;font-weight:500">${esc(t)}</div>`).join("")}</div>`;
+}
+async function loadGoal() { try { renderGoal(await api(`/api/goal/${persona}`)); } catch { $("#goalView").innerHTML = ""; } }
+$("#goalBtn").onclick = async () => {
+  const text = $("#goalText").value.trim(); if (!text) return;
+  $("#goalBtn").disabled = true; $("#goalAsk").textContent = "목표를 분석하는 중…";
+  try {
+    const r = await post(`/api/goal/${persona}`, { text });
+    if (!r.ok) $("#goalAsk").textContent = "💬 " + r.ask; else { $("#goalAsk").textContent = ""; renderGoal(r); }
+  } catch (e) { $("#goalAsk").textContent = e.message; }
+  $("#goalBtn").disabled = false;
+};
+$("#goalText").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) $("#goalBtn").click(); });
+
+/* ---------- 채팅 ---------- */
+const CHAT_EXAMPLES = ["이번 달 왜 이렇게 많이 쓴 것 같아?", "배달을 반으로 줄이면 얼마나 아낄 수 있어?", "내 목표 어떻게 돼가?", "가장 비싼 지출이 뭐였어?"];
+$("#chatChips").innerHTML = CHAT_EXAMPLES.map((t) => `<button class="chip">${t}</button>`).join("");
+$("#chatChips").onclick = (e) => { if (e.target.classList.contains("chip")) { $("#chatText").value = e.target.textContent; $("#chatBtn").click(); } };
+function addMsg(cls, text) { const d = document.createElement("div"); d.className = "msg " + cls; d.textContent = text; $("#chatLog").appendChild(d); d.scrollIntoView({ block: "end" }); return d; }
+$("#chatBtn").onclick = async () => {
+  const text = $("#chatText").value.trim(); if (!text) return;
+  $("#chatText").value = ""; $("#chatBtn").disabled = true; addMsg("me", text);
+  const wait = addMsg("ai typing", "생각하는 중…");
+  try { const r = await post(`/api/chat/${persona}`, { message: text }); wait.remove(); addMsg("ai", r.answer); }
+  catch (e) { wait.remove(); addMsg("err", e.message); }
+  $("#chatBtn").disabled = false; $("#chatText").focus();
+};
+$("#chatText").addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.isComposing) $("#chatBtn").click(); });
+
+/* ---------- 시작 ---------- */
+async function loadPersona() {
+  $("#chatLog").innerHTML = ""; $("#goalAsk").textContent = ""; $("#goalText").value = "";
+  fetch(`/api/chat/${persona}/reset`, { method: "POST" });
+  addMsg("ai", "안녕하세요! 이번 달 소비나 목표에 대해 편하게 물어보세요 🙂");
+  try { renderStats(await api(`/api/summary/${persona}`)); } catch (e) { $("#stats").textContent = e.message; }
+  loadInsights(); loadGoal();
+}
+(async () => {
+  const ps = await api("/api/personas");
+  $("#persona").innerHTML = ps.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join("");
+  const h = location.hash.slice(1), q = new URLSearchParams(location.search).get("persona");
+  if (["goal", "chat"].includes(h)) showTab(h);
+  persona = ps.some((p) => p.id === q) ? q : ps[0].id; $("#persona").value = persona; $("#persona").onchange = (e) => { persona = e.target.value; loadPersona(); };
+  loadPersona();
+})();
+</script>
+</body>
+</html>

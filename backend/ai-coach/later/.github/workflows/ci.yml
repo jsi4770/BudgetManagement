@@ -1,0 +1,32 @@
+# GitHub Actions: main/develop 에 push 하거나 PR 을 올리면 깃허브 서버가 자동으로 빌드·테스트를 돌린다.
+# GEMINI_MOCK=true 로 실행 → 실제 Gemini 를 부르지 않으므로 깃허브에 API 키를 등록할 필요 없음.
+name: backend-ci
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # 백엔드가 저장소 하위 폴더에 있으면 주석 풀고 폴더명 맞추기 (예: backend)
+    # defaults:
+    #   run:
+    #     working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle            # Maven 이면 maven
+
+      - name: Gradle 실행 권한
+        run: chmod +x gradlew
+
+      - name: 빌드 + 테스트
+        run: ./gradlew build       # Maven 이면 ./mvnw -B verify
+        env:
+          GEMINI_MOCK: "true"

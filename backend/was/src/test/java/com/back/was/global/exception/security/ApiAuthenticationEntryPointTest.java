@@ -17,8 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 1회 호출한 뒤 원래 요청을 재시도한다. 만료를 {@code UNAUTHORIZED}로 내리면 그
  * 재발급 흐름이 죽고 사용자가 그냥 로그아웃되므로, 이 분기는 기능 요건이다.
  *
- * <p>필터 체인을 띄우지 않고 직접 호출한다 — JWT 필터가 아직 없어서
- * {@code TOKEN_EXPIRED} 경로를 통합 테스트로 만들 수 없다.
+ * <p>필터 체인을 띄우지 않고 진입점만 직접 호출한다 — 필터와의 연결(속성 전달)은
+ * {@code JwtAuthenticationFilterTest} 가 끝까지 검증한다.
  */
 class ApiAuthenticationEntryPointTest {
 

@@ -122,12 +122,12 @@ class TransactionChallengeApiTest {
         String body = mockMvc.perform(authed(post("/transactions"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"categoryId": %d, "amount": %d, "transactionDate": "%s"}
+                                {"transactions": [{"categoryId": %d, "amount": %d, "transactionDate": "%s"}]}
                                 """.formatted(categoryId, amount, date)))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
 
-        return ((Number) JsonPath.read(body, "$.data.id")).longValue();
+        return ((Number) JsonPath.read(body, "$.data[0].id")).longValue();
     }
 
     private Challenge reload(Challenge challenge) {

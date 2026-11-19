@@ -12,6 +12,11 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
 
     void deleteByTokenHash(String tokenHash);
 
-    /** ERD 2장: 일일 스케줄러가 만료된 행을 지운다. */
+    /**
+     * ERD 2장: 일일 스케줄러가 만료된 행을 지운다 ({@link ExpiredRefreshTokenCleanupJob}).
+     *
+     * <p>파생 삭제 쿼리는 <b>호출자가 트랜잭션을 열어 줘야</b> 한다 — 없으면
+     * {@code InvalidDataAccessApiUsageException} 이다.
+     */
     long deleteByExpiresAtBefore(LocalDateTime threshold);
 }

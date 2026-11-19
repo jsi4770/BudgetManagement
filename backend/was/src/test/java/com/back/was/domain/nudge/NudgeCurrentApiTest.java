@@ -37,8 +37,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * NDG-01 홈 노출 넛지.
  *
- * <p>넛지를 만드는 판정(서버_내부_처리 3장)은 아직 없으므로 카드는 리포지터리로 직접
- * 넣는다. 숫자는 {@link SpendingComparison} 을 거쳐 만들어서 docs/시연_데이터.md 6-1 의
+ * <p>카드는 판정(서버_내부_처리 3장, {@code NudgeJudgement})을 거치지 않고 리포지터리로
+ * 직접 넣는다 — 판정은 {@code TransactionNudgeApiTest} 의 몫이고, 여기서는 노출 조건만 본다. 숫자는 {@link SpendingComparison} 을 거쳐 만들어서 docs/시연_데이터.md 6-1 의
  * 배달 판정(101,000 vs 55/62/58/65천 → 평균 60,000 · Z 9.32 · +68.33%)과 같은 값이 되게
  * 한다 — 기대값을 손으로 적으면 계산이 바뀌어도 테스트가 모른다.
  */

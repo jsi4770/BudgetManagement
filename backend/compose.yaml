@@ -1,0 +1,76 @@
+# 백엔드 전체(PostgreSQL · was · ai-coach · ocr)를 한 번에 띄웁니다. 프론트는 포함하지 않습니다
+# (frontend/ 에서 `npm run dev`).
+#
+#   cd backend
+#   docker compose up -d --build     # 전부 띄우기 (코드가 바뀌었으면 --build)
+#   docker compose ps                # 상태
+#   docker compose logs -f app       # 로그 (app = was, ai-coach, ocr, postgres)
+#   docker compose down              # 내리기 (DB 데이터는 남음)
+#   docker compose down -v           # DB 데이터까지 지우기
+#
+# | 서비스    | 주소                                  | 비고                                   |
+# |-----------|---------------------------------------|----------------------------------------|
+# | postgres  | localhost:5432                        | was/compose.yaml 정의                   |
+# | app (was) | http://localhost:8080/api/v1          | was/compose.yaml 정의. dev 프로필 기본  |
+# | ai-coach  | http://localhost:8081                 | 컨테이너 안에서는 8080                  |
+# | ocr       | http://localhost:8000/receipts/ocr    |                                        |
+#
+# **비밀값은 각 폴더의 .env 에서 읽습니다** — 이 파일에는 값을 적지 않습니다.
+#   - was/.env      → ANTHROPIC_API_KEY 등 (was/.env.example 참고)
+#   - ai-coach/.env → ANTHROPIC_API_KEY 등 (ai-coach/.env.example)
+#   - ocr/.env      → DJANGO_*, GCP_* (ocr/.env.example)
+# .env 가 없어도 전부 뜹니다. AI 기능만 503/대체 문구로 동작합니다.
+
+# 프로젝트 이름을 was/compose.yaml 과 같게 둡니다. 그래야 `was/` 에서 DB 만 띄우던 컨테이너와
+# **볼륨을 그대로 공유**해서, 이미 깔아 둔 시연 데이터(DEV-01)가 어느 쪽으로 띄워도 살아 있습니다.
+# 이름이 다르면 같은 container_name(was-postgres)이 부딪혀 기동이 실패하고, 볼륨도 새로 생깁니다.
+# (was/ 에서 `docker compose down` 하면 ai-coach·ocr 는 "orphan" 경고만 나고 남습니다 —
+#  전체를 내릴 때는 여기서 내리세요.)
+name: was
+
+# was 와 DB 는 was/compose.yaml 을 그대로 가져옵니다 — 설정을 두 벌로 두지 않기 위해서입니다.
+# 그 파일의 상대 경로(build context, .env)는 was/ 기준으로 해석되고, was/.env 도 자동으로 읽습니다.
+# `env_file: was/.env` 를 적지 마세요 — 적으면 그 파일이 없는 팀원은 스택 전체가 뜨지 않습니다.
+include:
+  - path: was/compose.yaml
+
+services:
+  ai-coach:
+    build:
+      context: ai-coach
+    container_name: ai-coach
+    env_file:
+      - path: ai-coach/.env
+        required: false
+    ports:
+      # 호스트 8080 은 was 가 씁니다 (프론트가 localhost:8080/api/v1 을 봄)
+      - "8081:8080"
+    restart: unless-stopped
+
+  ocr:
+    build:
+      context: ocr
+    container_name: ocr
+    env_file:
+      - path: ocr/.env
+        required: false
+    environment:
+      # was 컨테이너가 http://ocr:8000 으로 부르면 Host 헤더가 "ocr" 이라, 목록에 없으면
+      # Django 가 400 으로 거절합니다. ocr/.env 의 값보다 이쪽이 우선합니다.
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,ocr
+      # GCP 서비스 계정 키는 이미지에 굽지 않고 아래 볼륨으로 넣습니다.
+      GOOGLE_APPLICATION_CREDENTIALS: /app/secrets/service-account.json
+    volumes:
+      # 키 파일을 **backend/ocr/secrets/service-account.json** 에 두세요 (secrets/ 는 gitignore 대상).
+      # 파일이 아니라 폴더를 마운트하는 이유: 키가 없는 팀원도 스택이 떠야 하는데, 없는 파일을
+      # 마운트하면 Docker 가 그 자리에 빈 폴더를 만들거나 기동이 실패합니다. 키가 없으면 서버는
+      # 뜨고 분석 요청만 실패합니다.
+      - ./ocr/secrets:/app/secrets:ro
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+# was 가 영수증을 ocr 서버로 보내게 하려면(기본은 Claude 가 직접 읽음) was/.env 에
+#   OCR_BASE_URL=http://ocr:8000
+# 을 넣고 `docker compose up -d app` 으로 was 만 다시 띄우세요. 컨테이너끼리는 서비스 이름으로
+# 찾습니다 — localhost 는 각 컨테이너 자기 자신입니다.

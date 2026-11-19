@@ -3,7 +3,7 @@ package com.back.was.domain.ai;
 import com.back.was.domain.coaching.MessageRole;
 
 /**
- * 대화 한 줄 — Gemini 에게 넘길 맥락이다 (ERD 8장: 메시지를 저장하는 이유 중 하나가
+ * 대화 한 줄 — AI 에게 넘길 맥락이다 (ERD 8장: 메시지를 저장하는 이유 중 하나가
  * "대화 중 AI 에게 이전 맥락을 넘기기" 다).
  *
  * <p>{@code CoachingMessage} 엔티티를 그대로 넘기지 않는 이유는 다른 커맨드들과 같다 —

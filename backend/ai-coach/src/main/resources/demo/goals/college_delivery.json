@@ -1,0 +1,54 @@
+{
+ "goal": {
+  "persona": "college_delivery",
+  "type": "cap_category",
+  "title": "배달비 줄이기",
+  "target_amount": null,
+  "months": null,
+  "category": "배달",
+  "monthly_limit": 200000,
+  "start_month": "2026-11",
+  "status": "stretch",
+  "plan": {
+   "type": "cap_category",
+   "status": "stretch",
+   "category": "배달",
+   "current_avg": 301400,
+   "monthly_limit": 200000,
+   "monthly_cut": 101400,
+   "cut_pct": 33.6,
+   "yearly_saving": 1216800,
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 1100000,
+    "spending": 1034200,
+    "surplus": 65800,
+    "category_avg": {
+     "월세/관리비": 380000,
+     "카페": 47000,
+     "교통": 40100,
+     "쇼핑": 84300,
+     "식비": 86000,
+     "배달": 301400,
+     "구독": 14900,
+     "문화/여가": 35400,
+     "통신비": 45000
+    }
+   }
+  }
+ },
+ "narrative": {
+  "headline": "배달비 목표 달성을 위해 조금만 힘내봐요",
+  "message": "현재 배달비에 한 달 평균 301,400원을 쓰고 있어요. 목표인 200,000원까지 맞추려면 매달 101,400원, 즉 33.6%를 줄여야 하네요. 조금 벅차 보일 수 있지만, 이렇게 아끼면 1년 동안 1,216,800원을 모을 수 있어요.",
+  "tips": [
+   "배달 앱을 잠시 삭제하거나 알림을 꺼두기",
+   "일주일에 배달 횟수 목표를 정해두기",
+   "냉동실 재료로 간단히 한 끼 해결하기"
+  ]
+ },
+ "problems": []
+}

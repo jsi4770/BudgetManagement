@@ -25,9 +25,9 @@ import com.back.was.global.exception.ErrorCode;
  *   <li>API 키는 환경 변수로만 받는다 (서버_내부_처리 8장). 코드·저장소에 두지 않는다.</li>
  * </ul>
  *
- * <p>구현체는 현재 {@link UnavailableTransactionTextParser} 하나뿐이고 항상 503 이다.
- * Spring AI(Boot 4 는 2.0.x 계열) 어댑터를 붙일 때 그 클래스를 대체하면 TX-07 ·
- * RCPT-01 의 나머지 코드는 건드릴 필요가 없다.
+ * <p>구현은 {@link LlmTransactionTextParser} 하나다. 대체 구현이 없는 것이 의도다 —
+ * 실패를 503 으로 드러내야 하는 포트라 템플릿으로 숨길 값이 없다. 키가 비어 있으면
+ * 호출 시점에 503 이 난다.
  *
  * @see ErrorCode#AI_UNAVAILABLE
  * @see ErrorCode#AI_PARSE_FAILED

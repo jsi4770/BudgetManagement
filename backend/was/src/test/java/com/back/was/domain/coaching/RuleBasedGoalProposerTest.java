@@ -36,7 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * 규칙 기반 목표 제안 (docs/AI_대체_문구.md 5장).
  *
- * <p>CLAUDE.md 가 요구하는 단위 테스트 중 하나다 — Gemini 가 없는 동안 COACH-03 의 모든
+ * <p>CLAUDE.md 가 요구하는 단위 테스트 중 하나다 — AI 가 없는 동안 COACH-03 의 모든
  * 제안이 여기서 나오므로, 카테고리 선택 ①②③ 의 <b>우선순위</b>와 금액 공식을 못박는다.
  *
  * <p>금액 기대값은 문서의 예시 그대로다: 직전 4주 주간 평균 60,000 → 80% = 48,000 →

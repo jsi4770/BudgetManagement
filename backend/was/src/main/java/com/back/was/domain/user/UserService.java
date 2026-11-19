@@ -1,7 +1,9 @@
 package com.back.was.domain.user;
 
 import com.back.was.domain.user.dto.MeResponse;
+import com.back.was.domain.user.dto.OnboardingRequest;
 import com.back.was.domain.user.dto.UpdateMeRequest;
+import com.back.was.global.support.KstTime;
 import com.back.was.global.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,8 +29,31 @@ public class UserService {
         if (request.hasUsername()) {
             user.changeUsername(request.username());
         }
+        if (request.hasRegionCode()) {
+            user.changeRegionCode(request.regionCode());
+        }
+        if (request.hasAge()) {
+            user.changeBirthYear(birthYearOf(request.age()));
+        }
+        if (request.hasGender()) {
+            user.changeGender(request.gender());
+        }
 
         return MeResponse.from(user);
+    }
+
+    /** 온보딩 — 지역·나이·성별을 한 번에 저장한다. 다시 호출하면 덮어쓴다(설정에서 고칠 수 있게). */
+    @Transactional
+    public MeResponse completeOnboarding(Long userId, OnboardingRequest request) {
+        User user = findOrThrow(userId);
+        user.changeRegionCode(request.regionCode());
+        user.changeBirthYear(birthYearOf(request.age()));
+        user.changeGender(request.gender());
+        return MeResponse.from(user);
+    }
+
+    private static int birthYearOf(int age) {
+        return KstTime.today().getYear() - age;
     }
 
     /**

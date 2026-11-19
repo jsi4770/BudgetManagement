@@ -1,0 +1,1239 @@
+{
+ "college_delivery|save_300_12": {
+  "intent": {
+   "goal_type": "save_amount",
+   "title": "t",
+   "target_amount": 3000000,
+   "months": 12,
+   "category": null,
+   "monthly_limit": null,
+   "needs_clarification": null
+  },
+  "start": "2026-11",
+  "assessment": {
+   "type": "save_amount",
+   "status": "infeasible",
+   "required_monthly": 250000,
+   "monthly_capacity": 65800,
+   "gap": 184200,
+   "category_cuts": {},
+   "max_cuttable_total": 144900,
+   "alt_months": 15,
+   "schedule": [
+    {
+     "month": "2026-11",
+     "save": 250000,
+     "cumulative": 250000
+    },
+    {
+     "month": "2026-12",
+     "save": 250000,
+     "cumulative": 500000
+    },
+    {
+     "month": "2027-01",
+     "save": 250000,
+     "cumulative": 750000
+    },
+    {
+     "month": "2027-02",
+     "save": 250000,
+     "cumulative": 1000000
+    },
+    {
+     "month": "2027-03",
+     "save": 250000,
+     "cumulative": 1250000
+    },
+    {
+     "month": "2027-04",
+     "save": 250000,
+     "cumulative": 1500000
+    },
+    {
+     "month": "2027-05",
+     "save": 250000,
+     "cumulative": 1750000
+    },
+    {
+     "month": "2027-06",
+     "save": 250000,
+     "cumulative": 2000000
+    },
+    {
+     "month": "2027-07",
+     "save": 250000,
+     "cumulative": 2250000
+    },
+    {
+     "month": "2027-08",
+     "save": 250000,
+     "cumulative": 2500000
+    },
+    {
+     "month": "2027-09",
+     "save": 250000,
+     "cumulative": 2750000
+    },
+    {
+     "month": "2027-10",
+     "save": 250000,
+     "cumulative": 3000000
+    }
+   ],
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 1100000,
+    "spending": 1034200,
+    "surplus": 65800,
+    "category_avg": {
+     "월세/관리비": 380000,
+     "카페": 47000,
+     "교통": 40100,
+     "쇼핑": 84300,
+     "식비": 86000,
+     "배달": 301400,
+     "구독": 14900,
+     "문화/여가": 35400,
+     "통신비": 45000
+    }
+   }
+  }
+ },
+ "college_delivery|save_12m_12": {
+  "intent": {
+   "goal_type": "save_amount",
+   "title": "t",
+   "target_amount": 12000000,
+   "months": 12,
+   "category": null,
+   "monthly_limit": null,
+   "needs_clarification": null
+  },
+  "start": "2026-11",
+  "assessment": {
+   "type": "save_amount",
+   "status": "infeasible",
+   "required_monthly": 1000000,
+   "monthly_capacity": 65800,
+   "gap": 934200,
+   "category_cuts": {},
+   "max_cuttable_total": 144900,
+   "alt_months": 57,
+   "schedule": [
+    {
+     "month": "2026-11",
+     "save": 1000000,
+     "cumulative": 1000000
+    },
+    {
+     "month": "2026-12",
+     "save": 1000000,
+     "cumulative": 2000000
+    },
+    {
+     "month": "2027-01",
+     "save": 1000000,
+     "cumulative": 3000000
+    },
+    {
+     "month": "2027-02",
+     "save": 1000000,
+     "cumulative": 4000000
+    },
+    {
+     "month": "2027-03",
+     "save": 1000000,
+     "cumulative": 5000000
+    },
+    {
+     "month": "2027-04",
+     "save": 1000000,
+     "cumulative": 6000000
+    },
+    {
+     "month": "2027-05",
+     "save": 1000000,
+     "cumulative": 7000000
+    },
+    {
+     "month": "2027-06",
+     "save": 1000000,
+     "cumulative": 8000000
+    },
+    {
+     "month": "2027-07",
+     "save": 1000000,
+     "cumulative": 9000000
+    },
+    {
+     "month": "2027-08",
+     "save": 1000000,
+     "cumulative": 10000000
+    },
+    {
+     "month": "2027-09",
+     "save": 1000000,
+     "cumulative": 11000000
+    },
+    {
+     "month": "2027-10",
+     "save": 1000000,
+     "cumulative": 12000000
+    }
+   ],
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 1100000,
+    "spending": 1034200,
+    "surplus": 65800,
+    "category_avg": {
+     "월세/관리비": 380000,
+     "카페": 47000,
+     "교통": 40100,
+     "쇼핑": 84300,
+     "식비": 86000,
+     "배달": 301400,
+     "구독": 14900,
+     "문화/여가": 35400,
+     "통신비": 45000
+    }
+   }
+  }
+ },
+ "college_delivery|save_20m_12": {
+  "intent": {
+   "goal_type": "save_amount",
+   "title": "t",
+   "target_amount": 20000000,
+   "months": 12,
+   "category": null,
+   "monthly_limit": null,
+   "needs_clarification": null
+  },
+  "start": "2026-11",
+  "assessment": {
+   "type": "save_amount",
+   "status": "infeasible",
+   "required_monthly": 1666700,
+   "monthly_capacity": 65800,
+   "gap": 1600900,
+   "category_cuts": {},
+   "max_cuttable_total": 144900,
+   "alt_months": 95,
+   "schedule": [
+    {
+     "month": "2026-11",
+     "save": 1666700,
+     "cumulative": 1666700
+    },
+    {
+     "month": "2026-12",
+     "save": 1666700,
+     "cumulative": 3333400
+    },
+    {
+     "month": "2027-01",
+     "save": 1666700,
+     "cumulative": 5000100
+    },
+    {
+     "month": "2027-02",
+     "save": 1666700,
+     "cumulative": 6666800
+    },
+    {
+     "month": "2027-03",
+     "save": 1666700,
+     "cumulative": 8333500
+    },
+    {
+     "month": "2027-04",
+     "save": 1666700,
+     "cumulative": 10000200
+    },
+    {
+     "month": "2027-05",
+     "save": 1666700,
+     "cumulative": 11666900
+    },
+    {
+     "month": "2027-06",
+     "save": 1666700,
+     "cumulative": 13333600
+    },
+    {
+     "month": "2027-07",
+     "save": 1666700,
+     "cumulative": 15000300
+    },
+    {
+     "month": "2027-08",
+     "save": 1666700,
+     "cumulative": 16667000
+    },
+    {
+     "month": "2027-09",
+     "save": 1666700,
+     "cumulative": 18333700
+    },
+    {
+     "month": "2027-10",
+     "save": 1666700,
+     "cumulative": 20000000
+    }
+   ],
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 1100000,
+    "spending": 1034200,
+    "surplus": 65800,
+    "category_avg": {
+     "월세/관리비": 380000,
+     "카페": 47000,
+     "교통": 40100,
+     "쇼핑": 84300,
+     "식비": 86000,
+     "배달": 301400,
+     "구독": 14900,
+     "문화/여가": 35400,
+     "통신비": 45000
+    }
+   }
+  }
+ },
+ "college_delivery|save_1m_6": {
+  "intent": {
+   "goal_type": "save_amount",
+   "title": "t",
+   "target_amount": 1000000,
+   "months": 6,
+   "category": null,
+   "monthly_limit": null,
+   "needs_clarification": null
+  },
+  "start": "2026-11",
+  "assessment": {
+   "type": "save_amount",
+   "status": "needs_cut",
+   "required_monthly": 166700,
+   "monthly_capacity": 65800,
+   "gap": 100900,
+   "category_cuts": {
+    "배달": 63000,
+    "카페": 9800,
+    "쇼핑": 17600,
+    "구독": 3100,
+    "문화/여가": 7400
+   },
+   "max_cuttable_total": 144900,
+   "alt_months": null,
+   "schedule": [
+    {
+     "month": "2026-11",
+     "save": 166700,
+     "cumulative": 166700
+    },
+    {
+     "month": "2026-12",
+     "save": 166700,
+     "cumulative": 333400
+    },
+    {
+     "month": "2027-01",
+     "save": 166700,
+     "cumulative": 500100
+    },
+    {
+     "month": "2027-02",
+     "save": 166700,
+     "cumulative": 666800
+    },
+    {
+     "month": "2027-03",
+     "save": 166700,
+     "cumulative": 833500
+    },
+    {
+     "month": "2027-04",
+     "save": 166700,
+     "cumulative": 1000000
+    }
+   ],
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 1100000,
+    "spending": 1034200,
+    "surplus": 65800,
+    "category_avg": {
+     "월세/관리비": 380000,
+     "카페": 47000,
+     "교통": 40100,
+     "쇼핑": 84300,
+     "식비": 86000,
+     "배달": 301400,
+     "구독": 14900,
+     "문화/여가": 35400,
+     "통신비": 45000
+    }
+   }
+  }
+ },
+ "college_delivery|cap_delivery_200k": {
+  "intent": {
+   "goal_type": "cap_category",
+   "title": "t",
+   "target_amount": null,
+   "months": null,
+   "category": "배달",
+   "monthly_limit": 200000,
+   "needs_clarification": null
+  },
+  "start": "2026-11",
+  "assessment": {
+   "type": "cap_category",
+   "status": "stretch",
+   "category": "배달",
+   "current_avg": 301400,
+   "monthly_limit": 200000,
+   "monthly_cut": 101400,
+   "cut_pct": 33.6,
+   "yearly_saving": 1216800,
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 1100000,
+    "spending": 1034200,
+    "surplus": 65800,
+    "category_avg": {
+     "월세/관리비": 380000,
+     "카페": 47000,
+     "교통": 40100,
+     "쇼핑": 84300,
+     "식비": 86000,
+     "배달": 301400,
+     "구독": 14900,
+     "문화/여가": 35400,
+     "통신비": 45000
+    }
+   }
+  }
+ },
+ "rookie_subscription|save_300_12": {
+  "intent": {
+   "goal_type": "save_amount",
+   "title": "t",
+   "target_amount": 3000000,
+   "months": 12,
+   "category": null,
+   "monthly_limit": null,
+   "needs_clarification": null
+  },
+  "start": "2026-11",
+  "assessment": {
+   "type": "save_amount",
+   "status": "comfortable",
+   "required_monthly": 250000,
+   "monthly_capacity": 892100,
+   "gap": 0,
+   "category_cuts": {},
+   "max_cuttable_total": 249600,
+   "alt_months": null,
+   "schedule": [
+    {
+     "month": "2026-11",
+     "save": 250000,
+     "cumulative": 250000
+    },
+    {
+     "month": "2026-12",
+     "save": 250000,
+     "cumulative": 500000
+    },
+    {
+     "month": "2027-01",
+     "save": 250000,
+     "cumulative": 750000
+    },
+    {
+     "month": "2027-02",
+     "save": 250000,
+     "cumulative": 1000000
+    },
+    {
+     "month": "2027-03",
+     "save": 250000,
+     "cumulative": 1250000
+    },
+    {
+     "month": "2027-04",
+     "save": 250000,
+     "cumulative": 1500000
+    },
+    {
+     "month": "2027-05",
+     "save": 250000,
+     "cumulative": 1750000
+    },
+    {
+     "month": "2027-06",
+     "save": 250000,
+     "cumulative": 2000000
+    },
+    {
+     "month": "2027-07",
+     "save": 250000,
+     "cumulative": 2250000
+    },
+    {
+     "month": "2027-08",
+     "save": 250000,
+     "cumulative": 2500000
+    },
+    {
+     "month": "2027-09",
+     "save": 250000,
+     "cumulative": 2750000
+    },
+    {
+     "month": "2027-10",
+     "save": 250000,
+     "cumulative": 3000000
+    }
+   ],
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 2800000,
+    "spending": 1907900,
+    "surplus": 892100,
+    "category_avg": {
+     "월세/관리비": 650000,
+     "구독": 95300,
+     "쇼핑": 516800,
+     "식비": 227800,
+     "교통": 51300,
+     "카페": 72700,
+     "문화/여가": 147100,
+     "통신비": 62000,
+     "보험": 85000
+    }
+   }
+  }
+ },
+ "rookie_subscription|save_12m_12": {
+  "intent": {
+   "goal_type": "save_amount",
+   "title": "t",
+   "target_amount": 12000000,
+   "months": 12,
+   "category": null,
+   "monthly_limit": null,
+   "needs_clarification": null
+  },
+  "start": "2026-11",
+  "assessment": {
+   "type": "save_amount",
+   "status": "needs_cut",
+   "required_monthly": 1000000,
+   "monthly_capacity": 892100,
+   "gap": 107900,
+   "category_cuts": {
+    "카페": 9400,
+    "쇼핑": 67000,
+    "구독": 12400,
+    "문화/여가": 19100
+   },
+   "max_cuttable_total": 249600,
+   "alt_months": null,
+   "schedule": [
+    {
+     "month": "2026-11",
+     "save": 1000000,
+     "cumulative": 1000000
+    },
+    {
+     "month": "2026-12",
+     "save": 1000000,
+     "cumulative": 2000000
+    },
+    {
+     "month": "2027-01",
+     "save": 1000000,
+     "cumulative": 3000000
+    },
+    {
+     "month": "2027-02",
+     "save": 1000000,
+     "cumulative": 4000000
+    },
+    {
+     "month": "2027-03",
+     "save": 1000000,
+     "cumulative": 5000000
+    },
+    {
+     "month": "2027-04",
+     "save": 1000000,
+     "cumulative": 6000000
+    },
+    {
+     "month": "2027-05",
+     "save": 1000000,
+     "cumulative": 7000000
+    },
+    {
+     "month": "2027-06",
+     "save": 1000000,
+     "cumulative": 8000000
+    },
+    {
+     "month": "2027-07",
+     "save": 1000000,
+     "cumulative": 9000000
+    },
+    {
+     "month": "2027-08",
+     "save": 1000000,
+     "cumulative": 10000000
+    },
+    {
+     "month": "2027-09",
+     "save": 1000000,
+     "cumulative": 11000000
+    },
+    {
+     "month": "2027-10",
+     "save": 1000000,
+     "cumulative": 12000000
+    }
+   ],
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 2800000,
+    "spending": 1907900,
+    "surplus": 892100,
+    "category_avg": {
+     "월세/관리비": 650000,
+     "구독": 95300,
+     "쇼핑": 516800,
+     "식비": 227800,
+     "교통": 51300,
+     "카페": 72700,
+     "문화/여가": 147100,
+     "통신비": 62000,
+     "보험": 85000
+    }
+   }
+  }
+ },
+ "rookie_subscription|save_20m_12": {
+  "intent": {
+   "goal_type": "save_amount",
+   "title": "t",
+   "target_amount": 20000000,
+   "months": 12,
+   "category": null,
+   "monthly_limit": null,
+   "needs_clarification": null
+  },
+  "start": "2026-11",
+  "assessment": {
+   "type": "save_amount",
+   "status": "infeasible",
+   "required_monthly": 1666700,
+   "monthly_capacity": 892100,
+   "gap": 774600,
+   "category_cuts": {},
+   "max_cuttable_total": 249600,
+   "alt_months": 18,
+   "schedule": [
+    {
+     "month": "2026-11",
+     "save": 1666700,
+     "cumulative": 1666700
+    },
+    {
+     "month": "2026-12",
+     "save": 1666700,
+     "cumulative": 3333400
+    },
+    {
+     "month": "2027-01",
+     "save": 1666700,
+     "cumulative": 5000100
+    },
+    {
+     "month": "2027-02",
+     "save": 1666700,
+     "cumulative": 6666800
+    },
+    {
+     "month": "2027-03",
+     "save": 1666700,
+     "cumulative": 8333500
+    },
+    {
+     "month": "2027-04",
+     "save": 1666700,
+     "cumulative": 10000200
+    },
+    {
+     "month": "2027-05",
+     "save": 1666700,
+     "cumulative": 11666900
+    },
+    {
+     "month": "2027-06",
+     "save": 1666700,
+     "cumulative": 13333600
+    },
+    {
+     "month": "2027-07",
+     "save": 1666700,
+     "cumulative": 15000300
+    },
+    {
+     "month": "2027-08",
+     "save": 1666700,
+     "cumulative": 16667000
+    },
+    {
+     "month": "2027-09",
+     "save": 1666700,
+     "cumulative": 18333700
+    },
+    {
+     "month": "2027-10",
+     "save": 1666700,
+     "cumulative": 20000000
+    }
+   ],
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 2800000,
+    "spending": 1907900,
+    "surplus": 892100,
+    "category_avg": {
+     "월세/관리비": 650000,
+     "구독": 95300,
+     "쇼핑": 516800,
+     "식비": 227800,
+     "교통": 51300,
+     "카페": 72700,
+     "문화/여가": 147100,
+     "통신비": 62000,
+     "보험": 85000
+    }
+   }
+  }
+ },
+ "rookie_subscription|save_1m_6": {
+  "intent": {
+   "goal_type": "save_amount",
+   "title": "t",
+   "target_amount": 1000000,
+   "months": 6,
+   "category": null,
+   "monthly_limit": null,
+   "needs_clarification": null
+  },
+  "start": "2026-11",
+  "assessment": {
+   "type": "save_amount",
+   "status": "comfortable",
+   "required_monthly": 166700,
+   "monthly_capacity": 892100,
+   "gap": 0,
+   "category_cuts": {},
+   "max_cuttable_total": 249600,
+   "alt_months": null,
+   "schedule": [
+    {
+     "month": "2026-11",
+     "save": 166700,
+     "cumulative": 166700
+    },
+    {
+     "month": "2026-12",
+     "save": 166700,
+     "cumulative": 333400
+    },
+    {
+     "month": "2027-01",
+     "save": 166700,
+     "cumulative": 500100
+    },
+    {
+     "month": "2027-02",
+     "save": 166700,
+     "cumulative": 666800
+    },
+    {
+     "month": "2027-03",
+     "save": 166700,
+     "cumulative": 833500
+    },
+    {
+     "month": "2027-04",
+     "save": 166700,
+     "cumulative": 1000000
+    }
+   ],
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 2800000,
+    "spending": 1907900,
+    "surplus": 892100,
+    "category_avg": {
+     "월세/관리비": 650000,
+     "구독": 95300,
+     "쇼핑": 516800,
+     "식비": 227800,
+     "교통": 51300,
+     "카페": 72700,
+     "문화/여가": 147100,
+     "통신비": 62000,
+     "보험": 85000
+    }
+   }
+  }
+ },
+ "frugal_saver|save_300_12": {
+  "intent": {
+   "goal_type": "save_amount",
+   "title": "t",
+   "target_amount": 3000000,
+   "months": 12,
+   "category": null,
+   "monthly_limit": null,
+   "needs_clarification": null
+  },
+  "start": "2026-11",
+  "assessment": {
+   "type": "save_amount",
+   "status": "comfortable",
+   "required_monthly": 250000,
+   "monthly_capacity": 954300,
+   "gap": 0,
+   "category_cuts": {},
+   "max_cuttable_total": 206500,
+   "alt_months": null,
+   "schedule": [
+    {
+     "month": "2026-11",
+     "save": 250000,
+     "cumulative": 250000
+    },
+    {
+     "month": "2026-12",
+     "save": 250000,
+     "cumulative": 500000
+    },
+    {
+     "month": "2027-01",
+     "save": 250000,
+     "cumulative": 750000
+    },
+    {
+     "month": "2027-02",
+     "save": 250000,
+     "cumulative": 1000000
+    },
+    {
+     "month": "2027-03",
+     "save": 250000,
+     "cumulative": 1250000
+    },
+    {
+     "month": "2027-04",
+     "save": 250000,
+     "cumulative": 1500000
+    },
+    {
+     "month": "2027-05",
+     "save": 250000,
+     "cumulative": 1750000
+    },
+    {
+     "month": "2027-06",
+     "save": 250000,
+     "cumulative": 2000000
+    },
+    {
+     "month": "2027-07",
+     "save": 250000,
+     "cumulative": 2250000
+    },
+    {
+     "month": "2027-08",
+     "save": 250000,
+     "cumulative": 2500000
+    },
+    {
+     "month": "2027-09",
+     "save": 250000,
+     "cumulative": 2750000
+    },
+    {
+     "month": "2027-10",
+     "save": 250000,
+     "cumulative": 3000000
+    }
+   ],
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 3000000,
+    "spending": 2045700,
+    "surplus": 954300,
+    "category_avg": {
+     "월세/관리비": 600000,
+     "외식": 264200,
+     "교통": 49500,
+     "식비": 293700,
+     "문화/여가": 115300,
+     "쇼핑": 278700,
+     "가족지원": 200000,
+     "카페": 30200,
+     "통신비": 39000,
+     "경조사/기타": 105100,
+     "보험": 70000
+    }
+   }
+  }
+ },
+ "frugal_saver|save_12m_12": {
+  "intent": {
+   "goal_type": "save_amount",
+   "title": "t",
+   "target_amount": 12000000,
+   "months": 12,
+   "category": null,
+   "monthly_limit": null,
+   "needs_clarification": null
+  },
+  "start": "2026-11",
+  "assessment": {
+   "type": "save_amount",
+   "status": "needs_cut",
+   "required_monthly": 1000000,
+   "monthly_capacity": 954300,
+   "gap": 45700,
+   "category_cuts": {
+    "외식": 17500,
+    "카페": 2000,
+    "쇼핑": 18500,
+    "문화/여가": 7700
+   },
+   "max_cuttable_total": 206500,
+   "alt_months": null,
+   "schedule": [
+    {
+     "month": "2026-11",
+     "save": 1000000,
+     "cumulative": 1000000
+    },
+    {
+     "month": "2026-12",
+     "save": 1000000,
+     "cumulative": 2000000
+    },
+    {
+     "month": "2027-01",
+     "save": 1000000,
+     "cumulative": 3000000
+    },
+    {
+     "month": "2027-02",
+     "save": 1000000,
+     "cumulative": 4000000
+    },
+    {
+     "month": "2027-03",
+     "save": 1000000,
+     "cumulative": 5000000
+    },
+    {
+     "month": "2027-04",
+     "save": 1000000,
+     "cumulative": 6000000
+    },
+    {
+     "month": "2027-05",
+     "save": 1000000,
+     "cumulative": 7000000
+    },
+    {
+     "month": "2027-06",
+     "save": 1000000,
+     "cumulative": 8000000
+    },
+    {
+     "month": "2027-07",
+     "save": 1000000,
+     "cumulative": 9000000
+    },
+    {
+     "month": "2027-08",
+     "save": 1000000,
+     "cumulative": 10000000
+    },
+    {
+     "month": "2027-09",
+     "save": 1000000,
+     "cumulative": 11000000
+    },
+    {
+     "month": "2027-10",
+     "save": 1000000,
+     "cumulative": 12000000
+    }
+   ],
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 3000000,
+    "spending": 2045700,
+    "surplus": 954300,
+    "category_avg": {
+     "월세/관리비": 600000,
+     "외식": 264200,
+     "교통": 49500,
+     "식비": 293700,
+     "문화/여가": 115300,
+     "쇼핑": 278700,
+     "가족지원": 200000,
+     "카페": 30200,
+     "통신비": 39000,
+     "경조사/기타": 105100,
+     "보험": 70000
+    }
+   }
+  }
+ },
+ "frugal_saver|save_20m_12": {
+  "intent": {
+   "goal_type": "save_amount",
+   "title": "t",
+   "target_amount": 20000000,
+   "months": 12,
+   "category": null,
+   "monthly_limit": null,
+   "needs_clarification": null
+  },
+  "start": "2026-11",
+  "assessment": {
+   "type": "save_amount",
+   "status": "infeasible",
+   "required_monthly": 1666700,
+   "monthly_capacity": 954300,
+   "gap": 712400,
+   "category_cuts": {},
+   "max_cuttable_total": 206500,
+   "alt_months": 18,
+   "schedule": [
+    {
+     "month": "2026-11",
+     "save": 1666700,
+     "cumulative": 1666700
+    },
+    {
+     "month": "2026-12",
+     "save": 1666700,
+     "cumulative": 3333400
+    },
+    {
+     "month": "2027-01",
+     "save": 1666700,
+     "cumulative": 5000100
+    },
+    {
+     "month": "2027-02",
+     "save": 1666700,
+     "cumulative": 6666800
+    },
+    {
+     "month": "2027-03",
+     "save": 1666700,
+     "cumulative": 8333500
+    },
+    {
+     "month": "2027-04",
+     "save": 1666700,
+     "cumulative": 10000200
+    },
+    {
+     "month": "2027-05",
+     "save": 1666700,
+     "cumulative": 11666900
+    },
+    {
+     "month": "2027-06",
+     "save": 1666700,
+     "cumulative": 13333600
+    },
+    {
+     "month": "2027-07",
+     "save": 1666700,
+     "cumulative": 15000300
+    },
+    {
+     "month": "2027-08",
+     "save": 1666700,
+     "cumulative": 16667000
+    },
+    {
+     "month": "2027-09",
+     "save": 1666700,
+     "cumulative": 18333700
+    },
+    {
+     "month": "2027-10",
+     "save": 1666700,
+     "cumulative": 20000000
+    }
+   ],
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 3000000,
+    "spending": 2045700,
+    "surplus": 954300,
+    "category_avg": {
+     "월세/관리비": 600000,
+     "외식": 264200,
+     "교통": 49500,
+     "식비": 293700,
+     "문화/여가": 115300,
+     "쇼핑": 278700,
+     "가족지원": 200000,
+     "카페": 30200,
+     "통신비": 39000,
+     "경조사/기타": 105100,
+     "보험": 70000
+    }
+   }
+  }
+ },
+ "frugal_saver|save_1m_6": {
+  "intent": {
+   "goal_type": "save_amount",
+   "title": "t",
+   "target_amount": 1000000,
+   "months": 6,
+   "category": null,
+   "monthly_limit": null,
+   "needs_clarification": null
+  },
+  "start": "2026-11",
+  "assessment": {
+   "type": "save_amount",
+   "status": "comfortable",
+   "required_monthly": 166700,
+   "monthly_capacity": 954300,
+   "gap": 0,
+   "category_cuts": {},
+   "max_cuttable_total": 206500,
+   "alt_months": null,
+   "schedule": [
+    {
+     "month": "2026-11",
+     "save": 166700,
+     "cumulative": 166700
+    },
+    {
+     "month": "2026-12",
+     "save": 166700,
+     "cumulative": 333400
+    },
+    {
+     "month": "2027-01",
+     "save": 166700,
+     "cumulative": 500100
+    },
+    {
+     "month": "2027-02",
+     "save": 166700,
+     "cumulative": 666800
+    },
+    {
+     "month": "2027-03",
+     "save": 166700,
+     "cumulative": 833500
+    },
+    {
+     "month": "2027-04",
+     "save": 166700,
+     "cumulative": 1000000
+    }
+   ],
+   "baseline": {
+    "months": [
+     "2026-08",
+     "2026-09",
+     "2026-10"
+    ],
+    "income": 3000000,
+    "spending": 2045700,
+    "surplus": 954300,
+    "category_avg": {
+     "월세/관리비": 600000,
+     "외식": 264200,
+     "교통": 49500,
+     "식비": 293700,
+     "문화/여가": 115300,
+     "쇼핑": 278700,
+     "가족지원": 200000,
+     "카페": 30200,
+     "통신비": 39000,
+     "경조사/기타": 105100,
+     "보험": 70000
+    }
+   }
+  }
+ }
+}

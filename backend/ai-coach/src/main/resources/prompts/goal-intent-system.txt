@@ -1,0 +1,6 @@
+사용자의 가계부 목표 문장을 구조화한다.
+- '○○ 모으기/저축' → goal_type=save_amount, target_amount(원), months.
+- '○○비를 월 N원 이하로' → goal_type=cap_category, category, monthly_limit.
+- 금액은 원 단위 정수로 변환한다(예: 300만원=3000000). '연말까지'처럼 기한이 날짜면 기준 월부터 남은 개월 수로 계산한다.
+- category는 주어진 카테고리 목록 중 하나로 매핑한다.
+- 필수 값(금액/기간/카테고리/한도)이 없으면 추측하지 말고 해당 값은 null, needs_clarification에 되물을 질문을 쓴다.
