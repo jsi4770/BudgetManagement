@@ -43,7 +43,7 @@ class DemoAccountSeederTest {
 
     @BeforeEach
     void setUp() {
-        seeder = new DemoAccountSeeder(userRepository, passwordEncoder, userService, devSeedService);
+        seeder = new DemoAccountSeeder(new DemoAccountService(userRepository, passwordEncoder, userService, devSeedService));
     }
 
     @Test
@@ -51,7 +51,7 @@ class DemoAccountSeederTest {
     void seedsTheDemoAccount() {
         seeder.seed();
 
-        User user = userRepository.findByEmail(DemoAccountSeeder.EMAIL).orElseThrow();
+        User user = userRepository.findByEmail(DemoAccountService.EMAIL).orElseThrow();
         assertThat(user.getUsername()).isEqualTo("dummy123");
         assertThat(passwordEncoder.matches("dummy123!", user.getPasswordHash())).isTrue();
         assertThat(user.getRegionCode()).isEqualTo("44130");
@@ -69,7 +69,7 @@ class DemoAccountSeederTest {
         seeder.seed();
 
         assertThat(userRepository.findAll())
-                .filteredOn(u -> DemoAccountSeeder.EMAIL.equals(u.getEmail()))
+                .filteredOn(u -> DemoAccountService.EMAIL.equals(u.getEmail()))
                 .hasSize(1);
         assertThat(transactionRepository.count()).isEqualTo(before);
     }

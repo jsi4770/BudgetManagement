@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class DevSeedController {
 
     private final DevSeedService devSeedService;
+    private final DemoAccountService demoAccountService;
 
     /**
      * {@code scenario} 가 필수라 {@code @Valid} 가 붙는다 — DEV-02 와 다른 점이고 이유는
@@ -53,5 +54,19 @@ public class DevSeedController {
     public ApiResponse<SeedResponse> seed(@AuthenticationPrincipal AuthUser authUser,
                                           @RequestBody @Valid SeedRequest request) {
         return ApiResponse.ok(devSeedService.seed(authUser.id(), request));
+    }
+
+    @Operation(summary = "DEV-03 시연 계정처럼 초기화", description = """
+            **내 계정**을 시연 계정(`dummy123@dummy123.com`)과 같은 상태로 만듭니다. 처음 가입한 계정으로도
+            버튼 하나로 시연을 시작할 수 있게 하는 용도입니다.
+
+            - 온보딩을 천안·25세·선택 안 함으로 덮어쓰기
+            - DEV-01 `DELIVERY_SPIKE` 를 **오늘 기준으로** 다시 깔기(내 거래·예산·넛지·코칭·챌린지·리포트 삭제)
+            - **닉네임·비밀번호는 그대로**
+
+            본문은 없습니다. 응답은 DEV-01 과 같습니다.""")
+    @PostMapping("/demo-account/reset")
+    public ApiResponse<SeedResponse> resetAsDemo(@AuthenticationPrincipal AuthUser authUser) {
+        return ApiResponse.ok(demoAccountService.resetAsDemo(authUser.id()));
     }
 }
