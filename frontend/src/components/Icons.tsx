@@ -1,6 +1,53 @@
-const p = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
-export const HomeIcon = () => <svg viewBox="0 0 24 24" {...p}><path d="M3 11l9-8 9 8M5 10v10h14V10" /></svg>
-export const ListIcon = () => <svg viewBox="0 0 24 24" {...p}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" /></svg>
-export const ChatIcon = () => <svg viewBox="0 0 24 24" {...p}><path d="M21 12a8 8 0 01-11.6 7.1L3 21l1.9-5.6A8 8 0 1121 12z" /></svg>
-export const StoreIcon = () => <svg viewBox="0 0 24 24" {...p}><path d="M4 9l1.5-5h13L20 9M4 9v11h16V9M4 9c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3s3-1.3 3-3c0 1.7 1.3 3 3 3" /></svg>
-export const UserIcon = () => <svg viewBox="0 0 24 24" {...p}><circle cx="12" cy="8" r="4" /><path d="M4 21c1-4 4-6 8-6s7 2 8 6" /></svg>
+import aiCoach from '../assets/icons/ai-coach.png'
+import cafe from '../assets/icons/cafe.png'
+import category from '../assets/icons/category.png'
+import delivery from '../assets/icons/delivery.png'
+import pig from '../assets/icons/dont-worry-pig.png'
+import gift from '../assets/icons/gift.png'
+import home from '../assets/icons/home.png'
+import ledger from '../assets/icons/ledger.png'
+import location from '../assets/icons/location.png'
+import my from '../assets/icons/my.png'
+import rent from '../assets/icons/rent.png'
+import shopping from '../assets/icons/shopping.png'
+import transport from '../assets/icons/transport.png'
+import wallet from '../assets/icons/wallet.png'
+
+const SRC: Record<string, string> = {
+  home, ledger, 'ai-coach': aiCoach, location, my,
+  shopping, delivery, cafe, transport, rent, wallet, gift, category,
+}
+
+const CATEGORY: Record<string, string> = {
+  식비: 'shopping',
+  배달: 'delivery',
+  카페: 'cafe',
+  교통: 'transport',
+  월세: 'rent',
+  급여: 'wallet',
+  용돈: 'gift',
+  기타: 'category',
+}
+
+export function Icon({ name, size = 22 }: { name: string; size?: number }) {
+  const src = SRC[name] ?? category
+  return <img src={src} width={size} height={size} alt="" style={{ width: size, height: size, display: 'block', flex: 'none', objectFit: 'contain' }} />
+}
+
+export function CategoryMark({ name }: { name: string }) {
+  return (
+    <span className="cat-ico">
+      <Icon name={CATEGORY[name] ?? 'category'} size={18} />
+    </span>
+  )
+}
+
+export function PigLogo({ size = 96 }: { size?: number }) {
+  return <img className="pig" src={pig} width={size} height={size} alt="" />
+}
+
+export const HomeIcon = () => <Icon name="home" />
+export const ListIcon = () => <Icon name="ledger" />
+export const ChatIcon = () => <Icon name="ai-coach" />
+export const StoreIcon = () => <Icon name="location" />
+export const UserIcon = () => <Icon name="my" />
