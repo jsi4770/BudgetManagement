@@ -18,8 +18,9 @@ import java.util.Set;
 /**
  * RCPT-01 영수증 OCR 분석 (명세 7장 · 서버_내부_처리 9장).
  *
- * <p>서버가 <b>한 번에</b> 처리한다: 이미지 검사 → 분석({@link ReceiptOcrClient}) → TX-07 과 같은 응답.
- * 응답 조립은 {@link TransactionService#assemble} 를 그대로 쓴다 — {@code missingFields} 규칙과 422 조건이
+ * <p>서버가 <b>한 번에</b> 처리한다: 이미지 검사 → 분석({@link ReceiptOcrClient}) → 항목마다 TX-07 과 같은
+ * 형식인 <b>배열</b> 응답(영수증 1건, 금융 앱 캡처는 여러 건). 조립은 {@link TransactionService#assembleAll} —
+ * TX-07 의 {@link TransactionService#assemble} 과 같은 규칙을 쓴다 — {@code missingFields} 규칙과 422 조건이
  * 두 벌이 되면 같은 확인 화면에 서로 다른 계약이 내려간다.
  *
  * <p><b>아무것도 저장하지 않는다</b>(SNFR-008 · 9장): 이미지는 메모리에서 분석기로 넘어가고 응답 후
@@ -46,13 +47,13 @@ public class ReceiptOcrService {
      * @throws BusinessException 415 {@code UNSUPPORTED_FILE_TYPE} / 502 {@code OCR_FAILED} /
      *                           503 {@code AI_UNAVAILABLE} / 422 {@code AI_PARSE_FAILED}
      */
-    public ParsedTransactionResponse analyze(MultipartFile image) {
+    public List<ParsedTransactionResponse> analyze(MultipartFile image) {
         ReceiptImage receipt = toReceiptImage(image);
 
         List<CategoryResponse> categories = transactionService.selectableCategories();
-        ParsedTransaction parsed = receiptOcrClient.analyze(receipt, categories);
+        List<ParsedTransaction> parsed = receiptOcrClient.analyze(receipt, categories);
 
-        return transactionService.assemble(parsed, categories);
+        return transactionService.assembleAll(parsed, categories);
     }
 
     /**

@@ -173,6 +173,33 @@ public class TransactionService {
      * @throws BusinessException 422 {@code AI_PARSE_FAILED} — 필수 세 필드를 모두 못 뽑음
      */
     public ParsedTransactionResponse assemble(ParsedTransaction parsed, List<CategoryResponse> categories) {
+        ParsedTransactionResponse response = toParsedResponse(parsed, categories);
+        if (response.missingFields().size() == REQUIRED_PARSED_FIELD_COUNT) {
+            throw new BusinessException(ErrorCode.AI_PARSE_FAILED);
+        }
+        return response;
+    }
+
+    /**
+     * {@link #assemble} 의 다건판 (RCPT-01 — 금융 앱 캡처는 한 장에 여러 건). 규칙은 같고, 필수 셋을 모두
+     * 못 뽑은 항목은 422 대신 <b>빼고</b> 준다 — 한 줄이 흐리다고 나머지까지 버리지 않는다. 순서는 유지한다.
+     *
+     * @throws BusinessException 422 {@code AI_PARSE_FAILED} — 남는 항목이 없음(빈 목록 포함)
+     */
+    public List<ParsedTransactionResponse> assembleAll(List<ParsedTransaction> parsed,
+                                                       List<CategoryResponse> categories) {
+        List<ParsedTransactionResponse> responses = parsed.stream()
+                .map(p -> toParsedResponse(p, categories))
+                .filter(r -> r.missingFields().size() < REQUIRED_PARSED_FIELD_COUNT)
+                .toList();
+        if (responses.isEmpty()) {
+            throw new BusinessException(ErrorCode.AI_PARSE_FAILED);
+        }
+        return responses;
+    }
+
+    private static ParsedTransactionResponse toParsedResponse(ParsedTransaction parsed,
+                                                              List<CategoryResponse> categories) {
         CategoryResponse category = findCategory(categories, parsed.categoryId());
 
         List<String> missingFields = new ArrayList<>();
@@ -184,10 +211,6 @@ public class TransactionService {
         }
         if (category == null) {
             missingFields.add("category");
-        }
-
-        if (missingFields.size() == REQUIRED_PARSED_FIELD_COUNT) {
-            throw new BusinessException(ErrorCode.AI_PARSE_FAILED);
         }
 
         return new ParsedTransactionResponse(

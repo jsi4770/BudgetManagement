@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 /**
  * 이 프로젝트에서 <b>유일한 {@code multipart/form-data} 엔드포인트</b>다. 그래서
  * {@code spring.servlet.multipart.*} 설정과 {@code MaxUploadSizeExceededException} 핸들러도
@@ -43,8 +45,11 @@ public class ReceiptOcrController {
      * 형식(jpg/png) 검사는 서비스가 한다.
      */
     @Operation(summary = "RCPT-01 영수증 OCR 분석", description = """
-            이미지 → OCR → 지출 정보 추출까지 **서버가 한 번에** 처리합니다.
-            프론트는 TX-07 을 따로 부르지 않고, 응답 형식이 TX-07 과 같아서 확인 화면을 재사용할 수 있습니다.
+            이미지 → OCR → 거래 정보 추출까지 **서버가 한 번에** 처리합니다.
+            영수증 사진은 보통 1건, 금융 앱(은행·토스 등) 거래내역 캡처는 **여러 건**(입금 포함)이 나옵니다.
+            `data` 는 **배열**이고(이미지 속 위 → 아래 순서), 항목 하나는 TX-07 응답과 같은 형식입니다.
+            확인·수정한 뒤 TX-01 에 배열 그대로 넣으면 한 번에 저장됩니다.
+            금액·날짜·카테고리를 모두 못 읽은 항목은 빠지고, 남는 항목이 없으면 422 입니다.
 
             `image` 파트에 jpg 또는 png, 최대 10MB. 아이폰 HEIC 는 **프론트에서 JPG 로 변환**해 보내세요
             (미변환 HEIC 는 415). 결과를 돌려준 뒤 이미지는 즉시 폐기됩니다.
@@ -57,7 +62,7 @@ public class ReceiptOcrController {
             `415 UNSUPPORTED_FILE_TYPE`(jpg·png 아님, 빈 파일, AI 가 직접 읽는 경로에서 이미지를 읽을 수 없음), `502 OCR_FAILED`,
             `503 AI_UNAVAILABLE`, `422 AI_PARSE_FAILED`""")
     @PostMapping(path = "/ocr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<ParsedTransactionResponse> analyze(@RequestPart("image") MultipartFile image) {
+    public ApiResponse<List<ParsedTransactionResponse>> analyze(@RequestPart("image") MultipartFile image) {
         return ApiResponse.ok(receiptOcrService.analyze(image));
     }
 }

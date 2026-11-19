@@ -4,6 +4,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.BufferingClientHttpRequestFactory;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
@@ -23,9 +24,12 @@ public class OcrConfig {
         factory.setConnectTimeout(3_000);
         factory.setReadTimeout((int) props.timeout().toMillis());
 
+        // 본문을 모아서 Content-Length 로 보낸다. Spring 6.1+ 의 SimpleClientHttpRequestFactory 는
+        // 버퍼링하지 않아 multipart 가 chunked 로 나가는데, Django runserver 는 chunked 본문을 읽지 못하고
+        // 400 "Bad request syntax" 로 거절한다. 이미지는 최대 10MB 라 메모리에 모아도 된다.
         return RestClient.builder()
                 .baseUrl(props.baseUrl())
-                .requestFactory(factory)
+                .requestFactory(new BufferingClientHttpRequestFactory(factory))
                 .build();
     }
 }

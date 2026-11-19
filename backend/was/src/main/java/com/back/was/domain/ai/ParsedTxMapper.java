@@ -42,7 +42,15 @@ public final class ParsedTxMapper {
         if (r == null || !r.path("isTransaction").asBoolean(false)) {
             throw new BusinessException(ErrorCode.AI_PARSE_FAILED);
         }
+        return toParsedItem(r, base, fillToday, categories);
+    }
 
+    /**
+     * {@code isTransaction} 판정 없이 항목 하나를 정규화한다. 영수증·금융 앱 캡처처럼 "거래가 아님"을
+     * 빈 목록으로 알리는 다건 응답의 각 항목에 쓴다.
+     */
+    public static ParsedTransaction toParsedItem(JsonNode r, LocalDate base, boolean fillToday,
+                                                 List<CategoryResponse> categories) {
         Integer amount = null;
         JsonNode a = r.path("amount");
         if (a.isIntegralNumber() && a.asLong() >= 1 && a.asLong() <= Integer.MAX_VALUE) {

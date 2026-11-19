@@ -14,6 +14,7 @@ import org.springframework.web.client.RestClient;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
+import java.util.List;
 
 import static com.back.was.domain.ai.AiTestFixtures.CATEGORIES;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,9 +52,9 @@ class DjangoReceiptOcrClientTest {
                          "memo":"배달의민족 주문","missingFields":[]}}
                         """, MediaType.APPLICATION_JSON));
 
-        ParsedTransaction p = client.analyze(IMAGE, CATEGORIES);
+        List<ParsedTransaction> p = client.analyze(IMAGE, CATEGORIES);
 
-        assertThat(p).isEqualTo(new ParsedTransaction(23_500, LocalDate.of(2026, 11, 4), 2L, "배달의민족 주문"));
+        assertThat(p).containsExactly(new ParsedTransaction(23_500, LocalDate.of(2026, 11, 4), 2L, "배달의민족 주문"));
         server.verify();
     }
 
@@ -83,9 +84,63 @@ class DjangoReceiptOcrClientTest {
                          "memo":"   ","missingFields":["amount","transactionDate","memo"]}}
                         """, MediaType.APPLICATION_JSON));
 
-        ParsedTransaction p = client.analyze(IMAGE, CATEGORIES);
+        List<ParsedTransaction> p = client.analyze(IMAGE, CATEGORIES);
 
-        assertThat(p).isEqualTo(new ParsedTransaction(null, null, 2L, null));
+        assertThat(p).containsExactly(new ParsedTransaction(null, null, 2L, null));
+    }
+
+    @Test
+    @DisplayName("다건 응답(data.items, 2026-11-18~)의 1건짜리 영수증을 읽는다")
+    void readsSingleItemFromItems() {
+        server.expect(requestTo("http://ocr.test/receipts/ocr"))
+                .andRespond(withSuccess("""
+                        {"success":true,"data":{"items":[
+                          {"amount":9500,"transactionDate":"2026-11-19","category":{"id":1,"name":"식비","type":"EXPENSE"},
+                           "memo":"김밥천국","missingFields":[]}]}}
+                        """, MediaType.APPLICATION_JSON));
+
+        List<ParsedTransaction> p = client.analyze(IMAGE, CATEGORIES);
+
+        assertThat(p).containsExactly(new ParsedTransaction(9_500, LocalDate.of(2026, 11, 19), 1L, "김밥천국"));
+    }
+
+    @Test
+    @DisplayName("여러 건(금융 앱 캡처)은 모두, 받은 순서대로 돌려준다")
+    void returnsAllItemsInOrder() {
+        server.expect(requestTo("http://ocr.test/receipts/ocr"))
+                .andRespond(withSuccess("""
+                        {"success":true,"data":{"items":[
+                          {"amount":500000,"transactionDate":"2026-11-18","category":{"id":8,"name":"용돈","type":"INCOME"},
+                           "memo":"부모님 송금","missingFields":[]},
+                          {"amount":4500,"transactionDate":"2026-11-18","category":{"id":3,"name":"카페","type":"EXPENSE"},
+                           "memo":"스타벅스","missingFields":[]}]}}
+                        """, MediaType.APPLICATION_JSON));
+
+        List<ParsedTransaction> p = client.analyze(IMAGE, CATEGORIES);
+
+        assertThat(p).containsExactly(
+                new ParsedTransaction(500_000, LocalDate.of(2026, 11, 18), 8L, "부모님 송금"),
+                new ParsedTransaction(4_500, LocalDate.of(2026, 11, 18), 3L, "스타벅스"));
+    }
+
+    @Test
+    @DisplayName("거래를 하나도 못 찾으면(items 빈 배열) 빈 목록 — 서비스가 422 AI_PARSE_FAILED 로 바꾼다")
+    void emptyItemsIsEmptyList() {
+        server.expect(requestTo("http://ocr.test/receipts/ocr"))
+                .andRespond(withSuccess("{\"success\":true,\"data\":{\"items\":[]}}", MediaType.APPLICATION_JSON));
+
+        assertThat(client.analyze(IMAGE, CATEGORIES)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("items 가 배열이 아니면 계약 위반 — 502 OCR_FAILED")
+    void nonArrayItemsIsOcrFailed() {
+        server.expect(requestTo("http://ocr.test/receipts/ocr"))
+                .andRespond(withSuccess("{\"success\":true,\"data\":{\"items\":{\"amount\":1000}}}", MediaType.APPLICATION_JSON));
+
+        assertThatThrownBy(() -> client.analyze(IMAGE, CATEGORIES))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        e -> assertThat(e.getErrorCode()).isEqualTo(ErrorCode.OCR_FAILED));
     }
 
     @Test
