@@ -3,6 +3,7 @@ import { api } from '../api';
 import { Loading, TransactionRow, Usage } from '../components/common';
 import { greetingDate, percent, won, yearMonth } from '../format';
 import { Icon } from '../icons';
+import { PolicyRoller } from '../components/PolicyRoller';
 
 function goalText(item) {
   return item.goalType === 'COUNT' ? `${item.goalCount ?? 0}회` : won(item.goalAmount);
@@ -17,6 +18,7 @@ export function Home({ c }) {
   const [transactions, setTransactions] = useState([]);
   const [challenges, setChallenges] = useState([]);
   const [nudge, setNudge] = useState(null);
+  const [policies, setPolicies] = useState([]);
   const [challengeOpen, setChallengeOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -25,13 +27,16 @@ export function Home({ c }) {
     let cancel = false;
     (async () => {
       try {
-        const [summary, page, active, current] = await Promise.all([
+        const [summary, page, active, current, recommended] = await Promise.all([
           api.monthly(yearMonth()),
           api.transactions({ size: 3 }),
           api.challenges('IN_PROGRESS').catch(() => []),
           api.currentNudge().catch(() => null),
+          // 정책 영역이 실패해도 나머지 홈 화면은 그대로 보여준다.
+          api.youthPolicies(10).catch(() => []),
         ]);
         if (cancel) return;
+        setPolicies(recommended || []);
         setMonthly(summary);
         setTransactions(page?.items || []);
         setChallenges(active || []);
@@ -62,6 +67,7 @@ export function Home({ c }) {
       <div className="t2">{greetingDate()}</div>
       <h1 className="h1" style={{ margin: '2px 0 20px' }}>{c.user?.username || '회원'}님, 안녕하세요 👋</h1>
       {error && <div className="err">{error}</div>}
+      <PolicyRoller policies={policies} regionName={c.user?.regionName} />
       <div className="card">
         <div className="t2">남은 생활비</div>
         {remaining == null ? (

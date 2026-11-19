@@ -92,30 +92,60 @@ class ReceiptOcrApiTest {
     // --- 정상 흐름 (OCR·Claude 가 붙었을 때) --------------------------------
 
     @Test
-    @DisplayName("명세 RCPT-01: 이미지 → OCR → 정리 결과를 TX-07 과 같은 형식으로 준다")
+    @DisplayName("명세 RCPT-01: 이미지 → OCR → 정리 결과를 배열로 준다. 항목 하나는 TX-07 과 같은 형식")
     void analyzesAReceipt() throws Exception {
-        given(receiptOcrClient.analyze(any(), any())).willReturn(new ParsedTransaction(
-                23_500, RECEIPT_DATE, DELIVERY, "배달의민족 주문"));
+        given(receiptOcrClient.analyze(any(), any())).willReturn(List.of(new ParsedTransaction(
+                23_500, RECEIPT_DATE, DELIVERY, "배달의민족 주문")));
 
         mockMvc.perform(upload(jpeg()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.amount").value(23_500))
-                .andExpect(jsonPath("$.data.transactionDate").value("2026-11-04"))
-                .andExpect(jsonPath("$.data.category.id").value(DELIVERY))
-                .andExpect(jsonPath("$.data.category.name").value("배달"))
+                .andExpect(jsonPath("$.data", Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.data[0].amount").value(23_500))
+                .andExpect(jsonPath("$.data[0].transactionDate").value("2026-11-04"))
+                .andExpect(jsonPath("$.data[0].category.id").value(DELIVERY))
+                .andExpect(jsonPath("$.data[0].category.name").value("배달"))
                 // TX-07 과 같은 형식이라 category 에 type 이 있다 (CategoryResponse)
-                .andExpect(jsonPath("$.data.category.type").value("EXPENSE"))
-                .andExpect(jsonPath("$.data.memo").value("배달의민족 주문"))
-                .andExpect(jsonPath("$.data.missingFields", Matchers.empty()));
+                .andExpect(jsonPath("$.data[0].category.type").value("EXPENSE"))
+                .andExpect(jsonPath("$.data[0].memo").value("배달의민족 주문"))
+                .andExpect(jsonPath("$.data[0].missingFields", Matchers.empty()));
+    }
+
+    @Test
+    @DisplayName("금융 앱 캡처처럼 여러 건이면 모두 받은 순서대로 준다 — 확인 후 TX-01 한 번에 저장")
+    void returnsEveryItem() throws Exception {
+        given(receiptOcrClient.analyze(any(), any())).willReturn(List.of(
+                new ParsedTransaction(500_000, RECEIPT_DATE, 8L, "부모님 송금"),
+                new ParsedTransaction(4_500, RECEIPT_DATE, 3L, "스타벅스")));
+
+        mockMvc.perform(upload(jpeg()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", Matchers.hasSize(2)))
+                .andExpect(jsonPath("$.data[0].amount").value(500_000))
+                .andExpect(jsonPath("$.data[0].category.type").value("INCOME"))
+                .andExpect(jsonPath("$.data[1].amount").value(4_500))
+                .andExpect(jsonPath("$.data[1].category.name").value("카페"));
+    }
+
+    @Test
+    @DisplayName("필수 셋을 모두 못 읽은 항목은 빼고 준다 — 확인 화면에 빈 줄을 띄우지 않는다")
+    void dropsItemsWithNothingRead() throws Exception {
+        given(receiptOcrClient.analyze(any(), any())).willReturn(List.of(
+                new ParsedTransaction(null, null, null, "흐린 줄"),
+                new ParsedTransaction(4_500, RECEIPT_DATE, 3L, "스타벅스")));
+
+        mockMvc.perform(upload(jpeg()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", Matchers.hasSize(1)))
+                .andExpect(jsonPath("$.data[0].memo").value("스타벅스"));
     }
 
     @Test
     @DisplayName("DB 카테고리 목록이 분석기로 넘어간다 — 모델이 실제 id 중에서 골라야 한다")
     @SuppressWarnings("unchecked")
     void passesCategoriesToTheClient() throws Exception {
-        given(receiptOcrClient.analyze(any(), any())).willReturn(new ParsedTransaction(
-                23_500, RECEIPT_DATE, DELIVERY, null));
+        given(receiptOcrClient.analyze(any(), any())).willReturn(List.of(new ParsedTransaction(
+                23_500, RECEIPT_DATE, DELIVERY, null)));
 
         mockMvc.perform(upload(jpeg())).andExpect(status().isOk());
 
@@ -131,8 +161,8 @@ class ReceiptOcrApiTest {
     @Test
     @DisplayName("업로드한 바이트와 타입이 OCR 포트로 넘어간다 — 어댑터가 쓸 값이다")
     void passesTheImageToTheOcrPort() throws Exception {
-        given(receiptOcrClient.analyze(any(), any())).willReturn(new ParsedTransaction(
-                23_500, RECEIPT_DATE, DELIVERY, null));
+        given(receiptOcrClient.analyze(any(), any())).willReturn(List.of(new ParsedTransaction(
+                23_500, RECEIPT_DATE, DELIVERY, null)));
 
         mockMvc.perform(upload(jpeg())).andExpect(status().isOk());
 
@@ -146,20 +176,20 @@ class ReceiptOcrApiTest {
     @DisplayName("일부만 추출되면 missingFields 로 알린다 — TX-07 과 같은 규칙이다")
     void partialExtractionIsNormal() throws Exception {
         // 날짜를 못 읽은 영수증 (구겨진 사진 등)
-        given(receiptOcrClient.analyze(any(), any())).willReturn(new ParsedTransaction(
-                23_500, null, DELIVERY, null));
+        given(receiptOcrClient.analyze(any(), any())).willReturn(List.of(new ParsedTransaction(
+                23_500, null, DELIVERY, null)));
 
         mockMvc.perform(upload(jpeg()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.transactionDate").value(Matchers.nullValue()))
-                .andExpect(jsonPath("$.data.missingFields", Matchers.contains("transactionDate")));
+                .andExpect(jsonPath("$.data[0].transactionDate").value(Matchers.nullValue()))
+                .andExpect(jsonPath("$.data[0].missingFields", Matchers.contains("transactionDate")));
     }
 
     @Test
     @DisplayName("png 도 받는다 (명세 RCPT-01: jpg / png)")
     void acceptsPng() throws Exception {
-        given(receiptOcrClient.analyze(any(), any())).willReturn(new ParsedTransaction(
-                23_500, RECEIPT_DATE, DELIVERY, null));
+        given(receiptOcrClient.analyze(any(), any())).willReturn(List.of(new ParsedTransaction(
+                23_500, RECEIPT_DATE, DELIVERY, null)));
 
         mockMvc.perform(upload(new MockMultipartFile(
                         "image", "receipt.png", "image/png", "fake-png".getBytes())))
@@ -195,10 +225,20 @@ class ReceiptOcrApiTest {
         }
 
         @Test
-        @DisplayName("셋 다 못 뽑으면 422 AI_PARSE_FAILED — TX-07 과 같은 조건이다")
+        @DisplayName("남는 항목이 없으면 422 AI_PARSE_FAILED — 모든 항목이 셋 다 못 뽑힘(TX-07 과 같은 조건)")
         void nothingExtractedIsUnprocessable() throws Exception {
             given(receiptOcrClient.analyze(any(), any()))
-                    .willReturn(new ParsedTransaction(null, null, null, null));
+                    .willReturn(List.of(new ParsedTransaction(null, null, null, null)));
+
+            mockMvc.perform(upload(jpeg()))
+                    .andExpect(status().isUnprocessableContent())
+                    .andExpect(jsonPath("$.error.code").value("AI_PARSE_FAILED"));
+        }
+
+        @Test
+        @DisplayName("거래를 하나도 못 찾으면(빈 목록) 422 AI_PARSE_FAILED")
+        void noItemsIsUnprocessable() throws Exception {
+            given(receiptOcrClient.analyze(any(), any())).willReturn(List.of());
 
             mockMvc.perform(upload(jpeg()))
                     .andExpect(status().isUnprocessableContent())

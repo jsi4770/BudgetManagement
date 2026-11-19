@@ -49,8 +49,16 @@ export function Auth({ c, mode }) {
         ? await api.signup({ username: username.trim(), email: email.trim(), password })
         : await api.login({ email: email.trim(), password });
       setToken(data.accessToken);
-      c.setUser(data.user);
-      c.go(signup || data.hasBudget === false ? 'S004' : 'S005');
+      // 인증 응답의 user 에는 지역·온보딩 정보가 없어서 /users/me 로 다시 받는다.
+      const me = await api.me().catch(() => data.user);
+      c.setUser(me);
+      const next = signup || data.hasBudget === false ? 'S004' : 'S005';
+      if (me?.onboardingCompleted === false) {
+        c.setAfterProfile(next);
+        c.go('S018');
+      } else {
+        c.go(next);
+      }
     } catch (err) {
       setError(err.message);
     } finally {

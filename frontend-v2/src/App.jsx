@@ -10,7 +10,9 @@ import { Home } from './screens/HomeScreen';
 import { Analysis, AnalysisChat, NudgeDetail } from './screens/InsightScreens';
 import { Loading } from './components/common';
 import { AiInput, CategoryTransactions, Ledger, ManualEntry, ReceiptOcr } from './screens/LedgerScreens';
+import { Merchants } from './screens/MerchantsScreen';
 import { MyPage } from './screens/MyScreen';
+import { Profile } from './screens/ProfileScreen';
 
 const NAV = [
   ['S005', 'home', '홈'],
@@ -32,6 +34,7 @@ export default function App() {
   const [toast, setToast] = useState('');
   const [sheet, setSheet] = useState(false);
   const [ready, setReady] = useState(false);
+  const [afterProfile, setAfterProfile] = useState('S005');
 
   const say = (message) => {
     setToast(message);
@@ -59,7 +62,7 @@ export default function App() {
         const me = await api.me();
         if (cancel) return;
         setUser(me);
-        setScreen('S005');
+        setScreen(me?.onboardingCompleted === false ? 'S018' : 'S005');
       } catch {
         setToken(null);
       } finally {
@@ -72,6 +75,7 @@ export default function App() {
   const c = {
     user, setUser, draft, setDraft, nudgeId, setNudgeId,
     coachingId, setCoachingId, challengeId, setChallengeId,
+    afterProfile, setAfterProfile,
     categoryFocus, categoryBack, go, say,
     openCategory: (category, back = 'S015') => {
       setCategoryFocus(category);
@@ -102,6 +106,8 @@ export default function App() {
     S014: <Report c={c} />,
     S015: <MyPage c={c} />,
     S016: <CategoryTransactions c={c} />,
+    S017: <Merchants c={c} />,
+    S018: <Profile c={c} />,
   }[screen];
 
   return (
