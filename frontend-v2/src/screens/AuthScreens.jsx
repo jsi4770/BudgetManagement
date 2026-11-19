@@ -21,7 +21,7 @@ export function Onboarding({ c }) {
       </p>
       <button type="button" className="btn" style={{ marginTop: 40 }} onClick={() => c.go('S002')}>시작하기</button>
       <button type="button" className="btn sub" onClick={() => c.go('S003')}>이미 계정이 있어요</button>
-      <button type="button" className="btn sub" onClick={() => c.preview()}>서버 없이 둘러보기</button>
+      <button type="button" className="btn sub" onClick={() => c.preview()}>시연용으로 로그인하기</button>
     </div>
   );
 }
