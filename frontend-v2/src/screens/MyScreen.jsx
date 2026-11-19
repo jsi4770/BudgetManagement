@@ -187,6 +187,16 @@ export function MyPage({ c }) {
           <div><b>{c.user?.username}</b><div className="t2">{c.user?.email}</div></div>
         </div>
       </div>
+      <button type="button" className="card row" style={{ width: '100%', textAlign: 'left' }} onClick={() => c.go('S017')}>
+        <div className="row" style={{ justifyContent: 'flex-start' }}>
+          <div className="ico"><Icon name="location" /></div>
+          <div>
+            <b>우리 동네 가맹점</b>
+            <div className="t2">{c.user?.regionName ? `${c.user.regionName} 지역화폐 사용처 보기` : '지역화폐 사용처 보기'}</div>
+          </div>
+        </div>
+        <span className="t2">›</span>
+      </button>
       {c.user?.role === 'ADMIN' && (
         <div className="card">
           <h2 className="h2" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
