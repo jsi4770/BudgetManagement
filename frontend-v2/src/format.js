@@ -134,7 +134,7 @@ export function focusLabel(id) {
 export function percent(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return 0;
-  return Math.round(number);
+  return Math.round(number * 100) / 100;
 }
 
 export function isIncome(category) {

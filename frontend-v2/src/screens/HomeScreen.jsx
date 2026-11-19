@@ -16,6 +16,7 @@ export function Home({ c }) {
   const [monthly, setMonthly] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [challenges, setChallenges] = useState([]);
+  const [nudge, setNudge] = useState(null);
   const [challengeOpen, setChallengeOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,15 +25,17 @@ export function Home({ c }) {
     let cancel = false;
     (async () => {
       try {
-        const [summary, page] = await Promise.all([
+        const [summary, page, active, current] = await Promise.all([
           api.monthly(yearMonth()),
           api.transactions({ size: 3 }),
+          api.challenges('IN_PROGRESS').catch(() => []),
+          api.currentNudge().catch(() => null),
         ]);
-        const active = await api.challenges('IN_PROGRESS').catch(() => []);
         if (cancel) return;
         setMonthly(summary);
         setTransactions(page?.items || []);
         setChallenges(active || []);
+        setNudge(current && current.status === 'UNREAD' ? current : null);
       } catch (err) {
         if (!cancel) setError(err.message);
       } finally {
@@ -41,6 +44,13 @@ export function Home({ c }) {
     })();
     return () => { cancel = true; };
   }, []);
+
+  const dismissNudge = async () => {
+    const id = nudge?.id;
+    setNudge(null);
+    if (!id) return;
+    try { await api.nudgeStatus(id, 'DISMISSED'); } catch { /* 닫은 카드는 다시 띄우지 않는다. */ }
+  };
 
   if (loading) return <div className="screen"><Loading /></div>;
 
@@ -73,6 +83,21 @@ export function Home({ c }) {
           <div style={{ textAlign: 'right' }}><div className="t2">총지출</div><b style={{ fontSize: 18 }}>-{won(monthly?.totalExpense)}</b></div>
         </div>
       </div>
+
+      {nudge && (
+        <div className="card nudge">
+          <div className="row">
+            <span className="chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Icon name="bell" size={14} /> 소비 증가</span>
+            <button type="button" className="t2" onClick={dismissNudge}>닫기</button>
+          </div>
+          <h2 className="h2" style={{ margin: '12px 0 6px' }}>{nudge.title}</h2>
+          <div className="t2">
+            {nudge.category?.name} {won(nudge.spendingAmount)} · 평소 이맘때 {won(nudge.avgAmount)}
+            {nudge.growthRate != null && ` · ${percent(nudge.growthRate) > 0 ? '+' : ''}${percent(nudge.growthRate)}%`}
+          </div>
+          <button type="button" className="btn sm" onClick={() => { c.setNudgeId(nudge.id); c.go('S011'); }}>자세히 보기</button>
+        </div>
+      )}
 
       <div className="card">
         <button type="button" className="row" onClick={() => setChallengeOpen((open) => !open)} style={{ width: '100%' }}>

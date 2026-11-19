@@ -157,9 +157,10 @@ function spentValue(challenge) {
   return challenge.goalType === 'COUNT' ? `${challenge.spendingCount}회` : won(challenge.spendingAmount);
 }
 
-export function Challenge() {
+export function Challenge({ c }) {
   const [items, setItems] = useState(null);
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let cancel = false;
@@ -169,6 +170,21 @@ export function Challenge() {
 
   const active = items?.find((item) => item.status === 'IN_PROGRESS');
   const done = (items || []).filter((item) => item.status !== 'IN_PROGRESS');
+
+  const finish = async (scenario) => {
+    if (!active || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await api.completeChallenge(active.id, scenario);
+      c.setChallengeId(active.id);
+      c.go('S014');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="screen">
@@ -189,17 +205,21 @@ export function Challenge() {
             <div><div className="t2">실제 소비</div><b className="h2">{spentValue(active)}</b></div>
             <div style={{ textAlign: 'right' }}><div className="t2">목표</div><b className="h2">{goalValue(active)}</b></div>
           </div>
+          {active.achievementRate != null && <div className="t2" style={{ marginTop: 8 }}>소비 한도의 {percent(active.achievementRate)}% 사용</div>}
+          <button type="button" className="btn sm" disabled={busy} onClick={() => finish(null)}>기간 종료 · 결과 보기</button>
+          <button type="button" className="btn sm sub" disabled={busy} onClick={() => finish('SUCCESS')}>달성 시나리오</button>
+          <button type="button" className="btn sm sub" disabled={busy} onClick={() => finish('FAILED')}>미달성 시나리오</button>
         </div>
       )}
       {done.length > 0 && (
         <div className="card">
           <h2 className="h2">완료된 챌린지</h2>
           {done.map((item) => (
-            <div className="tx" key={item.id}>
+            <button type="button" className="tx" key={item.id} style={{ width: '100%', textAlign: 'left' }} onClick={() => { c.setChallengeId(item.id); c.go('S014'); }}>
               <div className="ico"><Icon name={item.status === 'SUCCESS' ? 'trophy' : 'shield-check'} size={18} /></div>
               <div style={{ flex: 1 }}>{item.title}<div className="t2">실제 {spentValue(item)}</div></div>
               <span className="chip">{item.status === 'SUCCESS' ? '달성' : '미달성'}</span>
-            </div>
+            </button>
           ))}
         </div>
       )}

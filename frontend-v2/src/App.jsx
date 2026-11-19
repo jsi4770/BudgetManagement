@@ -5,9 +5,9 @@ import { todayISO } from './format';
 import { Icon } from './icons';
 import { PrefsProvider } from './prefs';
 import { Auth, Onboarding, Setup } from './screens/AuthScreens';
-import { Challenge } from './screens/CoachingScreens';
+import { Challenge, Coaching, Report } from './screens/CoachingScreens';
 import { Home } from './screens/HomeScreen';
-import { Analysis, AnalysisChat } from './screens/InsightScreens';
+import { Analysis, AnalysisChat, NudgeDetail } from './screens/InsightScreens';
 import { Loading } from './components/common';
 import { AiInput, CategoryTransactions, Ledger, ManualEntry, ReceiptOcr } from './screens/LedgerScreens';
 import { MyPage } from './screens/MyScreen';
@@ -96,7 +96,10 @@ export default function App() {
     S008: <AiInput c={c} />,
     S009: <ReceiptOcr c={c} />,
     S010: <Analysis c={c} />,
+    S011: <NudgeDetail c={c} />,
+    S012: <Coaching c={c} />,
     S013: <Challenge c={c} />,
+    S014: <Report c={c} />,
     S015: <MyPage c={c} />,
     S016: <CategoryTransactions c={c} />,
   }[screen];
